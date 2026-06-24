@@ -1,0 +1,111 @@
+# Agent guidance — OSS Framework
+
+This is the single source of truth for AI coding agents working in this
+repository (OSS_SPEC §7). Tool-specific files (`CLAUDE.md`, …) are symlinks to
+this file — never edit them directly.
+
+## What this project is
+
+`@niclaslindstedt/oss-framework` is an npm package of React components, hooks,
+and utilities for building local-first PWAs. It is seeded from functionality
+that exists today as near-duplicate copies inside two apps —
+[`notes`](https://github.com/niclaslindstedt/notes) and
+[`checklist`](https://github.com/niclaslindstedt/checklist): storage backends,
+encryption, themes, folders, namespaces, achievements, i18n, and
+swipe/gesture hooks. The goal is to extract that shared surface here so both
+apps depend on one implementation instead of hand-copying changes between
+each other.
+
+## Build / test / lint commands
+
+Use the Makefile targets (OSS_SPEC §9); CI invokes the same ones.
+
+| Command          | What it does                                    |
+| ---------------- | ----------------------------------------------- |
+| `make build`     | Bundle the library with tsup (ESM + CJS + d.ts) |
+| `make test`      | Run the Vitest suite                            |
+| `make lint`      | ESLint + `tsc --noEmit`, zero warnings          |
+| `make fmt`       | Format in place with Prettier                   |
+| `make fmt-check` | Verify formatting without writing               |
+| `make clean`     | Remove `dist/`                                  |
+
+`npm run <script>` works for every target too (see `package.json`).
+
+## Commit and PR conventions
+
+- **Conventional Commits** (OSS_SPEC §8.1): `feat`, `fix`, `perf`, `docs`,
+  `test`, `refactor`, `chore`. Scope is the module, e.g. `feat(hooks): …`.
+- Branch names: `feat/<slug>`, `fix/<slug>`.
+- PRs are squash-merged; the PR title must itself be a conventional-commit
+  subject (it becomes the squash commit).
+
+## Architecture and dependency direction
+
+```
+src/
+├── index.ts        barrel — re-exports the public surface
+├── hooks/          framework-agnostic React hooks (first to land)
+├── storage/        the StorageAdapter contract and its backends
+├── theme/          appearance store + theme projection engine
+└── encryption/     at-rest crypto + encrypt/decrypt migration queue
+```
+
+- `react` / `react-dom` are **peer** dependencies — never bundle them, never
+  add a second copy. Keep runtime deps minimal; prefer zero.
+- Code flows one way: leaf modules (`hooks`) must not import from feature
+  modules (`storage`, `theme`). Shared types live next to their contract.
+- Every public entry point is wired in `src/index.ts` (and, for a subpath
+  export, in `tsup.config.ts` + the `exports` map in `package.json`).
+
+## Where new code goes
+
+| Change type                      | Goes in                                                            |
+| -------------------------------- | ------------------------------------------------------------------ |
+| A new shared hook                | `src/hooks/` + re-export in `src/hooks/index.ts`                   |
+| A storage backend / adapter type | `src/storage/`                                                     |
+| Theme / appearance logic         | `src/theme/`                                                       |
+| Encryption / migration logic     | `src/encryption/`                                                  |
+| A test                           | `tests/<name>.test.ts` (see below)                                 |
+| A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports` |
+
+When extracting from the source apps, follow the `find-refactor-candidates`
+skill — it ranks what to pull next and how to treat each tier.
+
+## Test conventions (OSS_SPEC §20)
+
+- Tests live in `tests/`, **separate** from source, named `<subject>.test.ts`.
+- Run with `make test` (Vitest, jsdom environment, globals enabled).
+- Source files must stay under **1000 physical lines** (§20.5). When
+  extracting a large app file (e.g. `useStorageBackend.ts`, ~2000 lines),
+  split it by concern as part of the migration — do not lift the monolith.
+
+## Documentation sync points
+
+| If you change …                         | Also update …                                        |
+| --------------------------------------- | ---------------------------------------------------- |
+| The public API (`src/index.ts` exports) | `README.md` Usage/API section, `CHANGELOG.md`        |
+| A subpath export                        | `package.json` `exports`, `tsup.config.ts`           |
+| The source-app layout assumptions       | `find-refactor-candidates` SKILL.md structural notes |
+| Anything user-facing                    | `CHANGELOG.md` under the matching section            |
+
+## Maintenance skills (OSS_SPEC §21)
+
+Agent skills live in `.agent/skills/<name>/SKILL.md`; `.claude/skills` is a
+symlink to `.agent/skills`. Shipped today:
+
+| Skill                      | When to run                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `find-refactor-candidates` | Deciding what shared code to extract from `notes`/`checklist` into the framework next. Clones both apps (via the `MIRROR_*` env vars) and ranks files by cross-app similarity. |
+
+The per-artifact maintenance skills required by §21.5 (`update-readme`,
+`update-docs`, the `maintenance` umbrella, `sync-oss-spec`) are **not yet
+present** — add them as the framework grows the artifacts they keep in sync.
+
+## Governing spec
+
+[`OSS_SPEC.md`](./OSS_SPEC.md) is the project's standing ruleset. Not every
+section applies to a library: the CLI requirements (§12), `man/` pages,
+website-as-product deployment (§11.4–11.5), and `examples/`/`prompts/`
+directories are out of scope unless and until the framework grows that
+surface. The hygiene, AGENTS.md, commit, testing, file-size, and agent-skill
+rules all apply.

@@ -1,0 +1,6 @@
+dist/
+node_modules/
+coverage/
+.reference/
+# Verbatim copy of the governing spec — kept identical to the source apps.
+OSS_SPEC.md
