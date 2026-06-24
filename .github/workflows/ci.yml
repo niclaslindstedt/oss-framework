@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: make fmt-check
+      - run: make lint
+      - run: make test
+      - run: make build
+
+  symlinks:
+    # Enforce the OSS_SPEC §7.1 / §21.2 single-source-of-truth rule: the
+    # tool-specific guidance files and the .claude/skills directory must be
+    # symlinks, not copies that can drift.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify guidance symlinks resolve to AGENTS.md
+        run: |
+          set -e
+          for link in CLAUDE.md GEMINI.md .cursorrules .github/copilot-instructions.md; do
+            test -L "$link" || { echo "::error::$link must be a symlink"; exit 1; }
+          done
+          test "$(readlink CLAUDE.md)" = "AGENTS.md"
+          test -L .claude/skills || { echo "::error::.claude/skills must be a symlink"; exit 1; }
+          test "$(readlink .claude/skills)" = "../.agent/skills"
