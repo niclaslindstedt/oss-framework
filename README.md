@@ -63,13 +63,27 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export         | From              | Purpose                                                  |
-| -------------- | ----------------- | -------------------------------------------------------- |
-| `useEscapeKey` | `.` and `./hooks` | Capture-phase Escape handler gated on an `enabled` flag. |
+| Export          | From              | Purpose                                                          |
+| --------------- | ----------------- | ---------------------------------------------------------------- |
+| `useEscapeKey`  | `.` and `./hooks` | Capture-phase Escape handler gated on an `enabled` flag.         |
+| `useApplyTheme` | `.` and `./theme` | Projects the chosen appearance onto `<html>` as CSS variables.   |
+| theme data      | `.` and `./theme` | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers. |
+
+The `theme` module is the shared theme engine and theme data — the preset
+vocabulary, the per-preset palettes, the Custom-theme shape, the webfont
+loaders, and the projection that paints them onto `<html>`. The appearance
+**store** stays in the consuming app. See
+[`src/theme/README.md`](src/theme/README.md) for the full API and a
+step-by-step guide to migrating an existing theme implementation onto it
+(including how to reconcile a partial match).
+
+```ts
+import { useApplyTheme } from "@niclaslindstedt/oss-framework/theme";
+```
 
 Planned modules (seeded from the source apps): `storage` (the `StorageAdapter`
-contract + local/folder/Dropbox/Drive backends), `theme` (appearance store +
-projection engine), `encryption` (at-rest crypto + migration queue).
+contract + local/folder/Dropbox/Drive backends) and `encryption` (at-rest
+crypto plus the migration queue).
 
 ## Development
 

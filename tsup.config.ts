@@ -8,12 +8,16 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     "hooks/index": "src/hooks/index.ts",
+    "theme/index": "src/theme/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
   sourcemap: true,
   clean: true,
   treeshake: true,
-  // React is provided by the host app — never bundle a second copy.
-  external: ["react", "react-dom"],
+  // React is provided by the host app — never bundle a second copy. The
+  // theme font loaders dynamically import `@fontsource/*` CSS; those
+  // specifiers pass through untouched so the consuming app's bundler resolves
+  // and ships the font bytes from its own node_modules (optional peer deps).
+  external: ["react", "react-dom", /^@fontsource\//],
 });
