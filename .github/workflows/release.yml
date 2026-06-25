@@ -1,10 +1,11 @@
 name: release
 
-# Publishes the package to npm when a `v*` tag is pushed, and attaches a
-# GitHub Release. Per OSS_SPEC §10.3 the tag is the single trigger; hand-pushed
-# tags must be prevented out-of-band by tag protection rules so only an
-# intentional release reaches this workflow. A `workflow_dispatch` escape hatch
-# allows a manual re-run against an existing tag if a publish step fails.
+# Publishes the package to the GitHub Packages npm registry when a `v*` tag is
+# pushed, and attaches a GitHub Release. Per OSS_SPEC §10.3 the tag is the
+# single trigger; hand-pushed tags must be prevented out-of-band by tag
+# protection rules so only an intentional release reaches this workflow. A
+# `workflow_dispatch` escape hatch allows a manual re-run against an existing
+# tag if a publish step fails.
 on:
   push:
     tags:
@@ -20,10 +21,10 @@ jobs:
     permissions:
       # Create the GitHub Release for the tag.
       contents: write
-      # Mint the OIDC token npm exchanges for a short-lived credential under
-      # trusted publishing, and sign the provenance attestation. No long-lived
-      # npm token is used (OSS_SPEC §10.3 "Trusted publishing is mandatory").
-      id-token: write
+      # Publish the package to this repository's GitHub Packages registry. The
+      # built-in GITHUB_TOKEN is scoped to the repo, so no long-lived npm
+      # credential is needed.
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,12 +34,10 @@ jobs:
         with:
           # Stay in local/CI parity with the pinned toolchain (OSS_SPEC §10.5).
           node-version-file: .nvmrc
-          registry-url: "https://registry.npmjs.org"
+          # Authenticate npm against GitHub Packages and write the scoped
+          # registry into .npmrc for the publish step below.
+          registry-url: "https://npm.pkg.github.com"
           cache: npm
-
-      # npm's OIDC trusted publishing requires a recent npm (>= 11.5.1).
-      - name: Update npm
-        run: npm install -g npm@latest
 
       - run: npm ci
 
@@ -59,10 +58,13 @@ jobs:
             exit 1
           fi
 
-      # Publish via OIDC trusted publishing with a provenance attestation.
-      # `prepublishOnly` re-runs lint + test + build as a final safety net.
-      - name: Publish to npm
-        run: npm publish --provenance --access public
+      # Publish to GitHub Packages. `prepublishOnly` re-runs lint + test + build
+      # as a final safety net. The scope (@niclaslindstedt) matches the repo
+      # owner, which GitHub Packages requires.
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         if: github.event_name == 'push'
