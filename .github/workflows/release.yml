@@ -1,0 +1,71 @@
+name: release
+
+# Publishes the package to npm when a `v*` tag is pushed, and attaches a
+# GitHub Release. Per OSS_SPEC §10.3 the tag is the single trigger; hand-pushed
+# tags must be prevented out-of-band by tag protection rules so only an
+# intentional release reaches this workflow. A `workflow_dispatch` escape hatch
+# allows a manual re-run against an existing tag if a publish step fails.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# Default to no privileges; each job opts into exactly what it needs.
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # Create the GitHub Release for the tag.
+      contents: write
+      # Mint the OIDC token npm exchanges for a short-lived credential under
+      # trusted publishing, and sign the provenance attestation. No long-lived
+      # npm token is used (OSS_SPEC §10.3 "Trusted publishing is mandatory").
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          # Stay in local/CI parity with the pinned toolchain (OSS_SPEC §10.5).
+          node-version-file: .nvmrc
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      # npm's OIDC trusted publishing requires a recent npm (>= 11.5.1).
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - run: npm ci
+
+      # Build on the exact tagged commit and gate the publish on a green suite.
+      - run: make lint
+      - run: make test
+      - run: make build
+
+      # Guard against tag/manifest drift: the tag must match package.json.
+      - name: Verify tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag v$tag does not match package.json version $pkg"
+            exit 1
+          fi
+
+      # Publish via OIDC trusted publishing with a provenance attestation.
+      # `prepublishOnly` re-runs lint + test + build as a final safety net.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --generate-notes --verify-tag
