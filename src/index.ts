@@ -10,7 +10,8 @@
 // Module map (folders fill in as code is migrated):
 //   hooks/      — framework-agnostic React hooks (the first to land)
 //   storage/    — the StorageAdapter contract and its backends
-//   theme/      — the appearance store + theme projection engine
+//   theme/      — theme vocabulary, palettes, and the projection engine
 //   encryption/ — at-rest crypto and the encrypt/decrypt migration queue
 
 export * from "./hooks/index.ts";
+export * from "./theme/index.ts";
