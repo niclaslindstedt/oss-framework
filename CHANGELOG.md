@@ -10,8 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 - Initial framework scaffold: tsup build (ESM + CJS + types), Vitest, ESLint,
   Prettier, and the Makefile developer entry points.
-- `release` workflow: publishes to npm on a `v*` tag via OIDC trusted
-  publishing (no long-lived token) with a provenance attestation, gated on the
+- `release` workflow: publishes to the GitHub Packages npm registry on a `v*`
+  tag using the built-in `GITHUB_TOKEN` (no long-lived credential), gated on the
   build/test/lint suite, and attaches a GitHub Release.
 - `useEscapeKey` hook — the first shared piece extracted from the `notes` and
   `checklist` apps (it was already byte-identical in both).

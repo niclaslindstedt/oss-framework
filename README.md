@@ -34,6 +34,24 @@ implementation to maintain instead of two.
 
 ## Install
 
+This package is published to the **GitHub Packages** npm registry. Point the
+`@niclaslindstedt` scope at GitHub Packages by adding an `.npmrc` to your
+project (or `~/.npmrc`):
+
+```
+@niclaslindstedt:registry=https://npm.pkg.github.com
+```
+
+GitHub Packages requires authentication even for public packages, so add a
+[personal access token](https://github.com/settings/tokens) with the
+`read:packages` scope as well:
+
+```
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Then install as usual:
+
 ```bash
 npm install @niclaslindstedt/oss-framework
 ```
