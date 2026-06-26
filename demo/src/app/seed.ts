@@ -8,7 +8,9 @@ import type { AppData } from "./types.ts";
 // grocery run ("Veckohandling"); the "Packlistor" folder groups the family's
 // recurring packing lists (a mountain hike, a charter holiday, the summer
 // cabin, the kids' bag), a couple of which nest a sub-list to show the tree
-// depth. A second standalone list rounds out the menu.
+// depth. A second standalone list rounds out the menu. Each list carries a
+// `glyph` + `color` from the framework's `/glyphs` catalogue, so the side-menu
+// icons and the tab favicon read in the list's own colour out of the box.
 //
 // `checkedAt` stamps use a fixed timestamp so the "sort checked to the bottom"
 // order is deterministic across reloads (no wall-clock in the seed).
@@ -28,6 +30,8 @@ export const SEED: AppData = {
       id: "apoteket",
       title: "Apoteket",
       folderId: null,
+      glyph: "heart",
+      color: "#e06c75",
       items: [
         leaf("ap-alvedon", "Alvedon"),
         leaf("ap-plaster", "Plåster"),
@@ -40,6 +44,8 @@ export const SEED: AppData = {
       id: "veckohandling",
       title: "Veckohandling",
       folderId: null,
+      glyph: "cart",
+      color: "#98c379",
       items: [
         leaf("vh-mjolk", "Mellanmjölk 1,5 %"),
         leaf("vh-fil", "Filmjölk"),
@@ -64,6 +70,8 @@ export const SEED: AppData = {
       id: "fjallvandring",
       title: "Fjällvandring",
       folderId: "packlistor",
+      glyph: "leaf",
+      color: "#5cb39e",
       items: [
         leaf("fj-talt", "Tält"),
         leaf("fj-sovsack", "Sovsäck"),
@@ -88,6 +96,8 @@ export const SEED: AppData = {
       id: "charterresa",
       title: "Charterresa",
       folderId: "packlistor",
+      glyph: "plane",
+      color: "#61afef",
       items: [
         leaf("ch-pass", "Pass", true),
         leaf("ch-boardingkort", "Boardingkort"),
@@ -111,6 +121,8 @@ export const SEED: AppData = {
       id: "sommarstugan",
       title: "Sommarstugan",
       folderId: "packlistor",
+      glyph: "home",
+      color: "#e5c07b",
       items: [
         leaf("ss-sanglinne", "Sänglinne"),
         leaf("ss-handdukar", "Handdukar"),
@@ -122,6 +134,8 @@ export const SEED: AppData = {
       id: "barnens-vaska",
       title: "Barnens väska",
       folderId: "packlistor",
+      glyph: "gift",
+      color: "#c678dd",
       items: [
         leaf("bv-blojor", "Blöjor"),
         leaf("bv-vatservetter", "Våtservetter"),

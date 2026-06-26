@@ -102,6 +102,7 @@ Today:
 | glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
 | `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
 | checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
+| glyph picker kit   | `.` and `./glyphs`     | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -216,6 +217,24 @@ import {
   Checklist,
   toggleNode,
 } from "@niclaslindstedt/oss-framework/checklist";
+```
+
+The `glyphs` module is the **"give this thing an icon and a colour" kit** both
+apps grew for branding a workspace or list: a dependency-free catalogue of inline
+lucide-weight glyphs, a `Glyph` renderer, and the two presentational pickers
+(`GlyphPicker`, `ColorPalette`) an app composes into an appearance editor. The
+same glyph names feed `glyphDataUri`, which re-badges the favicon to the active
+entity's icon. The chosen value lives in the app's store; the framework owns the
+catalogue, the rendering, and the picker chrome. See
+[`src/glyphs/README.md`](src/glyphs/README.md) for the full surface and a
+migration guide.
+
+```ts
+import {
+  Glyph,
+  GlyphPicker,
+  ColorPalette,
+} from "@niclaslindstedt/oss-framework/glyphs";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

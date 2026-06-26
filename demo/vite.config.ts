@@ -54,6 +54,10 @@ export default defineConfig({
         replacement: here("../src/checklist/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/glyphs",
+        replacement: here("../src/glyphs/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
