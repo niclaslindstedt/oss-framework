@@ -198,10 +198,10 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   shared `<Glyph>` shell during extraction (a quality win the apps lacked). Each
   app's migration: delete its `Modal` / form / `FloatingPanel` copies and import
   from `/components`, pass its translated labels as props, and switch text-only
-  "secondary" buttons to `ghost`. A `SegmentedControl` (pill-in-track radio
-  group — the apps' language / layout / menu-mode toggles) has since been added
-  to the module, generalising the apps' near-identical inline segmented rows.
-  See `src/components/README.md`.
+  "secondary" buttons to `ghost`. A `SegmentedControl` (a bordered track with
+  the active option outlined — the apps' language / layout / menu-mode toggles)
+  has since been added to the module, generalising the apps' near-identical
+  inline segmented rows. See `src/components/README.md`.
 - **`checklist/` nested list — extracted (done).** Lives in the framework as
   `@niclaslindstedt/oss-framework/checklist`: a **generic** `ChecklistNode`
   (`{ id, label, checked, checkedAt?, children? }`) + the pure tree core
