@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import type { ChecklistNode } from "@niclaslindstedt/oss-framework/checklist";
+
+// The demo app's domain types. The framework owns the generic `ChecklistNode`
+// (a checkable tree node); the app layers its own concerns — a list has a
+// title and lives in a folder (or stands alone), folders group lists, and a
+// namespace is the top-level workspace. This is exactly the seam the framework
+// describes: it owns the tree mechanics and the look; the app owns the domain
+// shape and where the data lives.
+
+/** A single checklist: a titled tree of items, optionally inside a folder. */
+export type List = {
+  id: string;
+  title: string;
+  // `null` for a standalone (ungrouped) list shown at the menu's root.
+  folderId: string | null;
+  items: ChecklistNode[];
+};
+
+/** A folder groups lists in the side menu under one collapsible row. */
+export type Folder = {
+  id: string;
+  name: string;
+};
+
+/** The whole app document — one namespace's folders and lists. */
+export type AppData = {
+  namespace: string;
+  folders: Folder[];
+  lists: List[];
+  activeListId: string;
+};
