@@ -81,11 +81,27 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export          | From              | Purpose                                                          |
-| --------------- | ----------------- | ---------------------------------------------------------------- |
-| `useEscapeKey`  | `.` and `./hooks` | Capture-phase Escape handler gated on an `enabled` flag.         |
-| `useApplyTheme` | `.` and `./theme` | Projects the chosen appearance onto `<html>` as CSS variables.   |
-| theme data      | `.` and `./theme` | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers. |
+| Export           | From                  | Purpose                                                          |
+| ---------------- | --------------------- | ---------------------------------------------------------------- |
+| `useEscapeKey`   | `.` and `./hooks`     | Capture-phase Escape handler gated on an `enabled` flag.         |
+| `useApplyTheme`  | `.` and `./theme`     | Projects the chosen appearance onto `<html>` as CSS variables.   |
+| theme data       | `.` and `./theme`     | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers. |
+| `ChangelogModal` | `.` and `./changelog` | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.      |
+| `parseChangelog` | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.   |
+
+The `changelog` module is a self-contained "What's new" dialog: it parses a
+[Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
+release list and renders it as a modal, with an inline "Learn more" drill-down
+into long-form feature docs. It is app-agnostic (no i18n runtime, no modal
+system, no icon set required) and pairs with the release tooling under
+[`scripts/release/`](scripts/release) — the changeset fragments that collate
+into the very `CHANGELOG.md` it reads. See
+[`src/changelog/README.md`](src/changelog/README.md) for the full API, a
+quick-start, and a migration guide.
+
+```ts
+import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
+```
 
 The `theme` module is the shared theme engine and theme data — the preset
 vocabulary, the per-preset palettes, the Custom-theme shape, the webfont
@@ -127,6 +143,22 @@ make candidates     # rank shared files by cross-app similarity
 
 See [`.agent/skills/find-refactor-candidates/SKILL.md`](.agent/skills/find-refactor-candidates/SKILL.md)
 for the full playbook.
+
+### Changelog & releases
+
+The framework dogfoods its own `changelog` module: releases are driven by
+**changeset fragments**, not hand-edited `CHANGELOG.md` entries. Every PR that
+touches the published `src/` surface drops a one-line fragment under
+[`.changes/unreleased/`](.changes/unreleased) (CI enforces this; see
+[`.changes/README.md`](.changes/README.md)). The `release` workflow then derives
+the semver bump from those fragments, collates them into a dated `CHANGELOG.md`
+section, tags, publishes, and cuts a GitHub Release — no manual version
+bookkeeping.
+
+```bash
+make bump        # print the bump the unreleased fragments imply
+make changelog VERSION=X.Y.Z   # preview the collated section locally
+```
 
 ## Documentation
 

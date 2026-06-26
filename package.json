@@ -27,6 +27,11 @@
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js",
       "require": "./dist/theme/index.cjs"
+    },
+    "./changelog": {
+      "types": "./dist/changelog/index.d.ts",
+      "import": "./dist/changelog/index.js",
+      "require": "./dist/changelog/index.cjs"
     }
   },
   "scripts": {
@@ -40,6 +45,8 @@
     "fmt:check": "prettier --check .",
     "clone-apps": "node .agent/skills/find-refactor-candidates/scripts/clone-apps.mjs",
     "candidates": "node .agent/skills/find-refactor-candidates/scripts/similarity.mjs",
+    "bump": "node scripts/release/compute-bump.mjs",
+    "changelog": "node scripts/release/collate-changelog.mjs",
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "peerDependencies": {

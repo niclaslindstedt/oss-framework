@@ -12,6 +12,10 @@
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    // The release-tooling unit test imports the dogfooded `.mjs` scripts under
+    // scripts/release/; allow JS so those resolve (their exports type as
+    // `any`; `checkJs` stays off, so the scripts aren't type-checked here).
+    "allowJs": true,
     "jsx": "react-jsx",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -25,7 +29,10 @@
     "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,
 
-    "types": ["vitest/globals"]
+    // `node` so the test suite can read fixtures via `node:fs`; the library
+    // source stays browser-targeted through `lib` above (it imports no Node
+    // built-ins, and the tsup build would surface any that slipped in).
+    "types": ["vitest/globals", "node"]
   },
   "include": ["src", "tests"]
 }

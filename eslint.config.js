@@ -39,6 +39,26 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // TypeScript checks for undefined identifiers itself; the core rule
+      // only produces false positives for DOM/Web globals.
+      "no-undef": "off",
+      // The core rule misfires on TypeScript type-level constructs (e.g. a
+      // named parameter in a bare function type); defer to the TS-aware one,
+      // which also honours the `_`-prefix convention for intentional unused.
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+      // Rules that arrived enabled-by-default in the ESLint 10 /
+      // eslint-plugin-react-hooks 7 majors. They fire on deliberate, working
+      // patterns (reading a ref in an event handler to stash scroll position;
+      // resetting derived state when the modal reopens), so they're turned off
+      // to preserve the pre-bump lint surface; adopting them is a separate
+      // refactor. Mirrors the source apps' configuration.
+      "no-useless-assignment": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 ];
