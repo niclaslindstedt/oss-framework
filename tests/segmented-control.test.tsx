@@ -53,4 +53,37 @@ describe("SegmentedControl", () => {
     );
     expect(onChange).toHaveBeenCalledWith("button");
   });
+
+  it("sizes to content by default and splits the width when fullWidth", () => {
+    const { rerender } = render(
+      <SegmentedControl
+        value="swipe"
+        options={OPTIONS}
+        onChange={() => {}}
+        ariaLabel="menu"
+      />,
+    );
+    let group = screen.getByRole("radiogroup", { name: "menu" });
+    expect(group.className).toContain("inline-flex");
+    expect(group.className).toContain("w-fit");
+    expect(
+      screen.getByRole("radio", { name: "Right-swipe" }).className,
+    ).not.toContain("flex-1");
+
+    rerender(
+      <SegmentedControl
+        value="swipe"
+        options={OPTIONS}
+        onChange={() => {}}
+        ariaLabel="menu"
+        fullWidth
+      />,
+    );
+    group = screen.getByRole("radiogroup", { name: "menu" });
+    expect(group.className).toContain("w-full");
+    for (const r of screen.getAllByRole("radio")) {
+      expect(r.className).toContain("flex-1");
+      expect(r.className).toContain("justify-center");
+    }
+  });
 });
