@@ -3,13 +3,14 @@ import type { ChecklistNode } from "@niclaslindstedt/oss-framework/checklist";
 
 import type { AppData } from "./types.ts";
 
-// The starting document the demo boots with — the same lists the screenshots
-// show. The flagship "Att köpa" (Swedish for "To buy") is the active list: a
-// flat shopping list of four items. The "Packlistor" (packing lists) folder
-// groups four more lists, one of which nests a child checklist to show the
-// tree depth off. A second standalone "Hej" rounds out the menu.
+// The starting document the demo boots with — realistic shopping and packing
+// lists for an ordinary Swedish household. The active list is the weekly
+// grocery run ("Veckohandling"); the "Packlistor" folder groups the family's
+// recurring packing lists (a mountain hike, a charter holiday, the summer
+// cabin, the kids' bag), a couple of which nest a sub-list to show the tree
+// depth. A second standalone list rounds out the menu.
 //
-// `checkedAt` stamps use fixed timestamps so the "sort checked to the bottom"
+// `checkedAt` stamps use a fixed timestamp so the "sort checked to the bottom"
 // order is deterministic across reloads (no wall-clock in the seed).
 
 const leaf = (id: string, label: string, checked = false): ChecklistNode =>
@@ -19,63 +20,115 @@ const leaf = (id: string, label: string, checked = false): ChecklistNode =>
 
 export const SEED: AppData = {
   namespace: "Default",
-  activeListId: "att-kopa",
+  activeListId: "veckohandling",
   folders: [{ id: "packlistor", name: "Packlistor" }],
   lists: [
-    // A standalone list — sits above the active one in the menu's root.
+    // A short standalone shopping list — sits above the active one in the menu.
     {
-      id: "hej-standalone",
-      title: "Hej",
-      folderId: null,
-      items: [leaf("h1", "Ring tandläkaren"), leaf("h2", "Boka bord")],
-    },
-    // The active list — flat, four items, nothing checked (0 / 4).
-    {
-      id: "att-kopa",
-      title: "Att köpa",
+      id: "apoteket",
+      title: "Apoteket",
       folderId: null,
       items: [
-        leaf("inotyol", "Inotyol"),
-        leaf("tomater", "Tomater"),
-        leaf("yoghurt", "Yoghurt"),
-        leaf("mjolk", "Mjölk"),
+        leaf("ap-alvedon", "Alvedon"),
+        leaf("ap-plaster", "Plåster"),
+        leaf("ap-nassprej", "Nässprej"),
+        leaf("ap-solskydd", "Solskyddsfaktor 30"),
+      ],
+    },
+    // The active list — the weekly grocery run.
+    {
+      id: "veckohandling",
+      title: "Veckohandling",
+      folderId: null,
+      items: [
+        leaf("vh-mjolk", "Mellanmjölk 1,5 %"),
+        leaf("vh-fil", "Filmjölk"),
+        leaf("vh-smor", "Bregott"),
+        leaf("vh-agg", "Ägg"),
+        leaf("vh-knacke", "Knäckebröd"),
+        leaf("vh-kaffe", "Bryggkaffe"),
+        leaf("vh-bananer", "Bananer"),
+        leaf("vh-gurka", "Gurka"),
+        leaf("vh-morotter", "Morötter"),
+        leaf("vh-kottbullar", "Köttbullar"),
+        leaf("vh-pasta", "Pasta"),
+        leaf("vh-krossade", "Krossade tomater"),
+        leaf("vh-lok", "Gul lök"),
+        leaf("vh-ost", "Lagrad ost"),
+        leaf("vh-toapapper", "Toalettpapper", true),
+        leaf("vh-diskmedel", "Diskmedel", true),
       ],
     },
     // The packing-lists folder.
     {
-      id: "ojerud",
-      title: "Öjerud",
+      id: "fjallvandring",
+      title: "Fjällvandring",
       folderId: "packlistor",
-      items: [leaf("o1", "Tält"), leaf("o2", "Sovsäck")],
-    },
-    {
-      id: "packlista",
-      title: "Packlista",
-      folderId: "packlistor",
-      // A nested child checklist — shows the framework's tree depth.
       items: [
+        leaf("fj-talt", "Tält"),
+        leaf("fj-sovsack", "Sovsäck"),
+        leaf("fj-liggunderlag", "Liggunderlag"),
+        leaf("fj-stormkok", "Stormkök & gasol"),
+        leaf("fj-kangor", "Vandringskängor"),
+        leaf("fj-karta", "Karta & kompass"),
         {
-          id: "p-dok",
-          label: "Dokument",
+          id: "fj-klader",
+          label: "Kläder",
           checked: false,
           children: [
-            leaf("p-pass", "Pass", true),
-            leaf("p-bilj", "Biljetter", true),
+            leaf("fj-underställ", "Ullunderställ"),
+            leaf("fj-fleece", "Fleecetröja"),
+            leaf("fj-regnstall", "Regnställ"),
+            leaf("fj-strumpor", "Vandringsstrumpor", true),
           ],
         },
       ],
     },
     {
-      id: "att-kopa-2",
-      title: "Att köpa",
+      id: "charterresa",
+      title: "Charterresa",
       folderId: "packlistor",
-      items: [leaf("a1", "Bröd"), leaf("a2", "Smör"), leaf("a3", "Ägg")],
+      items: [
+        leaf("ch-pass", "Pass", true),
+        leaf("ch-boardingkort", "Boardingkort"),
+        leaf("ch-solkram", "Solkräm"),
+        leaf("ch-badklader", "Badkläder"),
+        leaf("ch-solglasogon", "Solglasögon"),
+        leaf("ch-laddare", "Mobilladdare"),
+        {
+          id: "ch-necessar",
+          label: "Necessär",
+          checked: false,
+          children: [
+            leaf("ch-tandborste", "Tandborste"),
+            leaf("ch-tandkram", "Tandkräm"),
+            leaf("ch-deodorant", "Deodorant"),
+          ],
+        },
+      ],
     },
     {
-      id: "hej-folder",
-      title: "Hej",
+      id: "sommarstugan",
+      title: "Sommarstugan",
       folderId: "packlistor",
-      items: [leaf("hf1", "Ett"), leaf("hf2", "Två"), leaf("hf3", "Tre")],
+      items: [
+        leaf("ss-sanglinne", "Sänglinne"),
+        leaf("ss-handdukar", "Handdukar"),
+        leaf("ss-myggmedel", "Myggmedel"),
+        leaf("ss-tandstickor", "Tändstickor"),
+      ],
+    },
+    {
+      id: "barnens-vaska",
+      title: "Barnens väska",
+      folderId: "packlistor",
+      items: [
+        leaf("bv-blojor", "Blöjor"),
+        leaf("bv-vatservetter", "Våtservetter"),
+        leaf("bv-gosedjur", "Gosedjur"),
+        leaf("bv-ombyte", "Ombyte"),
+        leaf("bv-regnklader", "Regnkläder"),
+      ],
     },
   ],
 };
