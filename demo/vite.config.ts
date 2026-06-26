@@ -1,6 +1,7 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -13,7 +14,7 @@ const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
   base,
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     // Resolve the framework against its TypeScript source (not the built
     // `dist/`) so the preview always reflects the current commit — the whole
