@@ -309,6 +309,22 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
 "button"`, default `"button"`) flips it to an inward edge swipe via
   `useEdgeSwipeOpen`, mirroring the menu pattern. Both are phone-only; wide
   screens keep the docked menu's Settings footer row. See `src/sidebar/README.md`.
+- **`ui/CipherGlyph.tsx` (encryption busy indicator) — extracted (done).** Lives
+  in the framework as `@niclaslindstedt/oss-framework/components` (`CipherGlyph`).
+  The two apps were **byte-identical bar comments** (notes ported it from
+  checklist) — a clean shared-verbatim lift. It is a dependency-free animated
+  span (React only, no domain types, no i18n): a run of re-scrambling monospace
+  cipher glyphs used **in place of a spinner** for the encryption status bar +
+  the unlock gate. Generalised only at the seam: the comment's app-surface
+  references were softened to neutral terms. It belongs in `components/` (a UI
+  primitive), **not** a future `encryption/` module — it is purely
+  presentational and the apps use it as a generic busy indicator. The
+  reduce-motion contract (OS `prefers-reduced-motion` + the theme engine's
+  `<html data-reduce-motion="true">`) carried over verbatim. **Demo:** wired into
+  the Settings → Storage playground as the busy indicator fronting the async
+  `StorageAdapter` `save`/`reload` — because the localStorage backend resolves
+  sub-frame, the tab holds it on screen for a `BUSY_MIN_MS` anti-flicker window
+  (a standard spinner beat) so the animation reads. See `src/components/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -339,13 +355,16 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   undo/redo document store (`useChecklistStore`, localStorage) and a seed
   (`app/seed.ts`); a per-list appearance feature (`/glyphs`) — each list
   carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
-  edited via a header `FloatingPanel` popover (`ListAppearancePopover`); and a
+  edited via a header `FloatingPanel` popover (`ListAppearancePopover`); a
   Settings → General "Open the menu with" preference (`menuMode`) that toggles
   the phone drawer between a floating button and `useEdgeSwipeOpen`'s inward
   edge swipe, plus a sibling "Open settings with" preference (`settingsMode`)
   that does the same for a floating **settings** button (a `FloatingButton`
-  resting on the right edge) opening the Settings dialog. **Not yet modelled, so
-  the natural next homes to widen into:**
+  resting on the right edge) opening the Settings dialog; and a Settings →
+  Storage playground over the `StorageAdapter` contract whose async
+  `save`/`reload` now front the framework's `CipherGlyph` busy indicator (held
+  for a `BUSY_MIN_MS` anti-flicker window). **Not yet modelled, so the natural
+  next homes to widen into:**
   multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace
   header — real switching would seat storage backends, sync, encryption, and

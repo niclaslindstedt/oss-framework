@@ -25,6 +25,7 @@ defaults.
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                    |
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                |
 | `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row. |
+| `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.         |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                    |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                         |
 | `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                    |
@@ -150,6 +151,37 @@ label and an optional hint. All strings inject as props — no i18n inside.
 > `SegmentedControl` (string options only). If a row carries **numeric** values
 > (a font-scale picker, say), keep a tiny app-local segmented row for that case —
 > `SegmentedControl<T extends string>` deliberately doesn't admit numbers.
+
+### Busy indicator (`CipherGlyph`)
+
+`CipherGlyph` is a spinner alternative for "work in flight" — a short run of
+monospace cipher glyphs that continuously re-scramble, evoking bytes being
+enciphered rather than a rotating spinner. It owns only the animation; the
+caller decides when it shows and what label sits beside it:
+
+```tsx
+import { CipherGlyph } from "@niclaslindstedt/oss-framework/components";
+
+{
+  busy ? (
+    <span className="flex items-center gap-2 text-accent">
+      <CipherGlyph /> enciphering…
+    </span>
+  ) : (
+    status
+  );
+}
+```
+
+It is decorative (`aria-hidden`) and takes only an optional `className` (its
+colour and size flow from `text-*` on the call site). It **honours reduce-motion
+both ways**: it never starts its timer under the OS `prefers-reduced-motion`
+preference, and it freezes mid-frame while `<html data-reduce-motion="true">` is
+set (the attribute the framework `theme` engine mirrors the in-app toggle onto).
+With motion off it holds a static frame, which still reads as enciphered bytes.
+Because the localStorage backends resolve in well under a frame, pair it with a
+small minimum-display window (a standard anti-flicker beat) when fronting a fast
+async op so the animation reads rather than flashes past.
 
 ## Migrating an existing implementation
 

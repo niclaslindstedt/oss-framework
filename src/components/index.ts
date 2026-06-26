@@ -17,6 +17,7 @@ export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Section, Field, ToggleRow } from "./SettingsLayout.tsx";
 export { Modal } from "./Modal.tsx";
+export { CipherGlyph } from "./CipherGlyph.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";
 export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";

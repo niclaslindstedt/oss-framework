@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  CipherGlyph,
   SegmentedControl,
   Section,
   ToggleRow,
@@ -149,39 +150,66 @@ export function EditorTab({
 
 const STORAGE_DOC_KEY = "oss-demo:checklist:storage-playground";
 
+// A spinner-style minimum display so the busy indicator is legible even when
+// the (synchronous) browser backend resolves in well under a frame.
+const BUSY_MIN_MS = 650;
+const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export function StorageTab() {
   const [adapter] = useState<StorageAdapter>(
     () => new BrowserLocalStorageAdapter({ key: STORAGE_DOC_KEY }),
   );
   const [text, setText] = useState("");
   const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState<null | "writing" | "reading">(null);
   const baseRevision = useRef<string | undefined>(undefined);
 
-  const reload = useCallback(async () => {
-    const snap = await adapter.load();
-    setText(snap?.text ?? "");
-    baseRevision.current = snap?.revision;
-    setStatus(snap ? `loaded ${snap.text.length} B` : "nothing stored yet");
-  }, [adapter]);
+  // Run an async storage op behind the cipher indicator, holding it on screen
+  // for at least BUSY_MIN_MS so the enciphering animation reads rather than
+  // flickering past — the same anti-flicker beat a real loading spinner uses.
+  const withBusy = useCallback(
+    async (kind: "writing" | "reading", op: () => Promise<void>) => {
+      setBusy(kind);
+      try {
+        await Promise.all([op(), settle(BUSY_MIN_MS)]);
+      } finally {
+        setBusy(null);
+      }
+    },
+    [],
+  );
+
+  const reload = useCallback(
+    () =>
+      withBusy("reading", async () => {
+        const snap = await adapter.load();
+        setText(snap?.text ?? "");
+        baseRevision.current = snap?.revision;
+        setStatus(snap ? `loaded ${snap.text.length} B` : "nothing stored yet");
+      }),
+    [adapter, withBusy],
+  );
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
   async function save() {
-    try {
-      const saved = await adapter.save(text, baseRevision.current);
-      baseRevision.current = saved.revision;
-      setStatus("saved — reload the page, it persists");
-    } catch (err) {
-      if (err instanceof ConflictError) {
-        setText(err.remote.text);
-        baseRevision.current = err.remote.revision;
-        setStatus("ConflictError — adopted the other tab's bytes");
-      } else {
-        setStatus(err instanceof Error ? err.message : String(err));
+    await withBusy("writing", async () => {
+      try {
+        const saved = await adapter.save(text, baseRevision.current);
+        baseRevision.current = saved.revision;
+        setStatus("saved — reload the page, it persists");
+      } catch (err) {
+        if (err instanceof ConflictError) {
+          setText(err.remote.text);
+          baseRevision.current = err.remote.revision;
+          setStatus("ConflictError — adopted the other tab's bytes");
+        } else {
+          setStatus(err instanceof Error ? err.message : String(err));
+        }
       }
-    }
+    });
   }
 
   return (
@@ -189,7 +217,9 @@ export function StorageTab() {
       <p className="mb-3 text-xs text-muted">
         A live playground over the framework's <code>StorageAdapter</code>{" "}
         contract (the browser backend). Save persists across reloads; a second
-        tab saving meanwhile surfaces a <code>ConflictError</code>.
+        tab saving meanwhile surfaces a <code>ConflictError</code>. While a read
+        or write is in flight the framework's <code>CipherGlyph</code> stands in
+        for a spinner.
       </p>
       <Section title="Document">
         <textarea
@@ -201,13 +231,24 @@ export function StorageTab() {
           className="w-full resize-y rounded-md border border-line bg-surface-2 p-2 font-mono text-sm text-fg outline-none focus:border-accent"
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary" onClick={save}>
+          <Button variant="primary" onClick={save} disabled={busy !== null}>
             Save
           </Button>
-          <Button variant="secondary" onClick={() => void reload()}>
+          <Button
+            variant="secondary"
+            onClick={() => void reload()}
+            disabled={busy !== null}
+          >
             Reload
           </Button>
-          {status && <span className="text-sm text-success">{status}</span>}
+          {busy ? (
+            <span className="flex items-center gap-2 text-sm text-accent">
+              <CipherGlyph />
+              {busy === "writing" ? "enciphering…" : "reading…"}
+            </span>
+          ) : (
+            status && <span className="text-sm text-success">{status}</span>
+          )}
         </div>
       </Section>
     </div>
