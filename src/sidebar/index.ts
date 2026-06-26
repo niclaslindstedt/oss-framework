@@ -31,4 +31,8 @@ export {
   useDrawerSwipeClose,
   type DrawerSwipeClose,
 } from "./useDrawerSwipeClose.ts";
+export {
+  useEdgeSwipeOpen,
+  type EdgeSwipeOpenOptions,
+} from "./useEdgeSwipeOpen.ts";
 export { useSidebarInset } from "./useSidebarInset.ts";

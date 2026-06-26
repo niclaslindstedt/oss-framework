@@ -263,13 +263,27 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   `namespace-colors.ts` and import from `/glyphs`, pass `{ background: "#1f2933" }`
   to keep the filled favicon badge, and keep its namespace store untouched. See
   `src/glyphs/README.md`.
-- **`ui/hooks/useEdgeSwipeOpen.ts` is the next gesture candidate** (85%, ~100
-  lines): a document-level edge-swipe that opens the side menu, the replacement
-  for a hidden floating menu button. Near-identical across apps; the only drift is
-  the `MenuButtonSide` import (notes from `sideMenuPosition`, checklist from
-  `settings/types`) — take the type as a small local `"left" | "right"` union, not
-  the app's settings module. Touch-only/PWA-gated in the apps, so harder to show
-  in the demo than a row swipe.
+- **`ui/hooks/useEdgeSwipeOpen.ts` (edge-swipe to open) — extracted (done).**
+  Lives in the framework **inside the `sidebar` module** (not `hooks`) as
+  `@niclaslindstedt/oss-framework/sidebar` (`useEdgeSwipeOpen`). It belongs there,
+  not in `hooks`: it imports `MenuButtonSide` (a sidebar type) and is the
+  conceptual mirror of `useDrawerSwipeClose`, so putting it in the leaf `hooks`
+  module would violate the one-way dependency rule (hooks must not import a
+  feature-module type). The two apps were **byte-identical bar comments and the
+  `MenuButtonSide` import** (notes from `sideMenuPosition`, checklist from
+  `settings/types`) — a clean shared-verbatim lift; the import now resolves
+  locally to `./position.ts`, where the type already lived from the sidebar
+  extraction. Generalised only at the seam, per the `useRowSwipe` precedent: the
+  app pixel constants (`EDGE_ZONE`/`OPEN_DISTANCE`) became optional `edgeZone`/
+  `openDistance` options defaulting to `30`/`48`. The hook owns the gesture only
+  (touch-only, stands down while an `[aria-modal="true"]` element is open,
+  ignores a mostly-vertical drag); the host owns the open state and the
+  resting-side choice. The `Sidebar`'s `showButton={false}` path already
+  anticipated it. **Demo:** the already-present-but-inert "Open the menu with"
+  setting (`menuMode: "swipe" | "button"`, Settings → General) is now wired —
+  swipe mode hides the floating button and opens the drawer via the edge swipe;
+  the default flipped to `"button"` for first-run discoverability. See
+  `src/sidebar/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -286,10 +300,13 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   (`ChecklistScreen`) over `/checklist` + `/components`; a tabbed Settings dialog
   (`SettingsModal`, `app/settings/`) with an Appearance tab over `/theme`; an
   undo/redo document store (`useChecklistStore`, localStorage) and a seed
-  (`app/seed.ts`); and a per-list appearance feature (`/glyphs`) — each list
+  (`app/seed.ts`); a per-list appearance feature (`/glyphs`) — each list
   carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
-  edited via a header `FloatingPanel` popover (`ListAppearancePopover`). **Not
-  yet modelled, so the natural next homes to widen into:** multiple
+  edited via a header `FloatingPanel` popover (`ListAppearancePopover`); and a
+  Settings → General "Open the menu with" preference (`menuMode`) that toggles
+  the phone drawer between a floating button and `useEdgeSwipeOpen`'s inward
+  edge swipe. **Not yet modelled, so the natural next homes to widen into:**
+  multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace
   header — real switching would seat storage backends, sync, encryption, and
   per-profile appearance); a real Search; Archive; and an i18n language switch
