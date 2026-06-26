@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import { SidebarDemo } from "./demos/sidebar.tsx";
 import { StorageDemo } from "./demos/storage.tsx";
 import { ThemeDemo } from "./demos/theme.tsx";
 
@@ -22,6 +23,7 @@ export function App() {
 
       <div className="flex flex-col gap-14">
         <ThemeDemo />
+        <SidebarDemo />
         <StorageDemo />
       </div>
     </main>
