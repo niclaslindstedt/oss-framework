@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   countProgress,
   flattenNodes,
+  removeNode,
   type ChecklistNode,
 } from "@niclaslindstedt/oss-framework/checklist";
 
@@ -124,6 +125,21 @@ export function useChecklistStore() {
     [commit, data],
   );
 
+  // Drop an item (and any sub-items) from the active list — the swipe-to-delete
+  // outcome. Goes through `commit`, so an accidental flick is one Undo away.
+  const deleteItem = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === data.activeListId
+            ? { ...l, items: removeNode(l.items, id) }
+            : l,
+        ),
+      }),
+    [commit, data],
+  );
+
   const addList = useCallback(
     (folderId: string | null) => {
       const id = freshId("list");
@@ -159,6 +175,7 @@ export function useChecklistStore() {
     setActive,
     setActiveItems,
     addItem,
+    deleteItem,
     addList,
     addFolder,
     undo,

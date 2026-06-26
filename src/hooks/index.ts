@@ -4,3 +4,8 @@
 // re-exported from here and become available under the
 // "@niclaslindstedt/oss-framework/hooks" subpath.
 export { useEscapeKey } from "./useEscapeKey.ts";
+export {
+  useRowSwipe,
+  type RowSwipe,
+  type RowSwipeOptions,
+} from "./useRowSwipe.ts";

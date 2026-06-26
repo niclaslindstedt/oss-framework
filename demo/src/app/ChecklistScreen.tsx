@@ -24,7 +24,7 @@ import type { ChecklistStore } from "./useChecklistStore.ts";
 // buttons; the nested checklist body; and the centered create FAB with an
 // inline composer for adding items.
 export function ChecklistScreen({ store }: { store: ChecklistStore }) {
-  const { activeList, progress, setActiveItems, addItem } = store;
+  const { activeList, progress, setActiveItems, addItem, deleteItem } = store;
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
@@ -94,6 +94,7 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
         <Checklist
           items={activeList.items}
           onChange={setActiveItems}
+          onDelete={deleteItem}
           sinkChecked
           showGrips
         />

@@ -22,6 +22,7 @@ is deliberately minimal; an app intersects it to layer its own fields on.
 | `ChecklistProgress`                                                       | component | The header ring badge (`checked / total`) with optional bulk menu. |
 | `ChecklistNode`                                                           | type      | `{ id; label; checked; checkedAt?; children? }`.                   |
 | `toggleNode` / `setNodeChecked` / `setAllChecked`                         | fn        | Check operations — **cascade** the new state down the subtree.     |
+| `removeNode`                                                              | fn        | Drop a node (and its subtree) from anywhere in the tree.           |
 | `countProgress` / `isComplete` / `subtreeState`                           | fn        | Tallies and the indeterminate cue.                                 |
 | `sortCheckedToBottom` / `flattenForDisplay` / `flattenNodes` / `findNode` | fn        | View ordering and tree walks.                                      |
 
@@ -89,6 +90,27 @@ function Shopping() {
 }
 ```
 
+### Swipe-to-delete
+
+Pass `onDelete` and the rows become swipeable — the
+[`useRowSwipe`](../hooks/README.md) gesture both source apps grew. A left swipe
+latches a **Delete** button open (a deliberate two-step); a right swipe flicks
+the row off. Either fires `onDelete(id)`; the framework never mutates the tree,
+so you perform the removal and stack it on your own undo history:
+
+```tsx
+<Checklist
+  items={items}
+  onChange={setItems}
+  onDelete={(id) => setItems((p) => removeNode(p, id))}
+  deleteLabel="Delete" // English default; pass a translated string
+/>
+```
+
+`deleteLabel` is the only visible string; everything else paints through the
+theme tokens (`bg-danger` behind the foreground, `bg-page-bg` on the row). Leave
+`onDelete` unset and rows render plain — no gesture, no extra DOM.
+
 Driving your **own store** instead of local state? Skip the components and use
 `tree.ts` directly — every function is a pure `(tree) => tree` transform, so it
 slots into a reducer or a `useSyncExternalStore` update with no DOM.
@@ -121,6 +143,11 @@ In degree-of-match order:
 - **You had drag-to-reorder.** `Checklist` renders the grip (`showGrips`) and
   fires `onReorderStart(id, event)` on grip press; wire it to your own drag
   (the framework ships the affordance, not a DnD engine).
+- **You had swipe-to-delete (or -archive).** Wire `onDelete` and delete via
+  `removeNode`. The framework's gesture reveals a single trailing Delete; if your
+  row swiped **both** ways (e.g. archive one way, delete the other), keep that
+  richer row app-side over the bare `useRowSwipe` hook — `Checklist`'s `onDelete`
+  is the common single-action case, not the two-action one.
 
 ## Verification
 
@@ -129,3 +156,5 @@ In degree-of-match order:
 - A parent row's caret collapses/expands its children.
 - With `sinkChecked`, checked rows drop to the bottom but the stored order
   (what `onChange` emits) is unchanged.
+- With `onDelete`, swiping a row left reveals Delete and tapping it (or flicking
+  the row right) emits the row's id; the row leaves only after you `removeNode`.

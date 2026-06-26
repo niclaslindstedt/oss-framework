@@ -13,6 +13,7 @@ import {
   flattenForDisplay,
   flattenNodes,
   isComplete,
+  removeNode,
   setAllChecked,
   setNodeChecked,
   sortCheckedToBottom,
@@ -131,6 +132,25 @@ describe("checklist tree", () => {
     expect(sorted[0]!.children!.map((n) => n.id)).toEqual(["pear", "apple"]);
   });
 
+  it("removes a node anywhere in the tree, subtree and all", () => {
+    // A nested child.
+    const noPear = removeNode(tree(), "pear");
+    expect(findNode(noPear, "pear")).toBeUndefined();
+    expect(findNode(noPear, "apple")).toBeDefined();
+    // A top-level item carrying children goes with its whole subtree.
+    const noFruit = removeNode(tree(), "fruit");
+    expect(flattenNodes(noFruit).map((n) => n.id)).toEqual(["milk"]);
+    // A miss returns the same reference (no needless re-render churn).
+    const t = tree();
+    expect(removeNode(t, "nope")).toBe(t);
+  });
+
+  it("removeNode does not mutate the input tree", () => {
+    const original = tree();
+    removeNode(original, "fruit");
+    expect(findNode(original, "fruit")).toBeDefined();
+  });
+
   it("flattenForDisplay tags depth and skips a collapsed node's children", () => {
     const open = flattenForDisplay(tree(), new Set());
     expect(open.map((r) => [r.node.id, r.depth, r.hasChildren])).toEqual([
@@ -175,6 +195,42 @@ describe("Checklist component", () => {
     expect(screen.queryByRole("checkbox", { name: "Apple" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Expand" }));
     expect(screen.queryByRole("checkbox", { name: "Apple" })).not.toBeNull();
+  });
+
+  it("offers no Delete affordance until onDelete is wired", () => {
+    render(<Controlled initial={tree()} />);
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+  });
+
+  it("reveals a Delete button per row that fires onDelete with the row id", () => {
+    const onDelete = vi.fn();
+    render(
+      <Checklist items={tree()} onChange={() => {}} onDelete={onDelete} />,
+    );
+    // One swipe-reveal Delete button per visible row (the strip behind it).
+    // It's aria-hidden until the row is swiped open, so query hidden roles.
+    const deletes = screen.getAllByRole("button", {
+      name: "Delete",
+      hidden: true,
+    });
+    expect(deletes.length).toBe(flattenForDisplay(tree(), new Set()).length);
+    // The first row is "fruit"; tapping its Delete removes that node.
+    fireEvent.click(deletes[0]!);
+    expect(onDelete).toHaveBeenCalledWith("fruit");
+  });
+
+  it("relabels the Delete button via deleteLabel", () => {
+    render(
+      <Checklist
+        items={tree()}
+        onChange={() => {}}
+        onDelete={() => {}}
+        deleteLabel="Ta bort"
+      />,
+    );
+    expect(
+      screen.getAllByRole("button", { name: "Ta bort", hidden: true }).length,
+    ).toBe(flattenForDisplay(tree(), new Set()).length);
   });
 });
 

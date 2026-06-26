@@ -81,26 +81,27 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export             | From                   | Purpose                                                                     |
-| ------------------ | ---------------------- | --------------------------------------------------------------------------- |
-| `useEscapeKey`     | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                    |
-| `useApplyTheme`    | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.              |
-| theme data         | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.            |
-| `SettingsModal`    | `.` and `./theme`      | Self-contained dialog over the appearance picker.                           |
-| `AppearancePicker` | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.           |
-| `ChangelogModal`   | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                 |
-| `parseChangelog`   | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.              |
-| `StorageAdapter`   | `.` and `./storage`    | Byte-level persistence contract for swappable backends.                     |
-| storage backends   | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.                  |
-| `createLogStore`   | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                  |
-| `LogViewer`        | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.         |
-| `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.              |
-| `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).            |
-| `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`. |
-| `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                                  |
-| glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.               |
-| `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress.         |
-| checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `countProgress`, …            |
+| Export             | From                   | Purpose                                                                              |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
+| `useEscapeKey`     | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                             |
+| `useRowSwipe`      | `.` and `./hooks`      | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
+| `useApplyTheme`    | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.                       |
+| theme data         | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
+| `SettingsModal`    | `.` and `./theme`      | Self-contained dialog over the appearance picker.                                    |
+| `AppearancePicker` | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.                    |
+| `ChangelogModal`   | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                          |
+| `parseChangelog`   | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
+| `StorageAdapter`   | `.` and `./storage`    | Byte-level persistence contract for swappable backends.                              |
+| storage backends   | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
+| `createLogStore`   | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                           |
+| `LogViewer`        | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
+| `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.                       |
+| `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
+| `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
+| `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                                           |
+| glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
+| `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
+| checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -198,10 +199,12 @@ import {
 The `checklist` module is the **nested checkable list** both source apps grew —
 shopping lists, packing lists, task lists with sub-tasks. `Checklist` renders the
 depth-indented rows (a child checklist under any item, collapse/expand, drag
-grips, checked items struck through and optionally sunk to the bottom);
+grips, checked items struck through and optionally sunk to the bottom, plus
+swipe-to-delete when `onDelete` is wired — the `useRowSwipe` gesture in action);
 `ChecklistProgress` is the header ring badge with a bulk check/uncheck menu; and
 `tree.ts` is the pure, DOM-free core — `toggleNode` (cascades a check down the
-whole subtree), `setAllChecked`, `countProgress`, `sortCheckedToBottom` — that an
+whole subtree), `setAllChecked`, `removeNode`, `countProgress`,
+`sortCheckedToBottom` — that an
 app can drive its **own** store with. The node type is minimal, so an app
 intersects it to carry its own fields (notes, tags, persistence); the framework
 owns the tree mechanics and the look. See
