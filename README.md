@@ -93,6 +93,7 @@ Today:
 | `StorageAdapter`   | `.` and `./storage`   | Byte-level persistence contract for swappable backends.           |
 | storage backends   | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.        |
 | `createLogStore`   | `.` and `./logging`   | In-app log ring buffer + capture mirror; the storage sink.        |
+| `Sidebar`          | `.` and `./sidebar`   | Responsive nav shell: docked sidebar / floating-button drawer.    |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -152,6 +153,19 @@ guide.
 
 ```ts
 import { createLogStore } from "@niclaslindstedt/oss-framework/logging";
+```
+
+The `sidebar` module is the responsive navigation **shell** both source apps
+grew alike around very different content: a draggable floating button and a
+swipe-dismissable drawer on phones, a permanent docked sidebar on wide screens.
+The host passes its navigation rows as `children` and threads the nav state
+(`open` / `position` / `pinned`) in as props — the shell is stateless and owns
+only the framing, plus the snap-to-edge geometry and a `useSidebarInset` helper.
+See [`src/sidebar/README.md`](src/sidebar/README.md) for the prop surface and
+the small CSS-token / keyframe contract an app supplies.
+
+```ts
+import { Sidebar } from "@niclaslindstedt/oss-framework/sidebar";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

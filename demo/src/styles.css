@@ -48,6 +48,9 @@
     "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   --app-font-scale: 1;
+  /* Row vertical padding the sidebar shell reads for its footer inset and
+     its nav rows. An app tunes this with its density setting. */
+  --density-row-py: 0.375rem;
 }
 
 html,
@@ -75,4 +78,32 @@ body {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+}
+
+/* Drawer slide-in / backdrop-fade keyframes the framework's `Sidebar` shell
+   references by class name — the animation is the app's to define so it can
+   tune timing and honour reduce-motion. The shell only adds the classes. */
+@keyframes drawer-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes drawer-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+.drawer-panel-left {
+  animation: drawer-slide-in-left 300ms ease-out;
+}
+.drawer-panel-right {
+  animation: drawer-slide-in-right 300ms ease-out;
+}
+.drawer-backdrop {
+  animation: drawer-backdrop-in 300ms ease-out;
 }

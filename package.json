@@ -45,6 +45,11 @@
       "types": "./dist/logging/index.d.ts",
       "import": "./dist/logging/index.js",
       "require": "./dist/logging/index.cjs"
+    },
+    "./sidebar": {
+      "types": "./dist/sidebar/index.d.ts",
+      "import": "./dist/sidebar/index.js",
+      "require": "./dist/sidebar/index.cjs"
     }
   },
   "scripts": {
