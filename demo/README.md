@@ -8,12 +8,19 @@ It builds **against the framework's TypeScript source** (via the aliases in
 [`vite.config.ts`](./vite.config.ts)), so every deploy reflects the exact commit
 it was built from — not a published package.
 
-Today it showcases the **theme** module: [`src/demos/theme.tsx`](./src/demos/theme.tsx)
-renders the framework's `SettingsModal` / `AppearancePicker` and projects the
-chosen appearance onto `<html>` with `useApplyTheme`, so the whole page repaints
-live as you pick. As the public surface grows, add one demo per component: a
-file under `src/demos/<component>.tsx` that imports the framework component it
-shows, e.g.
+Today it showcases two modules:
+
+- **theme** ([`src/demos/theme.tsx`](./src/demos/theme.tsx)) — renders the
+  framework's `SettingsModal` / `AppearancePicker` and projects the chosen
+  appearance onto `<html>` with `useApplyTheme`, so the whole page repaints live
+  as you pick.
+- **storage** ([`src/demos/storage.tsx`](./src/demos/storage.tsx)) — a live
+  playground over the `StorageAdapter` contract: save / load / conflict against
+  the browser backend (and a real local folder in Chromium), with copy-paste
+  wiring snippets for the Dropbox and Google Drive backends.
+
+As the public surface grows, add one demo per component: a file under
+`src/demos/<component>.tsx` that imports the framework component it shows, e.g.
 
 ```tsx
 import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";

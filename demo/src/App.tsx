@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import { StorageDemo } from "./demos/storage.tsx";
 import { ThemeDemo } from "./demos/theme.tsx";
 
 // The framework's preview site. One demo per component lives under
 // `src/demos/<component>.tsx` and is rendered in a section here. The theme demo
 // showcases the appearance picker / settings modal applied live with
-// `useApplyTheme`; add further sections below as the public surface grows.
+// `useApplyTheme`; the storage demo drives the swappable `StorageAdapter`
+// contract. Add further sections below as the public surface grows.
 export function App() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
@@ -18,7 +20,10 @@ export function App() {
         </p>
       </header>
 
-      <ThemeDemo />
+      <div className="flex flex-col gap-14">
+        <ThemeDemo />
+        <StorageDemo />
+      </div>
     </main>
   );
 }
