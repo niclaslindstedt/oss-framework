@@ -99,6 +99,7 @@ Today:
 | `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
 | `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
 | `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                                           |
+| settings layout    | `.` and `./components` | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
 | glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
 | `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
 | checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |

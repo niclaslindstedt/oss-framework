@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   SegmentedControl,
+  Section,
+  ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   BrowserLocalStorageAdapter,
@@ -14,7 +16,7 @@ import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 
 import { log, logStore } from "../log.ts";
 import type { AppSettings } from "../useAppSettings.ts";
-import { LanguagePicker, Section, ToggleRow } from "./shared.tsx";
+import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
   key: K,

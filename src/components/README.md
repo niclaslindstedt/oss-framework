@@ -16,19 +16,20 @@ go where. The primitives carry **no i18n, no domain types, and no asset
 imports** — the few strings that face the user inject as props with English
 defaults.
 
-| Export                                         | Kind      | What it is                                                                                  |
-| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------- |
-| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.      |
-| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                |
-| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                               |
-| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                 |
-| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                     |
-| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined). |
-| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                     |
-| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                          |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                     |
-| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                           |
-| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                           |
+| Export                                         | Kind      | What it is                                                                                                 |
+| ---------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                     |
+| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                               |
+| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                              |
+| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                |
+| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                    |
+| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                |
+| `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row. |
+| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                    |
+| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                         |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                    |
+| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                          |
+| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                          |
 
 ## The contract
 
@@ -105,6 +106,51 @@ function SettingsButton() {
 `react` and `react-dom` are peer dependencies (the components portal through
 `react-dom`). There are no other runtime dependencies.
 
+### Settings layout (`Section` / `Field` / `ToggleRow`)
+
+`Section`, `Field`, and `ToggleRow` are the layout glue a settings surface is
+assembled from — they arrange controls, they don't own them. Drop the other
+primitives (`SegmentedControl`, `SelectPicker`, …) inside a `Field`, and a
+`Section` becomes one group of a tab:
+
+```tsx
+import {
+  Section,
+  Field,
+  ToggleRow,
+  SegmentedControl,
+} from "@niclaslindstedt/oss-framework/components";
+
+<Section title="Appearance">
+  <Field label="Theme">
+    <SegmentedControl
+      value={mode}
+      onChange={setMode}
+      ariaLabel="Theme"
+      options={[
+        { value: "dark", label: "Dark" },
+        { value: "light", label: "Light" },
+      ]}
+    />
+  </Field>
+  <ToggleRow
+    label="Reduce motion"
+    hint="Calms animations"
+    checked={reduceMotion}
+    onChange={setReduceMotion}
+  />
+</Section>;
+```
+
+`Section`/`Field` name their group for assistive tech (`role="group"` +
+`aria-labelledby`); `ToggleRow` wraps the framework `Checkbox` with a visible
+label and an optional hint. All strings inject as props — no i18n inside.
+
+> **There is no `SegmentedRow`.** A segmented row of choices is
+> `SegmentedControl` (string options only). If a row carries **numeric** values
+> (a font-scale picker, say), keep a tiny app-local segmented row for that case —
+> `SegmentedControl<T extends string>` deliberately doesn't admit numbers.
+
 ## Migrating an existing implementation
 
 These primitives were distilled from two apps that each maintained their own
@@ -113,9 +159,9 @@ copies. Moving onto the framework, in degree-of-match order:
 ### Near-exact match (you already have these components)
 
 Delete your local `Modal` / `Button` / `Checkbox` / `ClearableInput` /
-`SelectPicker` / `FloatingPanel` / `DismissBackdrop` / `useFloatingPosition` and
-import them here instead. Drop the **app glue at the seam** rather than threading
-it through:
+`SelectPicker` / `FloatingPanel` / `DismissBackdrop` / `useFloatingPosition` /
+settings-layout (`Section` / `Field` / `ToggleRow`) and import them here instead.
+Drop the **app glue at the seam** rather than threading it through:
 
 - **i18n.** Replace a `useT("common.close")` lookup inside the component with the
   injected prop (`Modal`'s `closeLabel`, `ClearableInput`'s `clearLabel`). Pass
