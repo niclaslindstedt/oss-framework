@@ -15,6 +15,12 @@ export type List = {
   // `null` for a standalone (ungrouped) list shown at the menu's root.
   folderId: string | null;
   items: ChecklistNode[];
+  // The list's appearance — a glyph name (from the framework's catalogue) and
+  // an accent colour. `null`/absent means "no custom icon" (the default glyph)
+  // and "no accent". This is the app owning *where the choice lives*; the
+  // framework's `/glyphs` kit owns the catalogue, the renderer, and the pickers.
+  glyph?: string | null;
+  color?: string | null;
 };
 
 /** A folder groups lists in the side menu under one collapsible row. */

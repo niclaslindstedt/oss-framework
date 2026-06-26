@@ -237,6 +237,32 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   `removeNode(nodes, id)` tree helper landed alongside for the deletion. The demo
   wires `onDelete` through its store's undo history. See `src/hooks/README.md`.
   **The `hooks/` module now carries a README** (it had none through `useEscapeKey`).
+- **`glyphs/` glyph + accent-colour picker — extracted (done).** Lives in the
+  framework as `@niclaslindstedt/oss-framework/glyphs`: the inline-SVG glyph
+  catalogue (`GLYPH_PATHS`, `DEFAULT_GLYPH`, `GLYPH_NAMES`, `isGlyphName`), the
+  `Glyph` renderer (was `NamespaceGlyph`), the two presentational pickers
+  `GlyphPicker` (was `GlyphGrid`) + `ColorPalette`, the default `GLYPH_COLORS`
+  palette (was `namespace-colors.ts`), and the favicon builders
+  `glyphSvg`/`glyphDataUri` (was `namespaceGlyph*`). The two apps were
+  **near-identical** (95–100%); the catalogues had **drifted** (notes carried
+  `pen` and lacked `cart`/`car`/`wallet`; checklist had those and lacked `pen`)
+  so the framework took the **superset** — checklist's set plus `pen`. **App
+  glue dropped at the seam:** the `Namespace` naming was generalised away (the
+  module is entity-neutral — "a list, a workspace, a category"), the `t(…)`
+  i18n became `noneLabel`/`ariaLabelPrefix` props (the pickers already took
+  them), and the hard-coded `FAVICON_BG = "#1f2933"` filled badge became an
+  optional `GlyphBadgeOptions` (`size`/`radius`/`background`/`padding`),
+  defaulting to a **transparent** badge. **The store stayed app-side** per the
+  rule: where an entity's picked `glyph`/`color` lives (the namespace doc, the
+  list) is the app's; only the catalogue + rendering + picker chrome moved. The
+  demo gained a per-list appearance feature (each list carries `glyph`/`color`):
+  the side-menu rows render the tinted `Glyph`, the screen header opens a
+  `FloatingPanel` appearance popover (`ColorPalette` + `GlyphPicker`), and the
+  tab favicon re-badges to the active list via `glyphDataUri`. Each app's
+  migration: delete its `NamespaceGlyph`/`GlyphGrid`/`ColorPalette`/`glyphs.ts`/
+  `namespace-colors.ts` and import from `/glyphs`, pass `{ background: "#1f2933" }`
+  to keep the filled favicon badge, and keep its namespace store untouched. See
+  `src/glyphs/README.md`.
 - **`ui/hooks/useEdgeSwipeOpen.ts` is the next gesture candidate** (85%, ~100
   lines): a document-level edge-swipe that opens the side menu, the replacement
   for a hidden floating menu button. Near-identical across apps; the only drift is

@@ -9,6 +9,10 @@ import {
   Sidebar,
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
+import {
+  DEFAULT_GLYPH,
+  glyphDataUri,
+} from "@niclaslindstedt/oss-framework/glyphs";
 
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
@@ -47,6 +51,30 @@ export function App() {
   useEffect(() => {
     seedLogsOnce();
   }, []);
+
+  // Re-badge the browser tab to the active list's glyph + accent — the same
+  // `/glyphs` catalogue the side menu and the appearance picker draw from,
+  // serialised to a favicon data URI. Picking a new icon or colour updates the
+  // tab live. The badge sits on the app's surface colour so it reads on a light
+  // tab bar.
+  const active = store.activeList;
+  useEffect(() => {
+    if (!active) return;
+    const href = glyphDataUri(
+      active.glyph ?? DEFAULT_GLYPH,
+      active.color ?? "#86efac",
+      {
+        background: "#0b0d10",
+      },
+    );
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, [active]);
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-page-bg text-fg">

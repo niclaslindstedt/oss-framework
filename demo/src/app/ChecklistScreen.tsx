@@ -16,15 +16,23 @@ import {
   setAllChecked,
 } from "@niclaslindstedt/oss-framework/checklist";
 
+import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
 import type { ChecklistStore } from "./useChecklistStore.ts";
 
 // The list screen — the app's main view, rebuilt from the framework's
-// `/checklist` and `/components` surface so it matches the real app: a header
-// with the list's title checkbox, the progress ring, and copy / sync glyph
-// buttons; the nested checklist body; and the centered create FAB with an
-// inline composer for adding items.
+// `/checklist`, `/components`, and `/glyphs` surface so it matches the real
+// app: a header with the list's appearance button, its title checkbox, the
+// progress ring, and copy / sync glyph buttons; the nested checklist body; and
+// the centered create FAB with an inline composer for adding items.
 export function ChecklistScreen({ store }: { store: ChecklistStore }) {
-  const { activeList, progress, setActiveItems, addItem, deleteItem } = store;
+  const {
+    activeList,
+    progress,
+    setActiveItems,
+    addItem,
+    deleteItem,
+    setListAppearance,
+  } = store;
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
@@ -67,6 +75,10 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
   return (
     <div className="relative mx-auto flex h-full w-full max-w-2xl flex-col px-4 pt-[calc(1.25rem+env(safe-area-inset-top))]">
       <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
+        <ListAppearancePopover
+          list={activeList}
+          onChange={(patch) => setListAppearance(activeList.id, patch)}
+        />
         <Checkbox checked onChange={() => {}} ariaLabel="List" />
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-wide text-fg-bright">
           {activeList.title}

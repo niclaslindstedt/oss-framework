@@ -154,6 +154,18 @@ export function useChecklistStore() {
     commit({ ...data, folders: [...data.folders, folder] });
   }, [commit, data]);
 
+  // Set a list's appearance — the glyph and/or accent colour the framework's
+  // `/glyphs` pickers feed. A partial patch so the colour and the icon can be
+  // changed independently; goes through `commit`, so a restyle is undoable.
+  const setListAppearance = useCallback(
+    (id: string, patch: { glyph?: string | null; color?: string | null }) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+      }),
+    [commit, data],
+  );
+
   const activeList = useMemo(
     () => data.lists.find((l) => l.id === data.activeListId) ?? data.lists[0],
     [data],
@@ -178,6 +190,7 @@ export function useChecklistStore() {
     deleteItem,
     addList,
     addFolder,
+    setListAppearance,
     undo,
     redo,
   };

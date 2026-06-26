@@ -16,8 +16,25 @@ import {
   SearchIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
+import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
 
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
+import type { List } from "./types.ts";
+
+// A list's menu icon: its picked glyph tinted by its accent colour, or the
+// neutral checklist mark when it carries no custom appearance. The active row
+// already paints its icon `text-accent`, so only an *inactive* row wears the
+// list's own colour — keeping the selected row's accent consistent.
+function listIcon(list: List, active: boolean) {
+  if (!list.glyph) return <ChecklistIcon className="h-4 w-4" />;
+  return (
+    <Glyph
+      name={list.glyph}
+      className="h-4 w-4"
+      style={!active && list.color ? { color: list.color } : undefined}
+    />
+  );
+}
 
 // The navigation drawer's content — the rows the framework `Sidebar` shell
 // frames. This is the app's own navigation (the framework owns only the
@@ -93,7 +110,7 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
                     key={list.id}
                     indent
                     active={list.id === data.activeListId}
-                    icon={<ChecklistIcon className="h-4 w-4" />}
+                    icon={listIcon(list, list.id === data.activeListId)}
                     onClick={() => pick(list.id)}
                   >
                     <span className="flex-1 truncate">{list.title}</span>
@@ -108,7 +125,7 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
           <NavRow
             key={list.id}
             active={list.id === data.activeListId}
-            icon={<ChecklistIcon className="h-4 w-4" />}
+            icon={listIcon(list, list.id === data.activeListId)}
             onClick={() => pick(list.id)}
           >
             <span className="flex-1 truncate">{list.title}</span>

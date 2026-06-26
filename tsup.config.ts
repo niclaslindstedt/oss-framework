@@ -15,6 +15,7 @@ export default defineConfig({
     "sidebar/index": "src/sidebar/index.ts",
     "components/index": "src/components/index.ts",
     "checklist/index": "src/checklist/index.ts",
+    "glyphs/index": "src/glyphs/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

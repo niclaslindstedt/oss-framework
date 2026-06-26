@@ -60,6 +60,11 @@
       "types": "./dist/checklist/index.d.ts",
       "import": "./dist/checklist/index.js",
       "require": "./dist/checklist/index.cjs"
+    },
+    "./glyphs": {
+      "types": "./dist/glyphs/index.d.ts",
+      "import": "./dist/glyphs/index.js",
+      "require": "./dist/glyphs/index.cjs"
     }
   },
   "scripts": {
