@@ -1,75 +1,98 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
-  DEFAULT_CUSTOM_THEME,
-  DEFAULT_CUSTOM_THEME_COLORS_DARK,
-  DEFAULT_THEME_APPEARANCE,
   useApplyTheme,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
+import {
+  Sidebar,
+  type MenuButtonPosition,
+} from "@niclaslindstedt/oss-framework/sidebar";
 
-import { ChecklistAppDemo } from "./demos/checklist-app.tsx";
-import { ComponentsDemo } from "./demos/components.tsx";
-import { SidebarDemo } from "./demos/sidebar.tsx";
-import { StorageDemo } from "./demos/storage.tsx";
-import { ThemeDemo } from "./demos/theme.tsx";
+import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
+import { SettingsModal } from "./app/SettingsModal.tsx";
+import { SideMenuContent } from "./app/SideMenuContent.tsx";
+import { APP_LOOK } from "./app/look.ts";
+import { seedLogsOnce } from "./app/log.ts";
+import { useAppSettings } from "./app/useAppSettings.ts";
+import { useChecklistStore } from "./app/useChecklistStore.ts";
+import { useMediaQuery } from "./app/useMediaQuery.ts";
 
-// The pure-black, green-accent look the apps ship — a Custom theme seeded from
-// the dark palette with the page/surface slots pushed to black and the accent
-// to the apps' signature green. It is the demo's default so the preview opens
-// looking like the real product; the settings modal still swaps to any preset.
-const APP_LOOK: ThemeAppearance = {
-  ...DEFAULT_THEME_APPEARANCE,
-  theme: "custom",
-  customTheme: {
-    ...DEFAULT_CUSTOM_THEME,
-    colors: {
-      ...DEFAULT_CUSTOM_THEME_COLORS_DARK,
-      pageBg: "#000000",
-      surface: "#0b0d10",
-      surface2: "#111418",
-      surface3: "#171b20",
-      fg: "#c9ced6",
-      fgBright: "#ffffff",
-      muted: "#7c828d",
-      line: "#23272e",
-      accent: "#86efac",
-      success: "#86efac",
-    },
-  },
-};
-
-// The framework's preview site. One demo per component lives under
-// `src/demos/<component>.tsx` and is rendered in a section here. The shell owns
-// the single `ThemeAppearance` and projects it onto <html> with `useApplyTheme`,
-// so every demo repaints live as the theme changes. The flagship checklist-app
-// demo opens in the apps' own black/green look.
+// The demo *is* a fully-fledged app: a local-first nested-checklist PWA built
+// entirely from the framework's shared surface, in the apps' own black/green
+// look. The framework `Sidebar` frames the navigation (docked on wide screens,
+// a draggable drawer on phones); the app owns the document store, the list
+// screen, the side-menu content, and its tabbed Settings dialog. New apps can
+// lift this folder as a starting point — it is the template the framework is
+// meant to seed.
 export function App() {
   const [appearance, setAppearance] = useState<ThemeAppearance>(APP_LOOK);
-
-  // Paint the chosen appearance onto <html> for the whole page, once.
   useApplyTheme(appearance);
 
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
-      <header className="mb-10">
-        <h1 className="text-2xl font-bold text-fg-bright">
-          OSS Framework — demo
-        </h1>
-        <p className="mt-1 text-muted">
-          Preview site for <code>@niclaslindstedt/oss-framework</code>.
-          Component demos appear here as the framework grows.
-        </p>
-      </header>
+  const store = useChecklistStore();
+  const { settings, setSettings } = useAppSettings();
 
-      <div className="flex flex-col gap-14">
-        <ChecklistAppDemo />
-        <ComponentsDemo appearance={appearance} onChange={setAppearance} />
-        <ThemeDemo appearance={appearance} onChange={setAppearance} />
-        <SidebarDemo />
-        <StorageDemo />
-      </div>
-    </main>
+  // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
+  // collapse it to a draggable drawer. The app derives this — the framework
+  // shell is told the answer.
+  const pinned = useMediaQuery("(min-width: 768px)");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [position, setPosition] = useState<MenuButtonPosition>({
+    side: "left",
+    y: 0.5,
+  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    seedLogsOnce();
+  }, []);
+
+  return (
+    <div className="flex h-[100svh] overflow-hidden bg-page-bg text-fg">
+      <Sidebar
+        pinned={pinned}
+        open={drawerOpen}
+        onToggle={() => setDrawerOpen((v) => !v)}
+        onClose={() => setDrawerOpen(false)}
+        position={position}
+        onPositionChange={setPosition}
+        // The framework shell owns only swipe-to-close; edge-swipe-open is app
+        // glue it doesn't ship yet, so the floating button is always offered on
+        // phones whatever the (persisted) "open the menu with" preference says.
+        showButton={!pinned}
+        swipeToClose
+        panelScroll={false}
+        labels={{
+          nav: "Checklists",
+          open: "Open menu",
+          close: "Close menu",
+        }}
+      >
+        <SideMenuContent
+          store={store}
+          onOpenSettings={() => {
+            setDrawerOpen(false);
+            setSettingsOpen(true);
+          }}
+          onNavigate={() => {
+            if (!pinned) setDrawerOpen(false);
+          }}
+        />
+      </Sidebar>
+
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <ChecklistScreen store={store} />
+      </main>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        appearance={appearance}
+        setAppearance={setAppearance}
+        settings={settings}
+        commitSettings={setSettings}
+      />
+    </div>
   );
 }

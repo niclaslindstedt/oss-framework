@@ -65,17 +65,17 @@ src/
 
 ## Where new code goes
 
-| Change type                      | Goes in                                                            |
-| -------------------------------- | ------------------------------------------------------------------ |
-| A new shared hook                | `src/hooks/` + re-export in `src/hooks/index.ts`                   |
-| A storage backend / adapter type | `src/storage/`                                                     |
-| Theme / appearance logic         | `src/theme/`                                                       |
-| Changelog / "What's new" UI      | `src/changelog/`                                                   |
-| Encryption / migration logic     | `src/encryption/`                                                  |
-| A test                           | `tests/<name>.test.ts` (see below)                                 |
-| A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports` |
-| A user-facing change (changelog) | a `.changes/unreleased/` fragment (see "Cutting a release")        |
-| A demo for a component           | `demo/src/demos/<component>.tsx`, rendered from `demo/src/App.tsx` |
+| Change type                      | Goes in                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| A new shared hook                | `src/hooks/` + re-export in `src/hooks/index.ts`                            |
+| A storage backend / adapter type | `src/storage/`                                                              |
+| Theme / appearance logic         | `src/theme/`                                                                |
+| Changelog / "What's new" UI      | `src/changelog/`                                                            |
+| Encryption / migration logic     | `src/encryption/`                                                           |
+| A test                           | `tests/<name>.test.ts` (see below)                                          |
+| A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports`          |
+| A user-facing change (changelog) | a `.changes/unreleased/` fragment (see "Cutting a release")                 |
+| Showing off a component          | wire it into the reference app under `demo/src/app/` (see `demo/README.md`) |
 
 When extracting from the source apps, follow the `find-refactor-candidates`
 skill — it ranks what to pull next and how to treat each tier.
