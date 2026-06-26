@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+
+### Added
+
+- **Changelog component** — `@niclaslindstedt/oss-framework/changelog` — a self-contained "What's new" dialog that parses a Keep-a-Changelog `CHANGELOG.md` into a typed release list and renders it, with an inline "Learn more" drill-down into long-form feature docs.
+- **Settings modal & appearance picker** — `@niclaslindstedt/oss-framework/theme` — `SettingsModal`, a self-contained dialog over the theme module, and `AppearancePicker`, the controlled appearance editor it wraps (theme mode/variant, font, text size, and the Custom colour and shape/motion controls), plus a `DEFAULT_THEME_APPEARANCE` starting point; both drive a `ThemeAppearance` you apply live with `useApplyTheme`.
+- **Storage module** — A `storage` module with the `StorageAdapter` byte contract and four backends — browser localStorage, local folder, Dropbox, and Google Drive — plus their shared OAuth, offline-cache, and HTTP plumbing.
+
 ### Added
 
 - Initial framework scaffold: tsup build (ESM + CJS + types), Vitest, ESLint,
