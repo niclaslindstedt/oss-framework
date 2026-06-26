@@ -96,7 +96,10 @@ Today:
 | `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.       |
 | `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).     |
 | `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, the `SelectPicker` dropdown. |
+| `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                           |
 | glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.        |
+| `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress.  |
+| checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `countProgress`, …     |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -189,6 +192,26 @@ import {
   Button,
   SelectPicker,
 } from "@niclaslindstedt/oss-framework/components";
+```
+
+The `checklist` module is the **nested checkable list** both source apps grew —
+shopping lists, packing lists, task lists with sub-tasks. `Checklist` renders the
+depth-indented rows (a child checklist under any item, collapse/expand, drag
+grips, checked items struck through and optionally sunk to the bottom);
+`ChecklistProgress` is the header ring badge with a bulk check/uncheck menu; and
+`tree.ts` is the pure, DOM-free core — `toggleNode` (cascades a check down the
+whole subtree), `setAllChecked`, `countProgress`, `sortCheckedToBottom` — that an
+app can drive its **own** store with. The node type is minimal, so an app
+intersects it to carry its own fields (notes, tags, persistence); the framework
+owns the tree mechanics and the look. See
+[`src/checklist/README.md`](src/checklist/README.md) for the full surface and a
+migration guide.
+
+```ts
+import {
+  Checklist,
+  toggleNode,
+} from "@niclaslindstedt/oss-framework/checklist";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

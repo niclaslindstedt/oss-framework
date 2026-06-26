@@ -322,3 +322,73 @@ export function HeartIcon({ className }: IconProps) {
     </Glyph>
   );
 }
+
+// --- list / nav (24×24 grid) ----------------------------------------------
+
+/** Six dots — the drag-handle grip on a reorderable row. */
+export function GripIcon({ className }: IconProps) {
+  return (
+    <Glyph filled viewBox="0 0 16 16" className={className}>
+      <circle cx="6" cy="4" r="1.3" />
+      <circle cx="10" cy="4" r="1.3" />
+      <circle cx="6" cy="8" r="1.3" />
+      <circle cx="10" cy="8" r="1.3" />
+      <circle cx="6" cy="12" r="1.3" />
+      <circle cx="10" cy="12" r="1.3" />
+    </Glyph>
+  );
+}
+
+/** A list with a leading check — a checklist / task list. */
+export function ChecklistIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="m3 6 1.5 1.5L7 5" />
+      <path d="M11 6h10" />
+      <path d="M11 12h10" />
+      <path d="M11 18h10" />
+      <path d="M3.5 12h.01" />
+      <path d="M3.5 18h.01" />
+    </Glyph>
+  );
+}
+
+/** A closed folder — a collapsed folder row. */
+export function FolderIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 5h5l2 2.5h9a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+    </Glyph>
+  );
+}
+
+/** The open-lid twin of {@link FolderIcon}, shown when a folder is expanded. */
+export function FolderOpenIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 5h5l2 2.5h7a1 1 0 0 1 1 1V10" />
+      <path d="M3 18.5 5.4 11a1 1 0 0 1 .95-.7H21a1 1 0 0 1 .95 1.32L19.6 18.5a1 1 0 0 1-.95.7H4a1 1 0 0 1-1-.7z" />
+    </Glyph>
+  );
+}
+
+/** An archive box — an archive / put-away affordance. */
+export function ArchiveIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M10 12h4" />
+    </Glyph>
+  );
+}
+
+/** A cloud with a check — a backend that is in sync. */
+export function CloudCheckIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+      <path d="m9 15 2 2 4-4" />
+    </Glyph>
+  );
+}

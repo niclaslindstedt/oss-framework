@@ -9,6 +9,8 @@
 // label) inject as props with English defaults.
 
 export { Button, type ButtonVariant } from "./Button.tsx";
+export { Badge, type BadgeTone } from "./Badge.tsx";
+export { Fab } from "./Fab.tsx";
 export { Checkbox } from "./Checkbox.tsx";
 export { ClearableInput } from "./ClearableInput.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";

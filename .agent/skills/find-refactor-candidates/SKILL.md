@@ -194,6 +194,25 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   app's migration: delete its `Modal` / form / `FloatingPanel` copies and import
   from `/components`, pass its translated labels as props, and switch text-only
   "secondary" buttons to `ghost`. See `src/components/README.md`.
+- **`checklist/` nested list — extracted (done).** Lives in the framework as
+  `@niclaslindstedt/oss-framework/checklist`: a **generic** `ChecklistNode`
+  (`{ id, label, checked, checkedAt?, children? }`) + the pure tree core
+  (`toggleNode` cascade, `setAllChecked`, `countProgress`, `sortCheckedToBottom`,
+  `flattenForDisplay`, `subtreeState`) distilled from checklist's
+  `domain/checklists.ts`, plus `Checklist` (depth-indented rows, collapse, grips,
+  strike-through) and `ChecklistProgress` (the `ItemCount` ring badge). The
+  **app domain stayed app-side** per the store rule: checklist's `Checklist` /
+  `ChecklistItem` carry `templateId` / `folderId` / `archived` / `notes` /
+  `required` / `version` and a whole snapshot/templates/folders model — none of
+  that came; the framework took only the **tree shape + mechanics**, generalising
+  `title: string` → `label: ReactNode` so an app intersects the node to re-add
+  its fields. The cascade + checkedAt-recency + sink-checked semantics were
+  preserved verbatim (they're the behaviour, not drift). Also lifted two generic
+  primitives into `/components` the list needed: `Badge` (the nav count pill) and
+  `Fab` (the create button), plus `Grip`/`Folder`/`FolderOpen`/`Checklist`/
+  `Archive`/`CloudCheck` glyphs. The demo was rebuilt to the apps' pure-black +
+  green look (a Custom theme) to reproduce the real checklist screen + side menu.
+  See `src/checklist/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.

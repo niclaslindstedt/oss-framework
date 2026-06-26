@@ -55,6 +55,11 @@
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js",
       "require": "./dist/components/index.cjs"
+    },
+    "./checklist": {
+      "types": "./dist/checklist/index.d.ts",
+      "import": "./dist/checklist/index.js",
+      "require": "./dist/checklist/index.cjs"
     }
   },
   "scripts": {

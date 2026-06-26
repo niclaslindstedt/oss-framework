@@ -46,6 +46,10 @@ export default defineConfig({
         replacement: here("../src/components/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/checklist",
+        replacement: here("../src/checklist/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
