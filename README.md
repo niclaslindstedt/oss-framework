@@ -81,15 +81,17 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export           | From                  | Purpose                                                          |
-| ---------------- | --------------------- | ---------------------------------------------------------------- |
-| `useEscapeKey`   | `.` and `./hooks`     | Capture-phase Escape handler gated on an `enabled` flag.         |
-| `useApplyTheme`  | `.` and `./theme`     | Projects the chosen appearance onto `<html>` as CSS variables.   |
-| theme data       | `.` and `./theme`     | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers. |
-| `ChangelogModal` | `.` and `./changelog` | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.      |
-| `parseChangelog` | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.   |
-| `StorageAdapter` | `.` and `./storage`   | Byte-level persistence contract for swappable backends.          |
-| storage backends | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.       |
+| Export             | From                  | Purpose                                                           |
+| ------------------ | --------------------- | ----------------------------------------------------------------- |
+| `useEscapeKey`     | `.` and `./hooks`     | Capture-phase Escape handler gated on an `enabled` flag.          |
+| `useApplyTheme`    | `.` and `./theme`     | Projects the chosen appearance onto `<html>` as CSS variables.    |
+| theme data         | `.` and `./theme`     | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.  |
+| `SettingsModal`    | `.` and `./theme`     | Self-contained dialog over the appearance picker.                 |
+| `AppearancePicker` | `.` and `./theme`     | Controlled theme / font / colour editor over a `ThemeAppearance`. |
+| `ChangelogModal`   | `.` and `./changelog` | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.       |
+| `parseChangelog`   | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.    |
+| `StorageAdapter`   | `.` and `./storage`   | Byte-level persistence contract for swappable backends.           |
+| storage backends   | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.        |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -107,14 +109,21 @@ import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
 
 The `theme` module is the shared theme engine and theme data — the preset
 vocabulary, the per-preset palettes, the Custom-theme shape, the webfont
-loaders, and the projection that paints them onto `<html>`. The appearance
-**store** stays in the consuming app. See
+loaders, and the projection that paints them onto `<html>`. It also ships the
+appearance UI: `AppearancePicker`, a controlled editor over a `ThemeAppearance`
+(theme mode/variant, font, text size, and the Custom colour and shape/motion
+controls), and `SettingsModal`, which wraps it in a self-contained accessible
+overlay. Feed the same appearance to `useApplyTheme` and the look previews live
+as the user picks. The appearance **store** stays in the consuming app. See
 [`src/theme/README.md`](src/theme/README.md) for the full API and a
 step-by-step guide to migrating an existing theme implementation onto it
 (including how to reconcile a partial match).
 
 ```ts
-import { useApplyTheme } from "@niclaslindstedt/oss-framework/theme";
+import {
+  SettingsModal,
+  useApplyTheme,
+} from "@niclaslindstedt/oss-framework/theme";
 ```
 
 The `storage` module is the shared persistence layer: one `StorageAdapter` byte

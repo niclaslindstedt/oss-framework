@@ -8,15 +8,30 @@ It builds **against the framework's TypeScript source** (via the aliases in
 [`vite.config.ts`](./vite.config.ts)), so every deploy reflects the exact commit
 it was built from — not a published package.
 
-Today it is just a hello-world page. As the public surface grows, add one demo
-per component: a file under `src/demos/<component>.tsx` that imports the
-framework component it shows, e.g.
+Today it showcases the **theme** module: [`src/demos/theme.tsx`](./src/demos/theme.tsx)
+renders the framework's `SettingsModal` / `AppearancePicker` and projects the
+chosen appearance onto `<html>` with `useApplyTheme`, so the whole page repaints
+live as you pick. As the public surface grows, add one demo per component: a
+file under `src/demos/<component>.tsx` that imports the framework component it
+shows, e.g.
 
 ```tsx
 import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
 ```
 
 and render it from [`src/App.tsx`](./src/App.tsx).
+
+### Styling
+
+The framework components are styled with Tailwind utilities that resolve through
+the theme module's CSS-variable contract. The demo wires that up in
+[`src/styles.css`](./src/styles.css): Tailwind v4 (via `@tailwindcss/vite`), an
+`@source` pointing at the framework source so its classes are scanned, and a
+`@theme` block mapping each colour utility to a slot variable. The per-preset
+slot _values_ are generated at runtime from the framework's `PRESET_PALETTES`
+(see [`src/theme-tokens.ts`](./src/theme-tokens.ts)) so the preview can never
+drift from the framework data — an app would normally hand-write those
+`[data-theme="…"]` blocks in its own stylesheet.
 
 ## Run it locally
 

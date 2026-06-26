@@ -23,9 +23,12 @@
 import { useEffect } from "react";
 
 import { COLOR_KEYS, COLOR_KEY_TO_CSS_VAR } from "./palettes.ts";
-import { type CustomTheme } from "./custom-theme.ts";
+import { DEFAULT_CUSTOM_THEME, type CustomTheme } from "./custom-theme.ts";
 import { loadFontFamily } from "./fonts.ts";
 import {
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SCALE,
+  DEFAULT_THEME,
   FONT_FAMILIES,
   type BorderWidthPreset,
   type DensityPreset,
@@ -148,6 +151,17 @@ export type ThemeAppearance = {
   fontFamily: FontFamilyId;
   fontScale: number;
   customTheme: CustomTheme;
+};
+
+// The pristine appearance: each field at the module-level default the theme
+// vocabulary declares. The starting point a host app's appearance store seeds
+// from, what the framework's settings picker resets to, and the look the demo
+// boots with.
+export const DEFAULT_THEME_APPEARANCE: ThemeAppearance = {
+  theme: DEFAULT_THEME,
+  fontFamily: DEFAULT_FONT_FAMILY,
+  fontScale: DEFAULT_FONT_SCALE,
+  customTheme: DEFAULT_CUSTOM_THEME,
 };
 
 /**

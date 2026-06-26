@@ -24,14 +24,14 @@ import {
 
 ## What the framework owns vs. what stays in your app
 
-| Owned here (shared)                                                     | Stays in your app (app-specific)                                       |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Preset ids, families, labels, `themeFamily` (`presets.ts`)              | The **appearance / settings store** that persists the user's choice    |
-| Font families + stacks, font-scale steps, radius/density/border presets | The Appearance **UI** (picker, swatches, sliders) that reads this data |
-| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)            | Where values are persisted/synced (localStorage, a settings file, …)   |
-| `CustomTheme` shape, defaults, `customThemeSeed`, `coerceCustomTheme`   | Any app-only settings that happen to live beside the theme code        |
-| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*`   | The CSS rules for the non-`custom` presets (`[data-theme="…"] { … }`)  |
-| The webfont loaders (`fonts.ts`)                                        | The static import of the default `mono` font in your entry module      |
+| Owned here (shared)                                                     | Stays in your app (app-specific)                                           |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Preset ids, families, labels, `themeFamily` (`presets.ts`)              | The **appearance / settings store** that persists the user's choice        |
+| Font families + stacks, font-scale steps, radius/density/border presets | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough |
+| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)            | Where values are persisted/synced (localStorage, a settings file, …)       |
+| `CustomTheme` shape, defaults, `customThemeSeed`, `coerceCustomTheme`   | Any app-only settings that happen to live beside the theme code            |
+| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*`   | The CSS rules for the non-`custom` presets (`[data-theme="…"] { … }`)      |
+| The webfont loaders (`fonts.ts`)                                        | The static import of the default `mono` font in your entry module          |
 
 The **store is deliberately not part of this module.** An app's appearance
 state is usually fused with concerns the framework knows nothing about (editor
@@ -78,7 +78,50 @@ export function ThemeRoot({ children }: { children: React.ReactNode }) {
 }
 ```
 
-Build an Appearance picker straight from the exported data:
+### The bundled appearance UI
+
+The module ships a ready-made editor so you don't have to build one. Both pieces
+are **controlled** — they never persist; edits flow through `onChange`, so you
+own the store and feed the same value to `useApplyTheme` for a live preview.
+
+- **`AppearancePicker`** — the editor body: theme mode/variant, font, text size,
+  and (in Custom mode) the per-slot colours and the shape/motion controls. Embed
+  it in your own settings dialog or tab.
+- **`SettingsModal`** — wraps the picker in a self-contained accessible overlay
+  (portal, Escape-to-close, backdrop click, body-scroll lock, focus trap) plus a
+  reset-to-`DEFAULT_THEME_APPEARANCE` footer. A drop-in for an app with no modal
+  system of its own.
+
+```tsx
+import {
+  SettingsModal,
+  useApplyTheme,
+  DEFAULT_THEME_APPEARANCE,
+  type ThemeAppearance,
+} from "@niclaslindstedt/oss-framework/theme";
+
+function Demo() {
+  const [appearance, setAppearance] = useState<ThemeAppearance>(
+    DEFAULT_THEME_APPEARANCE,
+  );
+  const [open, setOpen] = useState(false);
+  useApplyTheme(appearance); // edits preview live
+
+  return (
+    <SettingsModal
+      open={open}
+      onClose={() => setOpen(false)}
+      appearance={appearance}
+      onChange={setAppearance}
+    />
+  );
+}
+```
+
+The section/chrome strings default to English and are overridable via `labels`;
+the data labels (theme names, colour names, font faces) come from the theme data
+modules. To build a fully custom UI instead, read straight from the exported
+data:
 
 ```tsx
 import {
@@ -132,10 +175,15 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
 - **`custom-theme.ts`** — `CustomTheme`, `DEFAULT_CUSTOM_THEME`,
   `customThemeSeed`, `coerceCustomTheme`.
 - **`fonts.ts`** — `loadFontFamily`, `loadAllFontFamilies`.
-- **`engine.ts`** — `useApplyTheme` (+ `ThemeAppearance`), and the pure
-  primitives `applyThemePreset`, `applyFontFamily`, `applyFontScale`,
-  `applyCustomTheme`, `clearCustomTheme`, plus the shape pixel maps
-  `RADIUS_PX`, `DENSITY`, `BORDER_WIDTH_PX` for previewing concrete values.
+- **`engine.ts`** — `useApplyTheme` (+ `ThemeAppearance`,
+  `DEFAULT_THEME_APPEARANCE`), and the pure primitives `applyThemePreset`,
+  `applyFontFamily`, `applyFontScale`, `applyCustomTheme`, `clearCustomTheme`,
+  plus the shape pixel maps `RADIUS_PX`, `DENSITY`, `BORDER_WIDTH_PX` for
+  previewing concrete values.
+- **`AppearancePicker.tsx`** — `AppearancePicker`, `AppearanceLabels`,
+  `DEFAULT_APPEARANCE_LABELS`: the controlled appearance editor body.
+- **`SettingsModal.tsx`** — `SettingsModal`, `SettingsLabels`,
+  `DEFAULT_SETTINGS_LABELS`: the self-contained dialog wrapping the picker.
 
 ## Migrating an existing theme implementation
 
