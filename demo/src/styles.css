@@ -1,0 +1,78 @@
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
+/* Demo stylesheet. Wires the framework theme module into a real CSS token
+   system so the components paint:
+
+     1. Tailwind v4 base + utilities.
+     2. `@source` — scan the framework source (it lives outside the demo root,
+        resolved through the Vite aliases) so its utility classes are emitted.
+     3. `@theme inline` — map each Tailwind colour utility (`bg-surface`,
+        `text-fg`, `text-accent`, …) to the framework's slot variables. The
+        per-preset *values* of those slots are generated at runtime from the
+        framework's `PRESET_PALETTES` (see `theme-tokens.ts`) and injected as
+        `:root[data-theme="…"]` blocks; the `custom` preset's values are written
+        inline on <html> by the theme engine.
+     4. Structural defaults + the html/body reset, plus the Custom "reduce
+        motion" short-circuit the engine toggles via `data-reduce-motion`. */
+
+@import "tailwindcss";
+
+@source "../../src";
+
+@theme inline {
+  --color-page-bg: var(--page-bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-fg: var(--fg);
+  --color-fg-bright: var(--fg-bright);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-meta: var(--meta);
+  --color-link: var(--link);
+  --color-path: var(--path);
+  --color-flag: var(--flag);
+  --color-pipe: var(--pipe);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+}
+
+:root {
+  /* Structural defaults. The engine overrides the font vars inline on <html>;
+     the Custom theme additionally writes `--radius-*` (which Tailwind's own
+     `rounded-*` tokens read by the same name). */
+  --app-font-family:
+    "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  --app-font-scale: 1;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--fg);
+  font-family: var(--app-font-family);
+  font-size: calc(1rem * var(--app-font-scale));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom-theme "reduce motion" toggle. The engine sets
+   `data-reduce-motion="true"` on <html> when enabled; this short-circuits
+   every transition and animation on demand. */
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

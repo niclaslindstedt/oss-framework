@@ -1,36 +1,24 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
+import { ThemeDemo } from "./demos/theme.tsx";
 
-// The framework's preview site. This is the hello-world starting point — no
-// component is showcased yet. As the public surface grows, add one demo per
-// component: give each its own file under `src/demos/<component>.tsx` that
-// imports the framework component it shows (e.g. `ChangelogModal` from
-// `@niclaslindstedt/oss-framework/changelog`) and render it in a section below.
-//
-// We import a real framework export (`useEscapeKey`) here so the build links
-// against the framework source — proving the deploy reflects the live commit,
-// not a stale published package.
+// The framework's preview site. One demo per component lives under
+// `src/demos/<component>.tsx` and is rendered in a section here. The theme demo
+// showcases the appearance picker / settings modal applied live with
+// `useApplyTheme`; add further sections below as the public surface grows.
 export function App() {
-  // Disabled: there is nothing to dismiss yet. Wiring it keeps the framework
-  // import exercised by the build.
-  useEscapeKey(false, () => {});
-
   return (
-    <main
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        maxWidth: "40rem",
-        margin: "4rem auto",
-        padding: "0 1rem",
-        lineHeight: 1.5,
-      }}
-    >
-      <h1>OSS Framework — demo</h1>
-      <p>Hello world.</p>
-      <p>
-        This is the preview site for <code>@niclaslindstedt/oss-framework</code>
-        . Component demos will appear here as the framework grows.
-      </p>
+    <main className="mx-auto max-w-3xl px-4 py-12">
+      <header className="mb-10">
+        <h1 className="text-2xl font-bold text-fg-bright">
+          OSS Framework — demo
+        </h1>
+        <p className="mt-1 text-muted">
+          Preview site for <code>@niclaslindstedt/oss-framework</code>.
+          Component demos appear here as the framework grows.
+        </p>
+      </header>
+
+      <ThemeDemo />
     </main>
   );
 }

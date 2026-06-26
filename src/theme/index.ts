@@ -11,3 +11,5 @@ export * from "./palettes.ts";
 export * from "./custom-theme.ts";
 export * from "./fonts.ts";
 export * from "./engine.ts";
+export * from "./AppearancePicker.tsx";
+export * from "./SettingsModal.tsx";
