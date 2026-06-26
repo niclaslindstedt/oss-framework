@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           # Stay in local/CI parity with the pinned toolchain (OSS_SPEC §10.5).
           node-version-file: .nvmrc
