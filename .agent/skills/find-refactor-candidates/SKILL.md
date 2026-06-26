@@ -89,6 +89,8 @@ extractions teach you more.
 | Copies that were _supposed_ to be identical but **drifted** (different slot counts, extra fields, renamed CSS vars) | Accidental divergence, not design           | **Converge, don't preserve.** Pick the **superset** as canonical and migrate both apps onto it — never drop a field/slot an app actively renders (its CSS reads it, its UI shows it). Do **not** parameterize the engine just to keep both drifted shapes alive; that ossifies the drift instead of healing it. Confirm the direction by checking which copy is the ancestor / actively uses the extra surface. Ask the user if the convergence has real UX cost (e.g. one app gains controls). |
 | A **store** wrapping shared data (`useSyncExternalStore`, a synced settings doc, persistence keys)                  | The data is shared; the store is app glue   | **Leave the store in the app.** Extract the _data_ (types, presets, palettes) and the _pure logic_ it drives (projection, validation/coercion, seeding). The store is usually fused with app-only concerns (achievements, editor prefs, list layout) and must not come along. The app keeps owning where the user's choice lives.                                                                                                                                                               |
 | Hand-maintained "remove every var/key" cleanup list parallel to a writer                                            | Drift bait — the two lists fall out of sync | When you extract the writer, make it **track what it wrote** (e.g. a `WeakMap` of written keys) and clear exactly that. One source of truth beats two parallel lists — a quality win worth taking _during_ the extraction.                                                                                                                                                                                                                                                                      |
+| Near-identical **repo tooling** (build/release scripts, CI workflows) duplicated across apps                        | Shared process, not shared library code     | Copy it into the framework's own `scripts/` + workflows and **dogfood** it — don't ship it as an npm export (CLI scripts aren't importable surface). Generalise the app-specific bits (skip-lists, doc-slug examples, deploy env). A component whose data this tooling generates (e.g. `changelog` ← changeset fragments) should land _with_ its tooling so the framework uses the same pipeline it ships.                                                                                      |
+| **App glue** wrapping an otherwise-shareable component (a `Modal`, `useT`/i18n, an icon set)                        | UI chrome fused to a portable core          | **Drop the glue at the seam, don't parameterise it.** Replace the app `Modal` with a self-contained portal (reuse the framework's own primitives, e.g. `useEscapeKey`), i18n with injectable `labels` props (English defaults), and the icon import with inline glyphs. Keep build-tool inlining (`?raw` / `import.meta.glob`) the app's job — take the glob _result_, not the glob.                                                                                                            |
 
 Known structural notes about the source apps (keep current):
 
@@ -107,6 +109,25 @@ Known structural notes about the source apps (keep current):
   the data + projection + font loaders + `coerceCustomTheme` moved. notes'
   migration includes a real CSS change (new slots, radius triple,
   border-width); checklist's is nearly drop-in. See `src/theme/README.md`.
+- **`ui/changelog/` — extracted (done).** Lives in the framework as
+  `@niclaslindstedt/oss-framework/changelog` (`ChangelogModal`,
+  `parseChangelog`, `parseFeatureDoc` / `buildFeatureDocs`, the markdown
+  renderer). The two apps had drifted only cosmetically (comments, and the
+  per-kind colour map — notes folded kinds onto fewer slots, checklist used the
+  full positive/success/negative set); the framework took **checklist's
+  superset** mapping (it matches the converged 18-slot theme) and made the
+  strings/colours injectable (`labels` / `typeColors`) so neither app's UX is
+  lost. **App glue was dropped at the seam, not parameterised:** the `Modal`,
+  `useT` (i18n), and icon imports were replaced by a self-contained portal modal
+  (reusing the framework's own `useEscapeKey`), `labels` props, and inline
+  glyphs; the `import.meta.glob`/`?raw` _inlining_ stays the app's job
+  (`buildFeatureDocs` takes the glob result). notes' `domain/markdown.ts` came
+  along as an internal `markdown.ts` (parser only — `shortenUrl` left behind).
+  The **release tooling** that feeds it (`scripts/release/*.mjs`: changeset
+  fragments → `collate-changelog` + `compute-bump` + `extract-section`, gated by
+  `check-changeset`) was near-identical across the apps and was copied in and
+  **dogfooded** for the framework's own releases. See `src/changelog/README.md`
+  and `.changes/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.

@@ -47,6 +47,7 @@ src/
 ├── hooks/          framework-agnostic React hooks (first to land)
 ├── storage/        the StorageAdapter contract and its backends
 ├── theme/          appearance store + theme projection engine
+├── changelog/      "What's new" dialog over a Keep-a-Changelog CHANGELOG.md
 └── encryption/     at-rest crypto + encrypt/decrypt migration queue
 ```
 
@@ -64,9 +65,11 @@ src/
 | A new shared hook                | `src/hooks/` + re-export in `src/hooks/index.ts`                   |
 | A storage backend / adapter type | `src/storage/`                                                     |
 | Theme / appearance logic         | `src/theme/`                                                       |
+| Changelog / "What's new" UI      | `src/changelog/`                                                   |
 | Encryption / migration logic     | `src/encryption/`                                                  |
 | A test                           | `tests/<name>.test.ts` (see below)                                 |
 | A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports` |
+| A user-facing change (changelog) | a `.changes/unreleased/` fragment (see "Cutting a release")        |
 
 When extracting from the source apps, follow the `find-refactor-candidates`
 skill — it ranks what to pull next and how to treat each tier.
@@ -79,14 +82,40 @@ skill — it ranks what to pull next and how to treat each tier.
   extracting a large app file (e.g. `useStorageBackend.ts`, ~2000 lines),
   split it by concern as part of the migration — do not lift the monolith.
 
+## Cutting a release
+
+Releases run on **changeset fragments**, not hand-edited changelog entries — the
+framework dogfoods its own `changelog` module end to end (fragments → collated
+`CHANGELOG.md` → the `ChangelogModal` an app renders it through).
+
+- **Every PR touching the published `src/` surface drops a fragment** under
+  `.changes/unreleased/` describing the user-facing change. CI's `changeset` job
+  enforces it; pure refactors / CI / docs pass via the skip-list, or label the
+  PR `no-changelog`. Fragment format and the bump policy live in
+  [`.changes/README.md`](.changes/README.md) and
+  [`scripts/release/`](scripts/release).
+- **The bump is automatic.** `breaking: true` → major; `Added`/`Changed`/
+  `Removed`/`Deprecated` → minor; `Fixed`/`Security` → patch. The release takes
+  the highest level across all fragments.
+- **Releasing** is a manual dispatch of the `release` workflow with `bump: auto`
+  (the default). It derives the bump, collates the fragments into a dated
+  `CHANGELOG.md` section, bumps `package.json`, tags `vX.Y.Z`, publishes to the
+  GitHub Packages registry, and cuts a GitHub Release. Override `bump` only to
+  force a level.
+- **Locally:** `make bump` prints the implied bump; `make changelog
+VERSION=X.Y.Z` previews the collated section without releasing.
+
 ## Documentation sync points
 
-| If you change …                         | Also update …                                        |
-| --------------------------------------- | ---------------------------------------------------- |
-| The public API (`src/index.ts` exports) | `README.md` Usage/API section, `CHANGELOG.md`        |
-| A subpath export                        | `package.json` `exports`, `tsup.config.ts`           |
-| The source-app layout assumptions       | `find-refactor-candidates` SKILL.md structural notes |
-| Anything user-facing                    | `CHANGELOG.md` under the matching section            |
+| If you change …                         | Also update …                                           |
+| --------------------------------------- | ------------------------------------------------------- |
+| The public API (`src/index.ts` exports) | `README.md` Usage/API section + a `.changes/` fragment  |
+| A subpath export                        | `package.json` `exports`, `tsup.config.ts`              |
+| The source-app layout assumptions       | `find-refactor-candidates` SKILL.md structural notes    |
+| Anything user-facing                    | a `.changes/unreleased/` fragment (collated at release) |
+
+`CHANGELOG.md` itself is **generated** from the fragments — do not hand-edit it
+for a normal change; add a fragment instead (see below).
 
 ## Maintenance skills (OSS_SPEC §21)
 

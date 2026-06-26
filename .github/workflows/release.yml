@@ -1,34 +1,52 @@
 name: release
 
-# Publishes the package to the GitHub Packages npm registry when a `v*` tag is
-# pushed, and attaches a GitHub Release. Per OSS_SPEC §10.3 the tag is the
-# single trigger; hand-pushed tags must be prevented out-of-band by tag
-# protection rules so only an intentional release reaches this workflow. A
-# `workflow_dispatch` escape hatch allows a manual re-run against an existing
-# tag if a publish step fails.
+# Manual-only automatic versioning. The maintainer dispatches this and the
+# workflow derives the semver bump from the changeset fragments waiting in
+# .changes/unreleased/ (their front-matter carries the Added/Changed/Fixed/...
+# type and an optional `breaking: true` — see scripts/release/compute-bump.mjs),
+# consumes those fragments into a new dated CHANGELOG section, bumps
+# package.json, commits, tags vX.Y.Z, pushes, publishes the package to the
+# GitHub Packages npm registry, and attaches a GitHub Release whose body is the
+# new changelog section.
+#
+# `bump` defaults to `auto` — the fragment-derived bump above. Set it to an
+# explicit patch/minor/major only to override that derivation.
+#
+# The tag is created here, not hand-pushed, so version (package.json), tag, and
+# CHANGELOG entry can never drift apart — the workflow writes all three from one
+# computed version. The built-in GITHUB_TOKEN both pushes the release commit and
+# authenticates the npm publish, so no long-lived credential is needed.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump. 'auto' derives it from the .changes/unreleased/ fragments (breaking → major, Added/Changed/Removed/Deprecated → minor, Fixed/Security → patch). Pick patch/minor/major to override."
+        required: true
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
-# Default to no privileges; each job opts into exactly what it needs.
+# Default to no privileges; the job opts into exactly what it needs.
 permissions: {}
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
-      # Create the GitHub Release for the tag.
+      # Push the release commit + tag to main and create the GitHub Release.
       contents: write
-      # Publish the package to this repository's GitHub Packages registry. The
-      # built-in GITHUB_TOKEN is scoped to the repo, so no long-lived npm
-      # credential is needed.
+      # Publish the package to this repository's GitHub Packages registry.
       packages: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -41,22 +59,67 @@ jobs:
 
       - run: npm ci
 
-      # Build on the exact tagged commit and gate the publish on a green suite.
+      - name: Verify clean working tree
+        run: |
+          if ! git diff --quiet || ! git diff --quiet --cached; then
+            echo "::error::working tree is not clean — refusing to release"
+            git status
+            exit 1
+          fi
+
+      # Resolve the effective bump. `auto` (the default) derives it from the
+      # changeset fragments' front-matter so the release needs no human
+      # judgement; an explicit patch/minor/major overrides that derivation.
+      - name: Resolve bump
+        id: resolve
+        run: |
+          if [ "${{ inputs.bump }}" = "auto" ] || [ -z "${{ inputs.bump }}" ]; then
+            BUMP=$(node scripts/release/compute-bump.mjs)
+            echo "Auto-derived bump from fragments: $BUMP"
+          else
+            BUMP="${{ inputs.bump }}"
+            echo "Using requested bump override: $BUMP"
+          fi
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version
+        id: bump
+        run: |
+          # Reconcile package.json to the highest released tag first so the
+          # version stays monotonic with what was actually published, then
+          # apply the resolved bump.
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          if [ -n "$LATEST_TAG" ]; then
+            npm version "${LATEST_TAG#v}" --no-git-tag-version --allow-same-version >/dev/null
+          fi
+          NEW=$(npm version ${{ steps.resolve.outputs.bump }} --no-git-tag-version)
+          echo "version=${NEW#v}" >> "$GITHUB_OUTPUT"
+          echo "tag=$NEW" >> "$GITHUB_OUTPUT"
+          echo "Bumped from ${LATEST_TAG:-package.json} to $NEW"
+
+      - name: Collate changelog
+        run: node scripts/release/collate-changelog.mjs "${{ steps.bump.outputs.version }}"
+
+      - name: Extract release-notes body
+        run: node scripts/release/extract-section.mjs "${{ steps.bump.outputs.version }}" > .release-notes.md
+
+      # Gate the release on a green suite built from the bumped tree.
       - run: make lint
       - run: make test
       - run: make build
 
-      # Guard against tag/manifest drift: the tag must match package.json.
-      - name: Verify tag matches package version
-        if: github.event_name == 'push'
+      - name: Commit + tag
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          set -e
-          tag="${GITHUB_REF_NAME#v}"
-          pkg="$(node -p "require('./package.json').version")"
-          if [ "$tag" != "$pkg" ]; then
-            echo "::error::tag v$tag does not match package.json version $pkg"
-            exit 1
-          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json CHANGELOG.md .changes/unreleased
+          git commit -m "chore(release): v${VERSION}"
+          git tag -a "$TAG" -m "Release ${TAG}"
+          git push origin HEAD:main
+          git push origin "$TAG"
 
       # Publish to GitHub Packages. `prepublishOnly` re-runs lint + test + build
       # as a final safety net. The scope (@niclaslindstedt) matches the repo
@@ -67,7 +130,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        if: github.event_name == 'push'
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" --generate-notes --verify-tag
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.bump.outputs.tag }}" \
+            --title "${{ steps.bump.outputs.tag }}" \
+            --notes-file .release-notes.md \
+            --verify-tag

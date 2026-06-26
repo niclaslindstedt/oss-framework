@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+    # Include `labeled` / `unlabeled` so the `no-changelog` escape hatch
+    # re-runs the changeset job when the label is toggled after the PR
+    # opened. The default activity types (`opened`, `synchronize`,
+    # `reopened`) would otherwise leave the check stuck red until the next
+    # push.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
   build:
@@ -19,6 +25,27 @@ jobs:
       - run: make lint
       - run: make test
       - run: make build
+
+  changeset:
+    # Enforce that every PR touching the published `src/` surface drops a
+    # changelog fragment under .changes/unreleased/, or opts out via the
+    # `no-changelog` label. Pure refactors, CI/build tweaks, and docs-only
+    # edits pass via the skip-list inside the script. The release workflow
+    # consumes these fragments to compute the bump and collate CHANGELOG.md.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check for changelog fragment
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: make check-changeset
 
   symlinks:
     # Enforce the OSS_SPEC §7.1 / §21.2 single-source-of-truth rule: the
