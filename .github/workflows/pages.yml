@@ -9,8 +9,14 @@ name: pages
 #   /branch/   a feature branch parked via workflow_dispatch, persisted in the
 #              `branch-deploy` orphan branch so it survives later deploys
 #
-# Pre-requisite: the repo's Pages source must be set to "GitHub Actions"
-# (Settings → Pages).
+# Served at the custom domain framework.niclaslindstedt.se (set by
+# demo/public/CNAME, which Vite copies to the artifact root). The slot base
+# paths (`/`, `/preview/`, `/branch/`) are root-relative, which is correct for
+# a custom domain served at its apex.
+#
+# Pre-requisites: the repo's Pages source must be set to "GitHub Actions"
+# (Settings → Pages), and a `framework` CNAME DNS record must point at
+# `niclaslindstedt.github.io`.
 
 on:
   push:
@@ -160,6 +166,9 @@ jobs:
           mv site site-branch
           STAGE=$(mktemp -d)
           cp -R site-branch/. "$STAGE/"
+          # Only the artifact ROOT may carry the custom-domain CNAME; drop it
+          # from the per-slot copy (Vite copies public/CNAME into every build).
+          rm -f "$STAGE/CNAME"
           # Build an orphan tree containing just the build output and force-push
           # it to BRANCH_DEPLOY_REF. Force-push is safe: the branch is
           # auto-managed and only ever written by this step. The identity must
@@ -206,6 +215,9 @@ jobs:
             mv site site-preview
             mv site-prod site
             mkdir -p site/preview
+            # Only the root (`/`) artifact may carry the custom-domain CNAME;
+            # GitHub Pages rejects the deploy if a CNAME also sits in a subdir.
+            rm -f site-preview/CNAME
             cp -R site-preview/. site/preview/
             echo "Merged: / = ${{ steps.tag.outputs.ref }}, /preview/ = ${{ github.sha }}"
           else

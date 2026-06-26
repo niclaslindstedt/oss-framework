@@ -29,8 +29,12 @@ make build-demo    # or: npm run build:demo — production build into ../site/
 
 ## Deploy slots
 
-`pages.yml` serves three slots off one Pages site (set the repo's Pages source
-to **GitHub Actions** to enable it):
+`pages.yml` serves three slots at **[framework.niclaslindstedt.se](https://framework.niclaslindstedt.se)**
+off one Pages site. Enabling it needs the repo's Pages source set to **GitHub
+Actions**, a `framework` CNAME DNS record pointing at `niclaslindstedt.github.io`,
+and the custom domain in [`public/CNAME`](./public/CNAME) (already committed —
+only the artifact root carries it; the workflow strips it from the per-slot
+copies):
 
 | Path        | Content                       | Trigger                                        |
 | ----------- | ----------------------------- | ---------------------------------------------- |
