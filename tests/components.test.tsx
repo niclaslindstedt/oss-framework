@@ -9,8 +9,11 @@ import {
   Checkbox,
   ClearableInput,
   Fab,
+  Field,
   Modal,
+  Section,
   SelectPicker,
+  ToggleRow,
   computeFloatingRect,
   CheckIcon,
   CloseIcon,
@@ -337,6 +340,53 @@ describe("glyphs", () => {
     const svg = container.querySelector("svg")!;
     expect(svg.getAttribute("fill")).toBe("currentColor");
     expect(svg.getAttribute("stroke")).toBe("none");
+  });
+});
+
+// --- settings layout (Section / Field / ToggleRow) ----------------------
+
+describe("Section", () => {
+  it("names its group via the title for assistive tech", () => {
+    render(
+      <Section title="Appearance">
+        <span>body</span>
+      </Section>,
+    );
+    const group = screen.getByRole("group", { name: "Appearance" });
+    expect(group.textContent).toContain("body");
+  });
+});
+
+describe("Field", () => {
+  it("labels its control group with the caption", () => {
+    render(
+      <Field label="Text size">
+        <button type="button">A</button>
+      </Field>,
+    );
+    expect(
+      within(screen.getByRole("group", { name: "Text size" })).getByRole(
+        "button",
+        { name: "A" },
+      ),
+    ).toBeTruthy();
+  });
+});
+
+describe("ToggleRow", () => {
+  it("renders a labelled checkbox and reports the next state on toggle", () => {
+    const onChange = vi.fn();
+    render(
+      <ToggleRow
+        label="Reduce motion"
+        hint="Calms animations"
+        checked={false}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByText("Calms animations")).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Reduce motion" }));
+    expect(onChange).toHaveBeenCalledWith(true);
   });
 });
 

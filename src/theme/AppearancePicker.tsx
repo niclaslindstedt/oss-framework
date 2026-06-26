@@ -17,8 +17,9 @@
 // overridable via `labels` so an app can localize the chrome without
 // re-implementing the controls.
 
-import { useEffect, useId, type ReactNode } from "react";
+import { useEffect } from "react";
 
+import { Field, Section, ToggleRow } from "../components/index.ts";
 import { customThemeSeed, type CustomTheme } from "./custom-theme.ts";
 import type { ThemeAppearance } from "./engine.ts";
 import { loadAllFontFamilies } from "./fonts.ts";
@@ -268,46 +269,10 @@ export function AppearancePicker({
 }
 
 // ── Presentational primitives ────────────────────────────────────────────
-// Self-contained so the editor needs no form-control library from the host.
-// They render against the framework theme's semantic colour slots (see the
-// `theme` module), so they paint correctly under whatever theme is applied.
-
-/** A labelled settings group rendered as a bordered fieldset. */
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  const titleId = useId();
-  return (
-    <div
-      role="group"
-      aria-labelledby={titleId}
-      className="mt-3 rounded border border-line bg-surface-3 p-3 first:mt-0"
-    >
-      <div
-        id={titleId}
-        className="mb-2 text-xs font-bold tracking-wide text-muted uppercase"
-      >
-        {title}
-      </div>
-      <div className="flex flex-col gap-3">{children}</div>
-    </div>
-  );
-}
-
-/** A labelled row of custom controls. */
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  const labelId = useId();
-  return (
-    <div
-      role="group"
-      aria-labelledby={labelId}
-      className="flex flex-col gap-1.5"
-    >
-      <span id={labelId} className="text-xs text-muted">
-        {label}
-      </span>
-      <div className="flex flex-wrap items-center gap-2">{children}</div>
-    </div>
-  );
-}
+// `Section` / `Field` / `ToggleRow` come from the framework's `components`
+// module. `SegmentedRow` stays local: unlike the shared `SegmentedControl`
+// (string options only) it admits a numeric value, which the font-size row
+// needs (`FONT_SCALE_PRESETS` are numbers).
 
 /** A segmented control: a row of mutually-exclusive buttons. */
 function SegmentedRow<T extends string | number>({
@@ -347,35 +312,6 @@ function SegmentedRow<T extends string | number>({
         );
       })}
     </div>
-  );
-}
-
-/** A checkbox row with a visible label and optional hint. */
-function ToggleRow({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        aria-label={label}
-        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-accent"
-      />
-      <span className="flex flex-col gap-0.5">
-        <span className="text-sm text-fg-bright">{label}</span>
-        {hint && <span className="text-xs text-muted">{hint}</span>}
-      </span>
-    </label>
   );
 }
 

@@ -201,7 +201,17 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   "secondary" buttons to `ghost`. A `SegmentedControl` (a bordered track with
   the active option outlined — the apps' language / layout / menu-mode toggles)
   has since been added to the module, generalising the apps' near-identical
-  inline segmented rows. See `src/components/README.md`.
+  inline segmented rows. The **settings-layout trio** `Section` / `Field` /
+  `ToggleRow` (the apps' `ui/settings/shared.tsx`, ~87% similar) has also landed
+  here: a bordered group card, a labelled control row, and a checkbox+label+hint
+  row. They were duplicated **three ways** — both source apps, the framework's
+  own `theme/AppearancePicker.tsx` (private copies), and the demo — so the
+  extraction de-duplicated all three onto one set (`ToggleRow` now uses the
+  framework `Checkbox`, not a raw native input). The apps' fourth helper
+  `SegmentedRow` was **not** taken: `SegmentedControl` already supersedes it for
+  string options, and the one numeric case (`AppearancePicker`'s font-scale row)
+  keeps a tiny local `SegmentedRow<number>` since `SegmentedControl<T extends
+string>` deliberately rejects numbers. See `src/components/README.md`.
 - **`checklist/` nested list — extracted (done).** Lives in the framework as
   `@niclaslindstedt/oss-framework/checklist`: a **generic** `ChecklistNode`
   (`{ id, label, checked, checkedAt?, children? }`) + the pure tree core
@@ -291,6 +301,15 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   blows the §20.5 limit — it must be decomposed during extraction, not lifted.
 - `i18n/locales/**` similarity is low by design (translations differ); the
   i18n _machinery_ (`i18n/index.ts`, `locale.ts`) is the real candidate.
+- **Known false positives in the ranking (already extracted, but _renamed_).**
+  `similarity.mjs` dedupes by **basename**, so a file the framework extracted
+  under a new name still appears at the top of the report. Skip these — they are
+  done: `ui/NamespaceGlyph.tsx` (→ `glyphs/Glyph`), `ui/GlyphGrid.tsx`
+  (→ `GlyphPicker`), `ui/glyphs.ts` (→ the glyph catalogue), `ui/namespace-colors.ts`
+  (→ `GLYPH_COLORS`), `ui/sideMenuPosition.ts` (→ `sidebar/position.ts`),
+  `ui/hooks/useSwipeReveal.ts` (the side-menu-row sibling of the extracted
+  `useRowSwipe` — left app-side, the framework's `Checklist` consumes `useRowSwipe`
+  directly). When weighing "extract next", start **below** these.
 - **Demo app — current scope (the integration target).** `demo/` is a
   fully-fledged local-first nested-checklist PWA in the apps' pure-black/green
   look, built end to end from the framework's own surface — the reference app
@@ -298,7 +317,10 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   What it models today: a `Sidebar` shell (docked / draggable drawer) framing a
   side menu (`SideMenuContent`) of folder-grouped checklists; the list screen
   (`ChecklistScreen`) over `/checklist` + `/components`; a tabbed Settings dialog
-  (`SettingsModal`, `app/settings/`) with an Appearance tab over `/theme`; an
+  (`SettingsModal`, `app/settings/`) whose tabs are built from the framework's
+  settings-layout primitives (`Section` / `Field` / `ToggleRow` from
+  `/components`) plus an Appearance tab over `/theme` — `app/settings/shared.tsx`
+  now holds only the app-glue `LanguagePicker`; an
   undo/redo document store (`useChecklistStore`, localStorage) and a seed
   (`app/seed.ts`); a per-list appearance feature (`/glyphs`) — each list
   carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
