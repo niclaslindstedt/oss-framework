@@ -92,6 +92,7 @@ Today:
 | `parseChangelog`   | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.    |
 | `StorageAdapter`   | `.` and `./storage`   | Byte-level persistence contract for swappable backends.           |
 | storage backends   | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.        |
+| `createLogStore`   | `.` and `./logging`   | In-app log ring buffer + capture mirror; the storage sink.        |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -136,6 +137,21 @@ per-backend quick-starts.
 
 ```ts
 import { createDropboxAdapter } from "@niclaslindstedt/oss-framework/storage";
+```
+
+The `logging` module is an in-app **log ring buffer** for PWAs that can't reach
+the devtools console (a phone browser tab). `createLogStore` returns an isolated
+buffer with an optional, debounced `localStorage` mirror (a "capture" toggle
+that survives reloads) and a pub/sub layer a Logs panel renders live; the
+loggers it hands out double as the `Logger` sink the `storage` adapters take, so
+the same buffer captures your sync diagnostics. The Logs UI and any developer-
+mode toggle stay app-side — the framework owns the buffer and the seam
+(`setEnabled`) the toggle drives. See
+[`src/logging/README.md`](src/logging/README.md) for the full API and migration
+guide.
+
+```ts
+import { createLogStore } from "@niclaslindstedt/oss-framework/logging";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

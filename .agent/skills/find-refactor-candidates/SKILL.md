@@ -150,6 +150,27 @@ Known structural notes about the source apps (keep current):
   `check-changeset`) was near-identical across the apps and was copied in and
   **dogfooded** for the framework's own releases. See `src/changelog/README.md`
   and `.changes/README.md`.
+- **`dev/logger.ts` (in-app logger) — extracted (done).** Lives in the framework
+  as `@niclaslindstedt/oss-framework/logging` (`createLogStore` +
+  `formatLogLine`/`formatLogTime`). The two apps had **drifted**: notes' logger
+  records unconditionally and carries a `time()` helper; checklist's gates
+  recording on a `loggingActive()` predicate (its dev-mode flag OR capture) via
+  `DEV_MODE_KEY` + `setDevModeEnabled`. The framework **converged on the
+  superset**: a `createLogStore({ logsKey, captureKey, maxEntries,
+saveDebounceMs, enabled })` factory that keeps `time()` and generalises
+  checklist's dev-mode gate to a neutral `setEnabled` activity gate (default
+  `enabled: true` = notes' always-record). **App glue dropped at the seam:** the
+  hard-coded `notes:`/`checklist:dev:` localStorage keys became constructor
+  options, and the `DEV_MODE_KEY` / `useDevMode` React store **stays app-side**
+  (it's fused with achievements + cross-tab `storage` sync) — the app just wires
+  its flag through `setEnabled`. The Logs UI (`LogsSection`/`logs.tsx`,
+  `SyncLogPanel`) stays app-side too (i18n + Tailwind + app form controls);
+  only the verbatim-duplicated `formatLogTime`/`formatLogLine` came along. The
+  loggers `createLogger` returns satisfy the storage `Logger` sink, so the same
+  buffer captures sync diagnostics end to end. Each app's migration: replace its
+  logger internals with `createLogStore` on **its existing keys** (so captured
+  history survives), seed checklist's `enabled` from its dev flag and forward it
+  via `setEnabled`; notes drops the gate entirely. See `src/logging/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.

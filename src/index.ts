@@ -11,9 +11,11 @@
 //   hooks/      — framework-agnostic React hooks (the first to land)
 //   storage/    — the StorageAdapter contract and its backends
 //   theme/      — theme vocabulary, palettes, and the projection engine
+//   logging/    — in-app log buffer + capture mirror for the storage sink
 //   encryption/ — at-rest crypto and the encrypt/decrypt migration queue
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
 export * from "./changelog/index.ts";
 export * from "./storage/index.ts";
+export * from "./logging/index.ts";
