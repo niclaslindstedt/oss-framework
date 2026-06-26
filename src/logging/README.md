@@ -52,6 +52,18 @@ backend's `logger` option.
 | `LogStoreOptions`          | `logsKey`, `captureKey`, `maxEntries`, `saveDebounceMs`, `enabled`.                |
 | `formatLogTime(ts)`        | `HH:MM:SS` for a panel's per-entry timestamp.                                      |
 | `formatLogLine(entry)`     | `HH:MM:SS [scope] LEVEL message` — one plain line for "Copy logs".                 |
+| `useLogs(store)`           | Subscribe a component to a store's buffer with a cached, stable snapshot.          |
+| `LogViewer`                | A ready Logs panel over a store: level filter, copy, clear, coloured entries.      |
+
+`useLogs` is the React binding for the buffer: `store.getLogs()` returns a fresh
+array each call, which `useSyncExternalStore` cannot consume directly (a new
+reference every render reads as a perpetual change and loops). `useLogs` caches
+the snapshot and refreshes it only when the store notifies. `LogViewer` is the
+batteries-included panel built on it — pass it a `store` (every visible string
+injects via `labels`, English by default); its level → colour mapping rides the
+theme's `meta`/`flag`/`negative` slots (info/warn/error) and `link` (the scope).
+Keep rendering your own panel from `useLogs` + `formatLogLine` if you need a
+different layout.
 
 `ScopedLogger.time(label, fn)` brackets an async op: it logs `label …`, runs
 `fn`, then logs `label ok (<ms>ms)` — or `label failed (<ms>ms)` at error level

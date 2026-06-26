@@ -16,18 +16,19 @@ go where. The primitives carry **no i18n, no domain types, and no asset
 imports** — the few strings that face the user inject as props with English
 defaults.
 
-| Export                                         | Kind      | What it is                                                                             |
-| ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------- |
-| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape. |
-| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).           |
-| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                          |
-| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                            |
-| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                |
-| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                |
-| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                     |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                |
-| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                      |
-| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                      |
+| Export                                         | Kind      | What it is                                                                                  |
+| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.      |
+| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                |
+| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                               |
+| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                 |
+| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                     |
+| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined). |
+| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                     |
+| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                          |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                     |
+| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                           |
+| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                           |
 
 ## The contract
 

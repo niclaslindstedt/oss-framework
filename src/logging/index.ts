@@ -19,3 +19,10 @@ export {
 } from "./log-store.ts";
 
 export { formatLogLine, formatLogTime } from "./format.ts";
+
+export { useLogs } from "./useLogs.ts";
+export {
+  LogViewer,
+  DEFAULT_LOG_VIEWER_LABELS,
+  type LogViewerLabels,
+} from "./LogViewer.tsx";
