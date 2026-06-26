@@ -6,10 +6,12 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 import {
+  FloatingButton,
   Sidebar,
   useEdgeSwipeOpen,
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
+import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 import {
   DEFAULT_GLYPH,
   glyphDataUri,
@@ -48,6 +50,12 @@ export function App() {
     y: 0.5,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The settings button rests on the opposite edge from the menu button by
+  // default, so the two floating buttons don't stack — drag either anywhere.
+  const [settingsPosition, setSettingsPosition] = useState<MenuButtonPosition>({
+    side: "right",
+    y: 0.5,
+  });
 
   // "Open the menu with" (Settings → General): on phones, the user picks
   // between the floating button and an inward edge swipe. In swipe mode the
@@ -58,6 +66,17 @@ export function App() {
     side: position.side,
     enabled: swipeToOpen && !drawerOpen,
     onOpen: () => setDrawerOpen(true),
+  });
+
+  // "Open settings with" (Settings → General): the same choice for reaching
+  // the Settings dialog — a floating settings button by default, or an inward
+  // edge swipe from the side it rests on. Both are phone-only; on wide screens
+  // the docked menu's Settings footer row is always in reach.
+  const swipeToOpenSettings = !pinned && settings.settingsMode === "swipe";
+  useEdgeSwipeOpen({
+    side: settingsPosition.side,
+    enabled: swipeToOpenSettings && !settingsOpen && !drawerOpen,
+    onOpen: () => setSettingsOpen(true),
   });
 
   useEffect(() => {
@@ -124,6 +143,24 @@ export function App() {
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <ChecklistScreen store={store} />
       </main>
+
+      {/* The floating settings button — the default way to reach Settings on
+          phones, built from the same framework `FloatingButton` the Sidebar
+          uses for its menu toggle. Hidden when the user switches to the edge-
+          swipe gesture, and on wide screens where the docked menu shows a
+          Settings row. */}
+      {!pinned && settings.settingsMode === "button" && (
+        <FloatingButton
+          position={settingsPosition}
+          onPositionChange={setSettingsPosition}
+          onPress={() => setSettingsOpen(true)}
+          haspopup="dialog"
+          expanded={settingsOpen}
+          label="Open settings"
+        >
+          <CogIcon className="h-5 w-5" />
+        </FloatingButton>
+      )}
 
       <SettingsModal
         open={settingsOpen}

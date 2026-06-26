@@ -96,6 +96,7 @@ Today:
 | `createLogStore`   | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                           |
 | `LogViewer`        | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
 | `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.                       |
+| `FloatingButton`   | `.` and `./sidebar`    | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
 | `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
 | `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
 | `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                                           |
@@ -172,7 +173,10 @@ The host passes its navigation rows as `children` and threads the nav state
 (`open` / `position` / `pinned`) in as props — the shell is stateless and owns
 only the framing, plus the snap-to-edge geometry and a `useSidebarInset` helper.
 A `useEdgeSwipeOpen` hook (the mirror of swipe-to-close) opens the drawer with
-an inward edge swipe, for apps that hide the floating button. See
+an inward edge swipe, for apps that hide the floating button. The draggable,
+edge-resting FAB the shell floats is also exported on its own as
+`FloatingButton`, so an app can pin a second global action (open Settings, a
+composer) from the same primitive. See
 [`src/sidebar/README.md`](src/sidebar/README.md) for the prop surface and the
 small CSS-token / keyframe contract an app supplies.
 
