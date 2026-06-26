@@ -277,6 +277,24 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   blows the §20.5 limit — it must be decomposed during extraction, not lifted.
 - `i18n/locales/**` similarity is low by design (translations differ); the
   i18n _machinery_ (`i18n/index.ts`, `locale.ts`) is the real candidate.
+- **Demo app — current scope (the integration target).** `demo/` is a
+  fully-fledged local-first nested-checklist PWA in the apps' pure-black/green
+  look, built end to end from the framework's own surface — the reference app
+  every extraction must land in (see the demo-integration convention below).
+  What it models today: a `Sidebar` shell (docked / draggable drawer) framing a
+  side menu (`SideMenuContent`) of folder-grouped checklists; the list screen
+  (`ChecklistScreen`) over `/checklist` + `/components`; a tabbed Settings dialog
+  (`SettingsModal`, `app/settings/`) with an Appearance tab over `/theme`; an
+  undo/redo document store (`useChecklistStore`, localStorage) and a seed
+  (`app/seed.ts`); and a per-list appearance feature (`/glyphs`) — each list
+  carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
+  edited via a header `FloatingPanel` popover (`ListAppearancePopover`). **Not
+  yet modelled, so the natural next homes to widen into:** multiple
+  profiles/namespaces (the menu shows a single hard-coded "Default" namespace
+  header — real switching would seat storage backends, sync, encryption, and
+  per-profile appearance); a real Search; Archive; and an i18n language switch
+  (strings are currently hard-coded English). Keep this note current as the demo
+  grows.
 
 ## Extraction conventions
 
@@ -325,6 +343,61 @@ home-grown implementation:
 Link the module README from the top-level `README.md` API section and add a
 `CHANGELOG.md` entry, per the `AGENTS.md` documentation sync points.
 
+### Every extraction lands in the demo app (required)
+
+**An extraction is not done until the new surface is wired into the demo app
+(`demo/`) in a natural, realistic way that makes the demo experience _better_.**
+A module that ships green tests but is invisible in the running app is only half
+delivered — the demo is the framework's reference app and its living proof, and
+every component must earn a place in it. Shipping dead exports the demo never
+exercises is the failure mode this rule exists to prevent.
+
+The bar is **realism, not a gallery.** Do not bolt on a "component showcase"
+page or a contrived widget that only exists to render the new export. Find where
+the new surface belongs in the app's actual flow and put it there, so a visitor
+meets it the way a real user would:
+
+1. **Obvious home first.** If the component has a natural seat in the existing
+   UI, wire it there (a row gesture into the list rows; a glyph picker into a
+   list's header; a `LogViewer` into a debug surface). This is always the
+   preferred outcome.
+2. **No obvious home? Widen the demo to create one — don't skip the
+   integration.** Grow the app's scope until the component is the logical answer
+   to a real need the larger app now has. Concretely, reach for:
+   - **Extend Settings.** The tabbed Settings dialog is the natural host for
+     most configuration-shaped surface (toggles, pickers, segmented controls,
+     appearance/theme controls, an i18n language switch). Add a tab or a section.
+   - **Add profiles / accounts / workspaces.** A multi-profile or
+     multi-namespace model gives storage backends, sync, encryption, per-profile
+     theme/appearance, and avatars a reason to exist — and is itself a realistic
+     local-first PWA feature.
+   - **Add the feature the component implies.** Encryption → a "lock this
+     profile" flow + an unlock prompt. A storage backend → a "where your data
+     lives" picker with a real connect/disconnect. Achievements → a profile
+     stats surface. i18n → a language switch that actually re-renders.
+     Widening the demo is **expected and encouraged**, not scope creep: the demo
+     is meant to grow into a fuller local-first app as the framework's surface
+     grows, so each extraction leaves it richer and more coherent than before.
+3. **Keep the seam honest.** The demo is an app, so it plays the app's role of
+   the seam — it owns the store/state and passes data + labels into the
+   framework component (English labels, the app's own persistence). Never reach
+   past a module's public subpath export; if the demo needs something the export
+   doesn't offer, that's a signal to widen the _module_, not to deep-import.
+4. **Match the app's look and quality.** New demo UI must match the existing
+   black/green look and the existing components' polish — it is reference code
+   an adopter will copy. Wire real behaviour (undo, persistence, live updates),
+   not stubs, wherever the surrounding screens already do.
+5. **Verify it in the running app, not just in tests.** Build the demo
+   (`npm run build --workspace demo`) and drive it (a headless Chromium
+   screenshot of the new surface in use) before calling the extraction done —
+   the demo must build green and the new surface must actually render and
+   respond. A new subpath export also needs a `demo/vite.config.ts` alias
+   (subpaths listed before the bare package so the specific match wins), or the
+   demo build fails to resolve it.
+
+When the demo gains a new screen, model, or settings area, record it in the
+structural notes so the next run builds on it instead of re-discovering it.
+
 ### Public-surface wiring checklist
 
 A new subpath export (`./<module>`) touches four places — miss one and either
@@ -371,7 +444,9 @@ If the run **also extracted** a candidate, additionally:
 - [ ] Left the app-specific store/state in the apps; moved only the shared data + pure logic.
 - [ ] Wrote the module's migration README (`src/<module>/README.md`) with a per-app replacement guide.
 - [ ] Wired the subpath export in all four places (barrel, root index, tsup, package.json).
-- [ ] Updated top-level `README.md` API + `CHANGELOG.md`.
+- [ ] **Integrated the new surface into the demo app** in a natural, realistic way that improves the experience — wired into an existing flow, or the demo's scope widened (Settings tab, profiles, a new screen) to give it a logical home. No contrived showcase widgets.
+- [ ] Added the matching `demo/vite.config.ts` alias for the new subpath, built the demo (`npm run build --workspace demo`) green, and **verified the new surface renders and responds in the running app** (headless screenshot).
+- [ ] Updated top-level `README.md` API + `CHANGELOG.md`, and recorded any new demo screen / model / settings area in the structural notes.
 - [ ] Ran the gates green (`lint`, `test`, `build`, `fmt:check`) and confirmed asset imports stayed external in `dist/`.
 
 ## Verification
