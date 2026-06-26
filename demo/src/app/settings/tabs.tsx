@@ -1,23 +1,20 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button } from "@niclaslindstedt/oss-framework/components";
+import {
+  Button,
+  SegmentedControl,
+} from "@niclaslindstedt/oss-framework/components";
 import {
   BrowserLocalStorageAdapter,
   ConflictError,
   type StorageAdapter,
 } from "@niclaslindstedt/oss-framework/storage";
-import { formatLogLine } from "@niclaslindstedt/oss-framework/logging";
+import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 
 import { log, logStore } from "../log.ts";
 import type { AppSettings } from "../useAppSettings.ts";
-import { LanguagePicker, Section, SegmentedRow, ToggleRow } from "./shared.tsx";
+import { LanguagePicker, Section, ToggleRow } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
   key: K,
@@ -67,7 +64,7 @@ export function GeneralTab({
       <Section title="Menu">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-fg-bright">Open the menu with</span>
-          <SegmentedRow
+          <SegmentedControl
             value={settings.menuMode}
             options={[
               { value: "swipe", label: "Right-swipe" },
@@ -242,32 +239,14 @@ export function DeveloperTab({
 // --- Logs ------------------------------------------------------------------
 
 export function LogsTab() {
-  const entries = useSyncExternalStore(
-    (cb) => logStore.subscribeToLogs(cb),
-    () => logStore.getLogs(),
-  );
-
   return (
     <div>
       <p className="mb-3 text-xs text-muted">
         The in-app log buffer, rendered live from the framework's logging
         module.
       </p>
-      <Section title="Recent">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" onClick={() => logStore.clearLogs()}>
-            Clear
-          </Button>
-        </div>
-        {entries.length === 0 ? (
-          <p className="text-sm text-muted">No log lines yet.</p>
-        ) : (
-          <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface-2 p-2 text-xs leading-relaxed text-fg">
-            {entries.map((e, i) => (
-              <div key={i}>{formatLogLine(e)}</div>
-            ))}
-          </pre>
-        )}
+      <Section title="Logs">
+        <LogViewer store={logStore} />
       </Section>
     </div>
   );

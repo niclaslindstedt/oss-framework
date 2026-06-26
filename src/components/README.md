@@ -23,6 +23,7 @@ defaults.
 | `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                          |
 | `ClearableInput`                               | component | Text input with an inline clear (×) button.                                            |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                |
+| `SegmentedControl`                             | component | Pill-in-track radio group for a small, always-visible mutually-exclusive choice.       |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                     |
 | `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                |

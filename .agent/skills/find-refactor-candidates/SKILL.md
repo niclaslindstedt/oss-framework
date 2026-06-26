@@ -163,9 +163,14 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   hard-coded `notes:`/`checklist:dev:` localStorage keys became constructor
   options, and the `DEV_MODE_KEY` / `useDevMode` React store **stays app-side**
   (it's fused with achievements + cross-tab `storage` sync) — the app just wires
-  its flag through `setEnabled`. The Logs UI (`LogsSection`/`logs.tsx`,
-  `SyncLogPanel`) stays app-side too (i18n + Tailwind + app form controls);
-  only the verbatim-duplicated `formatLogTime`/`formatLogLine` came along. The
+  its flag through `setEnabled`. The **read-only Logs panel** has since been
+  extracted as `LogViewer` (level filter, copy, clear, colour-coded entries)
+  over a new `useLogs(store)` hook — `getLogs()` returns a fresh array each call,
+  which `useSyncExternalStore` can't consume directly, so `useLogs` caches the
+  snapshot; visible strings inject via `labels`. What stays app-side is the
+  _capture/dev-mode wiring_ (`LogsSection` toggles, `SyncLogPanel`), not the
+  list rendering. The verbatim-duplicated `formatLogTime`/`formatLogLine` came
+  along earlier. The
   loggers `createLogger` returns satisfy the storage `Logger` sink, so the same
   buffer captures sync diagnostics end to end. Each app's migration: replace its
   logger internals with `createLogStore` on **its existing keys** (so captured
@@ -193,7 +198,10 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   shared `<Glyph>` shell during extraction (a quality win the apps lacked). Each
   app's migration: delete its `Modal` / form / `FloatingPanel` copies and import
   from `/components`, pass its translated labels as props, and switch text-only
-  "secondary" buttons to `ghost`. See `src/components/README.md`.
+  "secondary" buttons to `ghost`. A `SegmentedControl` (pill-in-track radio
+  group — the apps' language / layout / menu-mode toggles) has since been added
+  to the module, generalising the apps' near-identical inline segmented rows.
+  See `src/components/README.md`.
 - **`checklist/` nested list — extracted (done).** Lives in the framework as
   `@niclaslindstedt/oss-framework/checklist`: a **generic** `ChecklistNode`
   (`{ id, label, checked, checkedAt?, children? }`) + the pure tree core

@@ -14,6 +14,7 @@ export { Fab } from "./Fab.tsx";
 export { Checkbox } from "./Checkbox.tsx";
 export { ClearableInput } from "./ClearableInput.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
+export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Modal } from "./Modal.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";
