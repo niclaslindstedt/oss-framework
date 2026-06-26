@@ -45,6 +45,9 @@ const SKIP_PATTERNS = [
   /^\.changes\//,
   /^docs\//,
   /^scripts\//,
+  // The preview site (demo/) is not published library surface — it is a
+  // deploy artifact built from src/, with its own (private) package.
+  /^demo\//,
   /^Makefile$/,
   /\.md$/,
   /^\.nvmrc$/,
@@ -57,6 +60,12 @@ const SKIP_PATTERNS = [
   /^tsup\.config\.ts$/,
   /^vitest\.config\.ts$/,
   /^tsconfig.*\.json$/,
+  // The manifest's user-facing parts can't change in isolation: a new/renamed
+  // public `exports` subpath always rides with the `src/<mod>/index.ts` it
+  // points at (still gated below), and `version` is written by the release
+  // workflow, never a PR. A manifest-only diff is therefore tooling — scripts,
+  // workspaces, dev/peer deps — and needs no changelog fragment.
+  /^package\.json$/,
   /^package-lock\.json$/,
 ];
 

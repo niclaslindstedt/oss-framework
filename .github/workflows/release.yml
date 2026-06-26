@@ -37,6 +37,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
     permissions:
       # Push the release commit + tag to main and create the GitHub Release.
       contents: write
@@ -137,3 +139,19 @@ jobs:
             --title "${{ steps.bump.outputs.tag }}" \
             --notes-file .release-notes.md \
             --verify-tag
+
+  # Chain into pages.yml so the new tag is served at `/` immediately, without
+  # waiting for the next push to main. The freshly-pushed tag passes in as
+  # `release_ref`; pages.yml builds the demo from it for the production slot.
+  deploy:
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    with:
+      release_ref: ${{ needs.release.outputs.tag }}
+    permissions:
+      # pages.yml force-pushes the /branch/ slot to an orphan branch, so it
+      # declares contents: write at the top level. A reusable workflow can't be
+      # granted fewer permissions than it requests, so these must match.
+      contents: write
+      pages: write
+      id-token: write

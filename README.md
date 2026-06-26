@@ -119,6 +119,29 @@ Planned modules (seeded from the source apps): `storage` (the `StorageAdapter`
 contract + local/folder/Dropbox/Drive backends) and `encryption` (at-rest
 crypto plus the migration queue).
 
+## Demo / preview site
+
+A small Vite app under [`demo/`](demo/) showcases the components, built against
+the framework **source** so every deploy reflects the exact commit. It is
+published to GitHub Pages at **[framework.niclaslindstedt.se](https://framework.niclaslindstedt.se)**
+across three slots:
+
+| URL                                                          | Content                       | Updated on                    |
+| ------------------------------------------------------------ | ----------------------------- | ----------------------------- |
+| [`/`](https://framework.niclaslindstedt.se/)                 | the latest release (`v*` tag) | each release (else `main`)    |
+| [`/preview/`](https://framework.niclaslindstedt.se/preview/) | the current `main`            | every push to `main`          |
+| [`/branch/`](https://framework.niclaslindstedt.se/branch/)   | a parked feature branch       | a `pages` `workflow_dispatch` |
+
+```bash
+make dev-demo      # hot-reloading dev server against the framework source
+make build-demo    # production build into site/
+```
+
+See [`demo/README.md`](demo/README.md) for how to add a per-component demo.
+Deploy prerequisites: enable Pages with the **GitHub Actions** source, and point
+a `framework` CNAME DNS record at `niclaslindstedt.github.io` (the custom domain
+is set by [`demo/public/CNAME`](demo/public/CNAME)).
+
 ## Development
 
 ```bash
