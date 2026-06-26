@@ -11,6 +11,7 @@ export default defineConfig({
     "theme/index": "src/theme/index.ts",
     "changelog/index": "src/changelog/index.ts",
     "storage/index": "src/storage/index.ts",
+    "logging/index": "src/logging/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

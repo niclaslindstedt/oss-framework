@@ -40,6 +40,11 @@
       "types": "./dist/storage/index.d.ts",
       "import": "./dist/storage/index.js",
       "require": "./dist/storage/index.cjs"
+    },
+    "./logging": {
+      "types": "./dist/logging/index.d.ts",
+      "import": "./dist/logging/index.js",
+      "require": "./dist/logging/index.cjs"
     }
   },
   "scripts": {
