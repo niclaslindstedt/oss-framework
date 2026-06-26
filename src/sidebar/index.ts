@@ -13,6 +13,7 @@ export {
   type SidebarProps,
   type SidebarLabels,
 } from "./Sidebar.tsx";
+export { FloatingButton, type FloatingButtonProps } from "./FloatingButton.tsx";
 export {
   type MenuButtonPosition,
   type MenuButtonSide,

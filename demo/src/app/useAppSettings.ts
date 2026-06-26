@@ -13,6 +13,7 @@ export type MenuMode = "swipe" | "button";
 export type AppSettings = {
   language: Language;
   menuMode: MenuMode;
+  settingsMode: MenuMode;
   disableAchievements: boolean;
   devMode: boolean;
   captureLogs: boolean;
@@ -27,6 +28,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // "swipe" hides it and opens the drawer with an inward edge swipe instead
   // (framework `useEdgeSwipeOpen`).
   menuMode: "button",
+  // The same choice for reaching Settings — a floating button by default
+  // (resting on the opposite edge from the menu), or an inward edge swipe.
+  settingsMode: "button",
   disableAchievements: true,
   devMode: true,
   captureLogs: false,

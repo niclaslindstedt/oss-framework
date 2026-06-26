@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useId, type CSSProperties, type ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 
 import { useEscapeKey } from "../hooks/useEscapeKey.ts";
+import { FloatingButton } from "./FloatingButton.tsx";
 import type { MenuButtonPosition } from "./position.ts";
-import { useDraggableMenuButton } from "./useDraggableMenuButton.ts";
 import { useDrawerSwipeClose } from "./useDrawerSwipeClose.ts";
 
 // The responsive navigation *shell* extracted from the notes / checklist
@@ -147,14 +147,7 @@ export function Sidebar({
   const onRight = position.side === "right";
   const overflow = panelScroll ? "overflow-y-auto" : "overflow-hidden";
 
-  const drag = useDraggableMenuButton(position, onPositionChange);
   const swipe = useDrawerSwipeClose(position.side, open, onClose);
-
-  // Mirror the live drag state up so the host can gate global gestures off
-  // while the button is being dragged.
-  useEffect(() => {
-    onDraggingChange?.(drag.dragging);
-  }, [drag.dragging, onDraggingChange]);
 
   // Dismiss on Escape while the drawer is open (the backdrop handles pointer
   // dismissal). Never engaged when pinned — there is no drawer to close.
@@ -181,29 +174,22 @@ export function Sidebar({
   return (
     <>
       {/* Floating toggle the user can drag to either edge; a plain press
-          still toggles the drawer (the drag hook swallows the click that
-          tails a real drag, and leaves keyboard activation untouched). */}
+          still toggles the drawer (the shared `FloatingButton` swallows the
+          click that tails a real drag, and leaves keyboard activation
+          untouched). */}
       {showButton && (
-        <button
-          type="button"
-          onClick={() => {
-            if (drag.consumeDragClick()) return;
-            onToggle();
-          }}
-          {...drag.handlers}
-          style={drag.style}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-controls={open ? drawerId : undefined}
-          aria-label={open ? text.close : text.open}
-          className={`fixed z-40 flex h-11 w-11 touch-none items-center justify-center rounded-full border border-line bg-surface text-muted shadow-lg select-none hover:text-fg-bright ${
-            drag.dragging
-              ? "cursor-grabbing transition-none"
-              : "cursor-grab transition-[left,top] duration-300 ease-out"
-          }`}
+        <FloatingButton
+          position={position}
+          onPositionChange={onPositionChange}
+          onDraggingChange={onDraggingChange}
+          onPress={onToggle}
+          haspopup="menu"
+          expanded={open}
+          controls={open ? drawerId : undefined}
+          label={open ? text.close : text.open}
         >
           <MenuIcon className="h-5 w-5" />
-        </button>
+        </FloatingButton>
       )}
 
       {open && (

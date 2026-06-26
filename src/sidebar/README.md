@@ -48,12 +48,12 @@ function AppShell() {
 
 ## What the framework owns vs. what stays in your app
 
-| Owned here (shared)                                                                    | Stays in your app (app-specific)                                              |
-| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal           | The **nav content** (note / checklist list, action bars, footer) — `children` |
-| The draggable floating button + its snap-to-edge geometry (`position.ts`)              | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
-| `useDraggableMenuButton`, `useDrawerSwipeClose`, `useEdgeSwipeOpen`, `useSidebarInset` | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
-| The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)                         | The CSS token values and the drawer keyframes (see below)                     |
+| Owned here (shared)                                                                          | Stays in your app (app-specific)                                              |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal                 | The **nav content** (note / checklist list, action bars, footer) — `children` |
+| The draggable floating button (`FloatingButton`) + its snap-to-edge geometry (`position.ts`) | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
+| `useDraggableMenuButton`, `useDrawerSwipeClose`, `useEdgeSwipeOpen`, `useSidebarInset`       | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
+| The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)                               | The CSS token values and the drawer keyframes (see below)                     |
 
 The **state is deliberately not part of this module.** An app's nav state is
 usually fused with concerns the framework knows nothing about (the active view,
@@ -126,6 +126,48 @@ drag so a scroll is never hijacked. The thresholds default to a 30px edge zone
 and 48px of inward travel; override `edgeZone` / `openDistance` if your app's
 feel differs. The host owns the open state and the resting-side choice; the hook
 only recognises the gesture and calls `onOpen`.
+
+## `FloatingButton` — the draggable FAB on its own
+
+The round, edge-resting button `Sidebar` floats for its menu toggle is exported
+on its own as `FloatingButton`, so an app can pin a **second** global action the
+user reaches from anywhere on a phone — opening Settings, a composer, a search —
+from the same primitive. Each instance carries its own `position`, so they rest
+(and drag) independently; give them opposite default sides so they don't stack.
+
+```tsx
+import { FloatingButton } from "@niclaslindstedt/oss-framework/sidebar";
+
+const [pos, setPos] = useState<MenuButtonPosition>({ side: "right", y: 0.5 });
+
+<FloatingButton
+  position={pos}
+  onPositionChange={setPos}
+  onPress={() => setSettingsOpen(true)}
+  haspopup="dialog"
+  expanded={settingsOpen}
+  label="Open settings"
+>
+  <CogIcon className="h-5 w-5" />
+</FloatingButton>;
+```
+
+| Prop               | Type                          | Notes                                                          |
+| ------------------ | ----------------------------- | -------------------------------------------------------------- |
+| `position`         | `MenuButtonPosition`          | Persisted resting spot (`{ side, y }`).                        |
+| `onPositionChange` | `(next) => void`              | Persist a new spot after a drag.                               |
+| `onPress`          | `() => void`                  | A genuine tap — the trailing click after a real drag is eaten. |
+| `onDraggingChange` | `(dragging: boolean) => void` | Fires while mid-drag (gate global gestures).                   |
+| `label`            | `string`                      | Accessible label (the content is an icon).                     |
+| `expanded`         | `boolean`                     | `aria-expanded` for a button that toggles an overlay.          |
+| `controls`         | `string`                      | `aria-controls` — the overlay's id, while open.                |
+| `haspopup`         | `aria-haspopup`               | The kind of overlay (`"menu"`, `"dialog"`, …).                 |
+| `children`         | `ReactNode`                   | The icon.                                                      |
+
+It is a `position: fixed`, `z-40`, `h-11 w-11` disc on `bg-surface` / `border-line`
+— the same look the `Sidebar` toggle wears. To open it by an **edge swipe**
+instead (a "swipe to open" preference), hide it and wire `useEdgeSwipeOpen` the
+same way the menu does, watching `position.side`.
 
 ## Styling contract
 

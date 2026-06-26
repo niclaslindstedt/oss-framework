@@ -284,6 +284,21 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   swipe mode hides the floating button and opens the drawer via the edge swipe;
   the default flipped to `"button"` for first-run discoverability. See
   `src/sidebar/README.md`.
+- **`FloatingButton` (draggable FAB) — extracted in place (done).** The round,
+  edge-resting floating button lived inline inside `Sidebar.tsx`; it was lifted
+  into its own `src/sidebar/FloatingButton.tsx` and `Sidebar` now consumes it
+  (no behaviour change — same `useDraggableMenuButton` drag/snap, same
+  `consumeDragClick` tap-vs-drag handling, same styling). It stays in the
+  `sidebar` module, **not** `components`: it needs `useDraggableMenuButton` +
+  `MenuButtonPosition`, both sidebar-local, and `components` must not import a
+  feature module. Now exported from `/sidebar` so an app can float a **second**
+  global action from the same primitive (each instance owns its `position`).
+  **Demo:** a floating **settings** button (default, resting on the right edge,
+  opposite the left-resting menu button) opens the Settings dialog on phones; a
+  new "Open settings with" General-tab setting (`settingsMode: "swipe" |
+"button"`, default `"button"`) flips it to an inward edge swipe via
+  `useEdgeSwipeOpen`, mirroring the menu pattern. Both are phone-only; wide
+  screens keep the docked menu's Settings footer row. See `src/sidebar/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -305,7 +320,10 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   edited via a header `FloatingPanel` popover (`ListAppearancePopover`); and a
   Settings → General "Open the menu with" preference (`menuMode`) that toggles
   the phone drawer between a floating button and `useEdgeSwipeOpen`'s inward
-  edge swipe. **Not yet modelled, so the natural next homes to widen into:**
+  edge swipe, plus a sibling "Open settings with" preference (`settingsMode`)
+  that does the same for a floating **settings** button (a `FloatingButton`
+  resting on the right edge) opening the Settings dialog. **Not yet modelled, so
+  the natural next homes to widen into:**
   multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace
   header — real switching would seat storage backends, sync, encryption, and

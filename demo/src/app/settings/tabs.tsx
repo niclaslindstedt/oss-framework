@@ -80,6 +80,25 @@ export function GeneralTab({
         </div>
       </Section>
 
+      <Section title="Settings">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-fg-bright">Open settings with</span>
+          <SegmentedControl
+            value={settings.settingsMode}
+            options={[
+              { value: "swipe", label: "Right-swipe" },
+              { value: "button", label: "Floating button" },
+            ]}
+            onChange={(next) => update("settingsMode", next)}
+            ariaLabel="Open settings with"
+          />
+          <p className="text-xs text-muted">
+            Choose how to open Settings on this device — tap the floating
+            settings button, or swipe in from the edge it rests on.
+          </p>
+        </div>
+      </Section>
+
       <Section title="Developer">
         <ToggleRow
           label="Developer mode"
