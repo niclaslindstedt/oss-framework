@@ -1,32 +1,44 @@
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
 
-# Demo — OSS Framework preview site
+# Demo — OSS Framework reference app
 
-A small Vite + React app that showcases the framework's components, deployed to
-GitHub Pages by [`.github/workflows/pages.yml`](../.github/workflows/pages.yml).
-It builds **against the framework's TypeScript source** (via the aliases in
+A small Vite + React app — **a real, working local-first checklist PWA** built
+entirely from the framework's shared surface, in the apps' own black/green look.
+Deployed to GitHub Pages by
+[`.github/workflows/pages.yml`](../.github/workflows/pages.yml). It builds
+**against the framework's TypeScript source** (via the aliases in
 [`vite.config.ts`](./vite.config.ts)), so every deploy reflects the exact commit
 it was built from — not a published package.
 
-Today it showcases two modules:
+It is the **reference app the framework is meant to seed**: a new app can lift
+[`src/app/`](./src/app) wholesale as a starting point. Everything visible is
+assembled from the published modules — the `Sidebar` shell, the `/checklist`
+tree, the `/components` primitives, the `/theme` appearance projection, the
+`/storage` adapter, and the `/logging` buffer.
 
-- **theme** ([`src/demos/theme.tsx`](./src/demos/theme.tsx)) — renders the
-  framework's `SettingsModal` / `AppearancePicker` and projects the chosen
-  appearance onto `<html>` with `useApplyTheme`, so the whole page repaints live
-  as you pick.
-- **storage** ([`src/demos/storage.tsx`](./src/demos/storage.tsx)) — a live
-  playground over the `StorageAdapter` contract: save / load / conflict against
-  the browser backend (and a real local folder in Chromium), with copy-paste
-  wiring snippets for the Dropbox and Google Drive backends.
+What it implements:
 
-As the public surface grows, add one demo per component: a file under
-`src/demos/<component>.tsx` that imports the framework component it shows, e.g.
+- **The list screen** ([`src/app/ChecklistScreen.tsx`](./src/app/ChecklistScreen.tsx))
+  — the active checklist with the framework's `Checklist`, the header progress
+  ring (`ChecklistProgress`), copy / sync glyph buttons, and the create `Fab`
+  with an inline composer.
+- **The navigation** ([`src/app/SideMenuContent.tsx`](./src/app/SideMenuContent.tsx))
+  — the namespace header, the checklist tree grouped into folders, the action
+  grid, and the footer, framed by the framework `Sidebar` (docked on wide
+  screens, a draggable drawer on phones).
+- **A tabbed Settings dialog** ([`src/app/SettingsModal.tsx`](./src/app/SettingsModal.tsx))
+  — composed from the `Modal` + `FloatingPanel` primitives, with General /
+  Appearance / Editor / Storage / Developer / Logs tabs. Appearance embeds the
+  theme module's `AppearancePicker` and previews live via `useApplyTheme`;
+  Storage drives a real `StorageAdapter`; Logs renders the `/logging` buffer.
+- **A document store** ([`src/app/useChecklistStore.ts`](./src/app/useChecklistStore.ts))
+  — the "store stays in the app" seam: it owns the data, localStorage
+  persistence, and an undo / redo history, while the framework owns the pure
+  tree transforms it drives.
 
-```tsx
-import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
-```
-
-and render it from [`src/App.tsx`](./src/App.tsx).
+The shell that wires it together is [`src/App.tsx`](./src/App.tsx). When the
+public surface grows, extend the reference app to use the new module rather than
+adding a standalone showcase page.
 
 ### Styling
 

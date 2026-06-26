@@ -38,6 +38,10 @@ export default defineConfig({
         replacement: here("../src/storage/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/logging",
+        replacement: here("../src/logging/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework/sidebar",
         replacement: here("../src/sidebar/index.ts"),
       },

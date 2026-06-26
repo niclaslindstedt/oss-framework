@@ -1,0 +1,274 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+
+import { Button } from "@niclaslindstedt/oss-framework/components";
+import {
+  BrowserLocalStorageAdapter,
+  ConflictError,
+  type StorageAdapter,
+} from "@niclaslindstedt/oss-framework/storage";
+import { formatLogLine } from "@niclaslindstedt/oss-framework/logging";
+
+import { log, logStore } from "../log.ts";
+import type { AppSettings } from "../useAppSettings.ts";
+import { LanguagePicker, Section, SegmentedRow, ToggleRow } from "./shared.tsx";
+
+type Update = <K extends keyof AppSettings>(
+  key: K,
+  value: AppSettings[K],
+) => void;
+
+// --- General ---------------------------------------------------------------
+
+export function GeneralTab({
+  settings,
+  update,
+}: {
+  settings: AppSettings;
+  update: Update;
+}) {
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted">
+        General preferences for this device.
+      </p>
+
+      <Section title="Language">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-fg-bright">Choose language</span>
+          <LanguagePicker
+            value={settings.language}
+            onChange={(next) => {
+              update("language", next);
+              log.info(`Language set to ${next}`);
+            }}
+          />
+          <p className="text-xs text-muted">
+            Translate the UI between English and Swedish.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Achievements">
+        <ToggleRow
+          label="Disable achievements"
+          hint="Stop tracking achievements and hide the trophy button. Achievements you've already earned are kept."
+          checked={settings.disableAchievements}
+          onChange={(next) => update("disableAchievements", next)}
+        />
+      </Section>
+
+      <Section title="Menu">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-fg-bright">Open the menu with</span>
+          <SegmentedRow
+            value={settings.menuMode}
+            options={[
+              { value: "swipe", label: "Right-swipe" },
+              { value: "button", label: "Floating button" },
+            ]}
+            onChange={(next) => update("menuMode", next)}
+            ariaLabel="Open the menu with"
+          />
+          <p className="text-xs text-muted">
+            Choose how to open the side menu on this device — tap the floating
+            button, or swipe in from the edge of the screen.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Developer">
+        <ToggleRow
+          label="Developer mode"
+          hint="Reveal the Developer tab with diagnostic tools. Stays on this device."
+          checked={settings.devMode}
+          onChange={(next) => update("devMode", next)}
+        />
+      </Section>
+    </div>
+  );
+}
+
+// --- Editor ----------------------------------------------------------------
+
+export function EditorTab({
+  settings,
+  update,
+}: {
+  settings: AppSettings;
+  update: Update;
+}) {
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted">
+        How item text behaves as you type.
+      </p>
+      <Section title="Input">
+        <ToggleRow
+          label="Spell check"
+          hint="Underline misspelled words while editing an item."
+          checked={settings.spellCheck}
+          onChange={(next) => update("spellCheck", next)}
+        />
+        <ToggleRow
+          label="Monospace items"
+          hint="Render item text in the monospace UI font."
+          checked={settings.monospace}
+          onChange={(next) => update("monospace", next)}
+        />
+      </Section>
+    </div>
+  );
+}
+
+// --- Storage ---------------------------------------------------------------
+
+const STORAGE_DOC_KEY = "oss-demo:checklist:storage-playground";
+
+export function StorageTab() {
+  const [adapter] = useState<StorageAdapter>(
+    () => new BrowserLocalStorageAdapter({ key: STORAGE_DOC_KEY }),
+  );
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState("");
+  const baseRevision = useRef<string | undefined>(undefined);
+
+  const reload = useCallback(async () => {
+    const snap = await adapter.load();
+    setText(snap?.text ?? "");
+    baseRevision.current = snap?.revision;
+    setStatus(snap ? `loaded ${snap.text.length} B` : "nothing stored yet");
+  }, [adapter]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function save() {
+    try {
+      const saved = await adapter.save(text, baseRevision.current);
+      baseRevision.current = saved.revision;
+      setStatus("saved — reload the page, it persists");
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        setText(err.remote.text);
+        baseRevision.current = err.remote.revision;
+        setStatus("ConflictError — adopted the other tab's bytes");
+      } else {
+        setStatus(err instanceof Error ? err.message : String(err));
+      }
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted">
+        A live playground over the framework's <code>StorageAdapter</code>{" "}
+        contract (the browser backend). Save persists across reloads; a second
+        tab saving meanwhile surfaces a <code>ConflictError</code>.
+      </p>
+      <Section title="Document">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={5}
+          spellCheck={false}
+          placeholder="Type a document, then Save. Reload the page — it persists."
+          className="w-full resize-y rounded-md border border-line bg-surface-2 p-2 font-mono text-sm text-fg outline-none focus:border-accent"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary" onClick={save}>
+            Save
+          </Button>
+          <Button variant="secondary" onClick={() => void reload()}>
+            Reload
+          </Button>
+          {status && <span className="text-sm text-success">{status}</span>}
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+// --- Developer -------------------------------------------------------------
+
+export function DeveloperTab({
+  settings,
+  update,
+}: {
+  settings: AppSettings;
+  update: Update;
+}) {
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted">
+        Diagnostic tools. These stay on this device.
+      </p>
+      <Section title="Logging">
+        <ToggleRow
+          label="Capture logs"
+          hint="Record diagnostic log lines so the Logs tab can show them."
+          checked={settings.captureLogs}
+          onChange={(next) => update("captureLogs", next)}
+        />
+        <Button
+          variant="secondary"
+          className="self-start"
+          onClick={() => log.info("Test log line from the Developer tab")}
+        >
+          Write a test log line
+        </Button>
+      </Section>
+      <Section title="Build">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+          <dt className="text-muted">framework</dt>
+          <dd className="text-fg tabular-nums">
+            @niclaslindstedt/oss-framework
+          </dd>
+          <dt className="text-muted">mode</dt>
+          <dd className="text-fg">{import.meta.env.MODE}</dd>
+        </dl>
+      </Section>
+    </div>
+  );
+}
+
+// --- Logs ------------------------------------------------------------------
+
+export function LogsTab() {
+  const entries = useSyncExternalStore(
+    (cb) => logStore.subscribeToLogs(cb),
+    () => logStore.getLogs(),
+  );
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted">
+        The in-app log buffer, rendered live from the framework's logging
+        module.
+      </p>
+      <Section title="Recent">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => logStore.clearLogs()}>
+            Clear
+          </Button>
+        </div>
+        {entries.length === 0 ? (
+          <p className="text-sm text-muted">No log lines yet.</p>
+        ) : (
+          <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface-2 p-2 text-xs leading-relaxed text-fg">
+            {entries.map((e, i) => (
+              <div key={i}>{formatLogLine(e)}</div>
+            ))}
+          </pre>
+        )}
+      </Section>
+    </div>
+  );
+}
