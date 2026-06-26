@@ -1,7 +1,7 @@
 # Standard developer entry points (OSS_SPEC §9). CI invokes these exact
 # targets so local and CI environments stay in sync.
 
-.PHONY: build release test lint fmt fmt-check clean candidates clone-apps bump changelog check-changeset
+.PHONY: build release test lint fmt fmt-check clean candidates clone-apps bump changelog check-changeset dev-demo build-demo
 
 build: ## Developer build (ESM + CJS + d.ts)
 	npm run build
@@ -37,3 +37,9 @@ changelog: ## Collate .changes/unreleased/ fragments into CHANGELOG.md (VERSION=
 
 check-changeset: ## Verify the branch added a changelog fragment (BASE_SHA=<sha>)
 	node scripts/release/check-changeset.mjs
+
+dev-demo: ## Run the preview site (demo/) against the framework source
+	npm run dev:demo
+
+build-demo: ## Build the preview site into site/ (VITE_BASE overrides the slot)
+	npm run build:demo

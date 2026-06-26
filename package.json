@@ -6,6 +6,9 @@
   "author": "Niclas Lindstedt <niclas@agilator.se>",
   "type": "module",
   "sideEffects": false,
+  "workspaces": [
+    "demo"
+  ],
   "files": [
     "dist"
   ],
@@ -47,6 +50,8 @@
     "candidates": "node .agent/skills/find-refactor-candidates/scripts/similarity.mjs",
     "bump": "node scripts/release/compute-bump.mjs",
     "changelog": "node scripts/release/collate-changelog.mjs",
+    "dev:demo": "npm run dev --workspace demo",
+    "build:demo": "npm run build --workspace demo",
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "peerDependencies": {

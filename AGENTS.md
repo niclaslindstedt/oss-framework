@@ -57,6 +57,11 @@ src/
   modules (`storage`, `theme`). Shared types live next to their contract.
 - Every public entry point is wired in `src/index.ts` (and, for a subpath
   export, in `tsup.config.ts` + the `exports` map in `package.json`).
+- `demo/` is a Vite app (an npm workspace) that previews the components,
+  building against `src/` via aliases so a deploy reflects the live commit. It
+  is **not** published surface; `pages.yml` deploys it to GitHub Pages at `/`
+  (release), `/preview/` (main), and `/branch/` (a dispatched branch). See
+  [`demo/README.md`](demo/README.md).
 
 ## Where new code goes
 
@@ -70,6 +75,7 @@ src/
 | A test                           | `tests/<name>.test.ts` (see below)                                 |
 | A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports` |
 | A user-facing change (changelog) | a `.changes/unreleased/` fragment (see "Cutting a release")        |
+| A demo for a component           | `demo/src/demos/<component>.tsx`, rendered from `demo/src/App.tsx` |
 
 When extracting from the source apps, follow the `find-refactor-candidates`
 skill — it ranks what to pull next and how to treat each tier.

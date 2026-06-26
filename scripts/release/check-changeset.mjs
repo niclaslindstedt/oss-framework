@@ -45,6 +45,9 @@ const SKIP_PATTERNS = [
   /^\.changes\//,
   /^docs\//,
   /^scripts\//,
+  // The preview site (demo/) is not published library surface — it is a
+  // deploy artifact built from src/, with its own (private) package.
+  /^demo\//,
   /^Makefile$/,
   /\.md$/,
   /^\.nvmrc$/,

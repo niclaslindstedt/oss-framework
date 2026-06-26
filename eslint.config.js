@@ -9,7 +9,7 @@ export default [
     // Build output, dependencies, and the cloned reference apps the
     // find-refactor-candidates skill checks out are not framework source
     // and are out of scope for the linter.
-    ignores: ["dist/**", "node_modules/**", ".reference/**"],
+    ignores: ["dist/**", "site/**", "node_modules/**", ".reference/**"],
   },
   js.configs.recommended,
   {
@@ -23,7 +23,7 @@ export default [
     },
   },
   {
-    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}", "demo/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {

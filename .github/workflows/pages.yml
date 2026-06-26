@@ -1,0 +1,236 @@
+name: pages
+
+# Deploys the framework's preview site (the `demo/` Vite app, built against the
+# framework source) to GitHub Pages across three slots:
+#
+#   /          the latest release (highest `v*` tag), or `main` until the first
+#              release exists
+#   /preview/  the current `main` (every push)
+#   /branch/   a feature branch parked via workflow_dispatch, persisted in the
+#              `branch-deploy` orphan branch so it survives later deploys
+#
+# Pre-requisite: the repo's Pages source must be set to "GitHub Actions"
+# (Settings → Pages).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch_ref:
+        description: "Optional branch to park in the stable /branch/ slot. Persists across regular deploys until the next branch_ref dispatch overwrites it."
+        required: false
+        type: string
+        default: ""
+  # Let release.yml chain into us after a release is tagged. The tag passes in
+  # via `release_ref`; otherwise we resolve the highest `v*` tag in the repo.
+  # Before the first release exists both lookups come up empty and we fall back
+  # to serving `main` at `/`.
+  workflow_call:
+    inputs:
+      release_ref:
+        description: "Tag or sha to build for the production '/' slot."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Stable orphan branch storing the most recently dispatched /branch/ build.
+  # Created on demand by the first workflow_dispatch with a branch_ref; every
+  # run rehydrates the /branch/ slot from here so regular deploys preserve it.
+  BRANCH_DEPLOY_REF: branch-deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # ---- Resolve which tag to serve at `/` (if any) ----
+      - name: Resolve production tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.release_ref }}" ]; then
+            REF="${{ inputs.release_ref }}"
+          else
+            # Highest semver tag, not the nearest reachable one — only
+            # release.yml creates `v*` tags, so the highest is the intended
+            # production release regardless of ancestry.
+            REF=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          fi
+          if [ -n "$REF" ]; then
+            echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            echo "has_release=true" >> "$GITHUB_OUTPUT"
+            echo "Resolved production ref: $REF"
+          else
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            echo "has_release=false" >> "$GITHUB_OUTPUT"
+            echo "No release tag found — will serve main at /."
+          fi
+
+      # ---- Resolve optional branch dispatch ----
+      - name: Resolve branch dispatch
+        id: dispatch
+        run: |
+          REF="${{ inputs.branch_ref }}"
+          if [ -z "$REF" ]; then
+            echo "has_dispatch=false" >> "$GITHUB_OUTPUT"
+            echo "No branch_ref input — preserving any previously-dispatched /branch/ build."
+          else
+            echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            echo "has_dispatch=true" >> "$GITHUB_OUTPUT"
+            echo "Dispatched: $REF -> /branch/"
+          fi
+
+      # ---- Production build (latest tag, root path) ----
+      - name: Checkout production tag
+        if: steps.tag.outputs.has_release == 'true'
+        run: git checkout ${{ steps.tag.outputs.ref }}
+
+      - name: Reinstall deps for production tag
+        if: steps.tag.outputs.has_release == 'true'
+        run: npm ci
+
+      - name: Build production
+        if: steps.tag.outputs.has_release == 'true'
+        run: npm run build:demo
+        env:
+          VITE_BASE: /
+
+      - name: Stash production site
+        if: steps.tag.outputs.has_release == 'true'
+        run: mv site site-prod
+
+      - name: Return to triggering ref
+        if: steps.tag.outputs.has_release == 'true'
+        run: git checkout ${{ github.sha }}
+
+      - name: Reinstall main's deps
+        if: steps.tag.outputs.has_release == 'true'
+        run: npm ci
+
+      # ---- Preview build (current main, /preview/ path) ----
+      - name: Build preview
+        run: npm run build:demo
+        env:
+          # When no release exists yet this build serves at `/`; the merge step
+          # below short-circuits and ships it as-is. Once the first release
+          # lands, this becomes the /preview/ build instead.
+          VITE_BASE: ${{ steps.tag.outputs.has_release == 'true' && '/preview/' || '/' }}
+
+      # ---- Optional /branch/ build + persist to orphan branch ----
+      - name: Stash preview site
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: mv site site-preview
+
+      - name: Checkout dispatched ref
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: |
+          git fetch origin "${{ steps.dispatch.outputs.ref }}"
+          git checkout "${{ steps.dispatch.outputs.ref }}"
+
+      - name: Reinstall deps for dispatched ref
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: npm ci
+
+      - name: Build /branch/
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: npm run build:demo
+        env:
+          VITE_BASE: /branch/
+
+      - name: Persist /branch/ build to orphan branch
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: |
+          mv site site-branch
+          STAGE=$(mktemp -d)
+          cp -R site-branch/. "$STAGE/"
+          # Build an orphan tree containing just the build output and force-push
+          # it to BRANCH_DEPLOY_REF. Force-push is safe: the branch is
+          # auto-managed and only ever written by this step. The identity must
+          # be configured INSIDE the staging repo — `git init` creates a fresh
+          # repo with no inherited config ("empty ident name" otherwise).
+          cd "$STAGE"
+          git init -q -b "$BRANCH_DEPLOY_REF"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "branch deploy: ${{ steps.dispatch.outputs.ref }} (${{ github.run_id }})"
+          REMOTE_URL=$(git -C "$GITHUB_WORKSPACE" remote get-url origin)
+          AUTH_URL=$(printf '%s' "$REMOTE_URL" \
+            | sed "s|https://|https://x-access-token:${{ github.token }}@|")
+          git remote add origin "$AUTH_URL"
+          git push -f origin "HEAD:$BRANCH_DEPLOY_REF"
+          cd "$GITHUB_WORKSPACE"
+
+      - name: Return to triggering ref after dispatch build
+        if: steps.dispatch.outputs.has_dispatch == 'true'
+        run: |
+          git checkout ${{ github.sha }}
+          mv site-preview site
+
+      # ---- Rehydrate /branch/ from orphan branch (every run) ----
+      - name: Rehydrate /branch/ from orphan branch
+        id: rehydrate
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH_DEPLOY_REF" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH_DEPLOY_REF"
+            mkdir -p site-branch
+            git --work-tree=site-branch checkout "origin/$BRANCH_DEPLOY_REF" -- .
+            echo "has_branch_dist=true" >> "$GITHUB_OUTPUT"
+            echo "Rehydrated /branch/ from $BRANCH_DEPLOY_REF."
+          else
+            echo "has_branch_dist=false" >> "$GITHUB_OUTPUT"
+            echo "$BRANCH_DEPLOY_REF branch does not exist yet — skipping /branch/ slot."
+          fi
+
+      # ---- Merge slots into the artifact ----
+      - name: Merge builds
+        run: |
+          if [ -d site-prod ]; then
+            mv site site-preview
+            mv site-prod site
+            mkdir -p site/preview
+            cp -R site-preview/. site/preview/
+            echo "Merged: / = ${{ steps.tag.outputs.ref }}, /preview/ = ${{ github.sha }}"
+          else
+            echo "No release yet — serving main at / (no /preview/ slot)."
+          fi
+          if [ "${{ steps.rehydrate.outputs.has_branch_dist }}" = "true" ]; then
+            mkdir -p site/branch
+            cp -R site-branch/. site/branch/
+            echo "Merged: /branch/ from $BRANCH_DEPLOY_REF"
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

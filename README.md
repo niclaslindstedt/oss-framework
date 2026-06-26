@@ -119,6 +119,26 @@ Planned modules (seeded from the source apps): `storage` (the `StorageAdapter`
 contract + local/folder/Dropbox/Drive backends) and `encryption` (at-rest
 crypto plus the migration queue).
 
+## Demo / preview site
+
+A small Vite app under [`demo/`](demo/) showcases the components, built against
+the framework **source** so every deploy reflects the exact commit. It is
+published to GitHub Pages across three slots:
+
+| URL                                                                     | Content                       | Updated on                    |
+| ----------------------------------------------------------------------- | ----------------------------- | ----------------------------- |
+| [`/`](https://niclaslindstedt.github.io/oss-framework/)                 | the latest release (`v*` tag) | each release (else `main`)    |
+| [`/preview/`](https://niclaslindstedt.github.io/oss-framework/preview/) | the current `main`            | every push to `main`          |
+| [`/branch/`](https://niclaslindstedt.github.io/oss-framework/branch/)   | a parked feature branch       | a `pages` `workflow_dispatch` |
+
+```bash
+make dev-demo      # hot-reloading dev server against the framework source
+make build-demo    # production build into site/
+```
+
+See [`demo/README.md`](demo/README.md) for how to add a per-component demo.
+(Pages must be enabled with the **GitHub Actions** source for the deploy to run.)
+
 ## Development
 
 ```bash

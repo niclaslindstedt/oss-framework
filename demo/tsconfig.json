@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    // Editor-only: resolve the framework against its source, matching the Vite
+    // aliases in vite.config.ts. The demo is built by Vite (esbuild), not tsc,
+    // so this file is not part of the CI type-check.
+    "paths": {
+      "@niclaslindstedt/oss-framework": ["../src/index.ts"],
+      "@niclaslindstedt/oss-framework/*": ["../src/*/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
