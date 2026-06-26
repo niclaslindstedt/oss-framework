@@ -90,6 +90,8 @@ Today:
 | `AppearancePicker` | `.` and `./theme`     | Controlled theme / font / colour editor over a `ThemeAppearance`. |
 | `ChangelogModal`   | `.` and `./changelog` | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.       |
 | `parseChangelog`   | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.    |
+| `StorageAdapter`   | `.` and `./storage`   | Byte-level persistence contract for swappable backends.           |
+| storage backends   | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.        |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -124,9 +126,20 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 ```
 
-Planned modules (seeded from the source apps): `storage` (the `StorageAdapter`
-contract + local/folder/Dropbox/Drive backends) and `encryption` (at-rest
-crypto plus the migration queue).
+The `storage` module is the shared persistence layer: one `StorageAdapter` byte
+contract and four backends — the browser's `localStorage`, a picked local
+folder, Dropbox, and Google Drive — behind a single interface, with their OAuth,
+offline-cache, and HTTP plumbing. Adapters move serialized text, not your data
+model, so your serialize / migrate pipeline stays app-side. See
+[`src/storage/README.md`](src/storage/README.md) for the full API and
+per-backend quick-starts.
+
+```ts
+import { createDropboxAdapter } from "@niclaslindstedt/oss-framework/storage";
+```
+
+Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus
+the migration queue).
 
 ## Demo / preview site
 

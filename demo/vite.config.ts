@@ -34,6 +34,10 @@ export default defineConfig({
         replacement: here("../src/changelog/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/storage",
+        replacement: here("../src/storage/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

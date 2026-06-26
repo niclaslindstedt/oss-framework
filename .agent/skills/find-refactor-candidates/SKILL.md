@@ -94,9 +94,31 @@ extractions teach you more.
 
 Known structural notes about the source apps (keep current):
 
-- `storage/adapter.ts` is the central `StorageAdapter` contract every backend
-  (`local`, `folder`, `dropbox`, `gdrive`) implements — the natural seam for
-  the framework's storage surface.
+- **`storage/` (transport layer) — extracted (done).** Lives in the framework
+  as `@niclaslindstedt/oss-framework/storage`: the `StorageAdapter` byte
+  contract + typed errors, the `FileStore` seam, the four backends
+  (`browser`/`folder`/`dropbox`/`gdrive`), their OAuth (PKCE + GIS),
+  `http-utils`, the `withLocalCache` offline mirror, and a generic single-file
+  binding (`createFileStoreAdapter`). The two apps had **diverged**: checklist's
+  `adapter.ts` is clean bytes, notes' was fused with `Note` / attachments /
+  encryption — the framework took **checklist's clean contract** as canonical.
+  The line was drawn at the **transport** (the `FileStore`-level backends, which
+  were near-identical across apps), **not** the binding: each app's
+  `directory-adapter.ts` (the multi-file markdown codec — domain-coupled to
+  `domain/types`, `serialize`, `crypto`, the folder registry, phantom-conflict)
+  **stays app-side** and just rewires its `FileStore` import to the framework.
+  App glue was dropped at the seam: the in-app logger became an injectable
+  `Logger` (default no-op), env-var config (`VITE_DROPBOX_APP_KEY`,
+  `VITE_GOOGLE_CLIENT_ID`) became function args, and namespace coupling became
+  an explicit `rootPath`/`subdirectory`/`key`. **Encryption did not come** —
+  it's a separate byte-boundary wrapper (`src/encryption/`). See
+  `src/storage/README.md`.
+- The migration for each app: delete its `dropbox`/`gdrive`/`folder` FileStores,
+  `oauth-pkce`, `http-utils`, `cache`, `base64url` (the duplicated bulk) and
+  import them from the framework; keep its own `directory-adapter.ts` and point
+  its `FileStore` import at the framework. notes keeps its extra optional adapter
+  methods (`fetchAttachment`, `migrateNote`, …) by intersecting the framework's
+  base `StorageAdapter` type locally.
 - **`theme/` — extracted (done).** Lives in the framework as
   `@niclaslindstedt/oss-framework/theme` (`presets`, `palettes`,
   `custom-theme`, `fonts`, `engine`). The two apps had **drifted**: notes

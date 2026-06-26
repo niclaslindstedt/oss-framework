@@ -35,6 +35,11 @@
       "types": "./dist/changelog/index.d.ts",
       "import": "./dist/changelog/index.js",
       "require": "./dist/changelog/index.cjs"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "import": "./dist/storage/index.js",
+      "require": "./dist/storage/index.cjs"
     }
   },
   "scripts": {

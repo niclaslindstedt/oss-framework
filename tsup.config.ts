@@ -10,6 +10,7 @@ export default defineConfig({
     "hooks/index": "src/hooks/index.ts",
     "theme/index": "src/theme/index.ts",
     "changelog/index": "src/changelog/index.ts",
+    "storage/index": "src/storage/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
