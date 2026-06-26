@@ -146,6 +146,35 @@ export function setAllChecked(
   return nodes.map((n) => applyChecked(n, checked, stamp));
 }
 
+/**
+ * Drop the node with `id` from the tree, wherever it sits — a top-level item or
+ * a sub-item nested at any depth. Its whole subtree goes with it. Returns the
+ * input unchanged if `id` isn't found. Pure: never mutates the input.
+ */
+export function removeNode(
+  nodes: readonly ChecklistNode[],
+  id: string,
+): ChecklistNode[] {
+  let changed = false;
+  const next: ChecklistNode[] = [];
+  for (const n of nodes) {
+    if (n.id === id) {
+      changed = true;
+      continue;
+    }
+    if (n.children) {
+      const children = removeNode(n.children, id);
+      if (children !== n.children) {
+        changed = true;
+        next.push({ ...n, children });
+        continue;
+      }
+    }
+    next.push(n);
+  }
+  return changed ? next : (nodes as ChecklistNode[]);
+}
+
 /** Checked / total counts over every node in the tree (sub-items included). */
 export function countProgress(nodes: readonly ChecklistNode[]): {
   checked: number;

@@ -221,6 +221,29 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   `Archive`/`CloudCheck` glyphs. The demo was rebuilt to the apps' pure-black +
   green look (a Custom theme) to reproduce the real checklist screen + side menu.
   See `src/checklist/README.md`.
+- **`ui/hooks/useRowSwipe.ts` (row swipe gesture) — extracted (done).** Lives in
+  the framework as `@niclaslindstedt/oss-framework/hooks` (`useRowSwipe`). The two
+  apps were **byte-identical bar comments** (notes ported it from checklist) — a
+  clean shared-verbatim lift. Generalised only at the seam: `onArchive` →
+  `onDismiss`, and the app pixel constants (`ACTION_W`/`OPEN_AT`/`ARCHIVE_AT`/…)
+  became an optional `options` object defaulting to those values. The hook owns
+  the gesture math only; the foreground/strip **markup stays the caller's** (it
+  hands back `offset`/`animating`/`open`/`close`/`handlers`). It was then
+  **consumed inside the framework's own `Checklist`**: an optional `onDelete`
+  (+ `deleteLabel`) wraps each row in the strip/foreground and maps **both**
+  swipe outcomes (left-latch + right-flick) onto delete — the apps' richer
+  two-direction row (archive one way, delete the other) is left app-side over the
+  bare hook, since `Checklist` models the single-action case. A pure
+  `removeNode(nodes, id)` tree helper landed alongside for the deletion. The demo
+  wires `onDelete` through its store's undo history. See `src/hooks/README.md`.
+  **The `hooks/` module now carries a README** (it had none through `useEscapeKey`).
+- **`ui/hooks/useEdgeSwipeOpen.ts` is the next gesture candidate** (85%, ~100
+  lines): a document-level edge-swipe that opens the side menu, the replacement
+  for a hidden floating menu button. Near-identical across apps; the only drift is
+  the `MenuButtonSide` import (notes from `sideMenuPosition`, checklist from
+  `settings/types`) — take the type as a small local `"left" | "right"` union, not
+  the app's settings module. Touch-only/PWA-gated in the apps, so harder to show
+  in the demo than a row swipe.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
