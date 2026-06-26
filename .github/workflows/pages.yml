@@ -103,7 +103,24 @@ jobs:
             echo "Dispatched: $REF -> /branch/"
           fi
 
-      # ---- Production build (latest tag, root path) ----
+      # ---- Preview build (current main) — always served at /preview/ ----
+      # The preview slot tracks the triggering commit on every push, regardless
+      # of whether a release exists yet. Build it first, off the triggering ref,
+      # before any checkout juggling for the production tag or a dispatched
+      # branch moves HEAD away.
+      - name: Build preview
+        run: npm run build:demo
+        env:
+          VITE_BASE: /preview/
+
+      - name: Stash preview site
+        run: mv site site-preview
+
+      # ---- Root (`/`) build ----
+      # `/` serves the latest release if one exists; until the first release it
+      # falls back to main. Either way it is a separate build at base `/`: when a
+      # release exists we check the tag out first, otherwise we build the
+      # triggering ref we are already on.
       - name: Checkout production tag
         if: steps.tag.outputs.has_release == 'true'
         run: git checkout ${{ steps.tag.outputs.ref }}
@@ -112,15 +129,13 @@ jobs:
         if: steps.tag.outputs.has_release == 'true'
         run: npm ci
 
-      - name: Build production
-        if: steps.tag.outputs.has_release == 'true'
+      - name: Build root
         run: npm run build:demo
         env:
           VITE_BASE: /
 
-      - name: Stash production site
-        if: steps.tag.outputs.has_release == 'true'
-        run: mv site site-prod
+      - name: Stash root site
+        run: mv site site-root
 
       - name: Return to triggering ref
         if: steps.tag.outputs.has_release == 'true'
@@ -130,20 +145,7 @@ jobs:
         if: steps.tag.outputs.has_release == 'true'
         run: npm ci
 
-      # ---- Preview build (current main, /preview/ path) ----
-      - name: Build preview
-        run: npm run build:demo
-        env:
-          # When no release exists yet this build serves at `/`; the merge step
-          # below short-circuits and ships it as-is. Once the first release
-          # lands, this becomes the /preview/ build instead.
-          VITE_BASE: ${{ steps.tag.outputs.has_release == 'true' && '/preview/' || '/' }}
-
       # ---- Optional /branch/ build + persist to orphan branch ----
-      - name: Stash preview site
-        if: steps.dispatch.outputs.has_dispatch == 'true'
-        run: mv site site-preview
-
       - name: Checkout dispatched ref
         if: steps.dispatch.outputs.has_dispatch == 'true'
         run: |
@@ -189,9 +191,7 @@ jobs:
 
       - name: Return to triggering ref after dispatch build
         if: steps.dispatch.outputs.has_dispatch == 'true'
-        run: |
-          git checkout ${{ github.sha }}
-          mv site-preview site
+        run: git checkout ${{ github.sha }}
 
       # ---- Rehydrate /branch/ from orphan branch (every run) ----
       - name: Rehydrate /branch/ from orphan branch
@@ -209,20 +209,18 @@ jobs:
           fi
 
       # ---- Merge slots into the artifact ----
+      # `/` is always the root build (release tag, or main before the first
+      # release); `/preview/` always tracks the triggering commit.
       - name: Merge builds
         run: |
-          if [ -d site-prod ]; then
-            mv site site-preview
-            mv site-prod site
-            mkdir -p site/preview
-            # Only the root (`/`) artifact may carry the custom-domain CNAME;
-            # GitHub Pages rejects the deploy if a CNAME also sits in a subdir.
-            rm -f site-preview/CNAME
-            cp -R site-preview/. site/preview/
-            echo "Merged: / = ${{ steps.tag.outputs.ref }}, /preview/ = ${{ github.sha }}"
-          else
-            echo "No release yet — serving main at / (no /preview/ slot)."
-          fi
+          mv site-root site
+          mkdir -p site/preview
+          # Only the root (`/`) artifact may carry the custom-domain CNAME;
+          # GitHub Pages rejects the deploy if a CNAME also sits in a subdir.
+          rm -f site-preview/CNAME
+          cp -R site-preview/. site/preview/
+          ROOT_REF="${{ steps.tag.outputs.has_release == 'true' && steps.tag.outputs.ref || 'main' }}"
+          echo "Merged: / = $ROOT_REF, /preview/ = ${{ github.sha }}"
           if [ "${{ steps.rehydrate.outputs.has_branch_dist }}" = "true" ]; then
             mkdir -p site/branch
             cp -R site-branch/. site/branch/
