@@ -81,19 +81,22 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export             | From                  | Purpose                                                           |
-| ------------------ | --------------------- | ----------------------------------------------------------------- |
-| `useEscapeKey`     | `.` and `./hooks`     | Capture-phase Escape handler gated on an `enabled` flag.          |
-| `useApplyTheme`    | `.` and `./theme`     | Projects the chosen appearance onto `<html>` as CSS variables.    |
-| theme data         | `.` and `./theme`     | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.  |
-| `SettingsModal`    | `.` and `./theme`     | Self-contained dialog over the appearance picker.                 |
-| `AppearancePicker` | `.` and `./theme`     | Controlled theme / font / colour editor over a `ThemeAppearance`. |
-| `ChangelogModal`   | `.` and `./changelog` | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.       |
-| `parseChangelog`   | `.` and `./changelog` | Parse a `CHANGELOG.md` into the typed release list it renders.    |
-| `StorageAdapter`   | `.` and `./storage`   | Byte-level persistence contract for swappable backends.           |
-| storage backends   | `.` and `./storage`   | Browser, local-folder, Dropbox, and Google Drive adapters.        |
-| `createLogStore`   | `.` and `./logging`   | In-app log ring buffer + capture mirror; the storage sink.        |
-| `Sidebar`          | `.` and `./sidebar`   | Responsive nav shell: docked sidebar / floating-button drawer.    |
+| Export             | From                   | Purpose                                                              |
+| ------------------ | ---------------------- | -------------------------------------------------------------------- |
+| `useEscapeKey`     | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.             |
+| `useApplyTheme`    | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.       |
+| theme data         | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.     |
+| `SettingsModal`    | `.` and `./theme`      | Self-contained dialog over the appearance picker.                    |
+| `AppearancePicker` | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.    |
+| `ChangelogModal`   | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.          |
+| `parseChangelog`   | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.       |
+| `StorageAdapter`   | `.` and `./storage`    | Byte-level persistence contract for swappable backends.              |
+| storage backends   | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.           |
+| `createLogStore`   | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.           |
+| `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.       |
+| `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).     |
+| `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, the `SelectPicker` dropdown. |
+| glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.        |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -166,6 +169,26 @@ the small CSS-token / keyframe contract an app supplies.
 
 ```ts
 import { Sidebar } from "@niclaslindstedt/oss-framework/sidebar";
+```
+
+The `components` module is the shared **UI primitives** — the consistent design
+vocabulary an app builds its surfaces from. One implementation of the `Modal`
+(portalled, accessible, scroll-locking, stacked-Escape), the `Button` (four
+themed variants), the form controls (`Checkbox`, `ClearableInput`), the
+`SelectPicker` dropdown (a keyboard-navigable `<select>` replacement on a
+portalled `FloatingPanel`), and a dependency-free inline glyph set. Everything
+paints through the theme token vocabulary, so the primitives follow the active
+theme with no extra wiring; they carry no i18n, no domain types, and no asset
+imports (the few user-facing strings inject as props with English defaults). See
+[`src/components/README.md`](src/components/README.md) for the full surface and a
+migration guide.
+
+```ts
+import {
+  Modal,
+  Button,
+  SelectPicker,
+} from "@niclaslindstedt/oss-framework/components";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

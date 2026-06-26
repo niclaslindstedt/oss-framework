@@ -171,6 +171,29 @@ saveDebounceMs, enabled })` factory that keeps `time()` and generalises
   logger internals with `createLogStore` on **its existing keys** (so captured
   history survives), seed checklist's `enabled` from its dev flag and forward it
   via `setEnabled`; notes drops the gate entirely. See `src/logging/README.md`.
+- **`ui/` UI primitives — extracted (done).** Lives in the framework as
+  `@niclaslindstedt/oss-framework/components`: the `Modal`, `Button`, `Checkbox`,
+  `ClearableInput`, `SelectPicker`, the `FloatingPanel` / `DismissBackdrop` /
+  `useFloatingPosition` floating-panel kit, `APP_VIEWPORT_RECT`, and a
+  dependency-free inline glyph set (`icons.tsx`, a curated **neutral** subset —
+  app-domain glyphs like `NoteIcon` / `Cloud*` / `Archive*` stayed app-side).
+  The form primitives were **near-identical** across apps; the supporting
+  `FloatingPanel` / `useFloatingPosition` / `appViewportRect` had **drifted** and
+  the framework took **checklist's superset** (the `grow` width kind + the
+  `arrowLeft` pointer; the visual-viewport `--app-top`/`--app-height` tracking).
+  **App glue dropped at the seam, not parameterised:** `useT("common.close")`
+  became `Modal`'s `closeLabel` prop (English default), the `lucide-react` /
+  app-icon imports became the inline glyph set, and `FloatingPanel` reuses the
+  framework's own `useEscapeKey` instead of a local copy. **Convergence calls
+  made without asking:** `Button` ships a 4-variant **superset**
+  (`primary | secondary | ghost | danger`) so neither app's look is lost — the
+  filled-neutral (`secondary`) and text-only (`ghost`) buttons both survive; the
+  radius drift (`--radius` vs `--radius-sm/md/lg`) resolved onto the converged
+  theme's triple (`rounded-md`). The glyph wrapper was de-duplicated into one
+  shared `<Glyph>` shell during extraction (a quality win the apps lacked). Each
+  app's migration: delete its `Modal` / form / `FloatingPanel` copies and import
+  from `/components`, pass its translated labels as props, and switch text-only
+  "secondary" buttons to `ghost`. See `src/components/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.

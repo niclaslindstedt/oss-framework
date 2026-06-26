@@ -50,6 +50,11 @@
       "types": "./dist/sidebar/index.d.ts",
       "import": "./dist/sidebar/index.js",
       "require": "./dist/sidebar/index.cjs"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js",
+      "require": "./dist/components/index.cjs"
     }
   },
   "scripts": {
