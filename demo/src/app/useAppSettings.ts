@@ -23,7 +23,10 @@ export type AppSettings = {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: "en",
-  menuMode: "swipe",
+  // The discoverable default on phones: a floating menu button. Switching to
+  // "swipe" hides it and opens the drawer with an inward edge swipe instead
+  // (framework `useEdgeSwipeOpen`).
+  menuMode: "button",
   disableAchievements: true,
   devMode: true,
   captureLogs: false,

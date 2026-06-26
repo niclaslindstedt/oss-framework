@@ -48,12 +48,12 @@ function AppShell() {
 
 ## What the framework owns vs. what stays in your app
 
-| Owned here (shared)                                                          | Stays in your app (app-specific)                                              |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal | The **nav content** (note / checklist list, action bars, footer) — `children` |
-| The draggable floating button + its snap-to-edge geometry (`position.ts`)    | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
-| `useDraggableMenuButton`, `useDrawerSwipeClose`, `useSidebarInset`           | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
-| The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)               | The CSS token values and the drawer keyframes (see below)                     |
+| Owned here (shared)                                                                    | Stays in your app (app-specific)                                              |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal           | The **nav content** (note / checklist list, action bars, footer) — `children` |
+| The draggable floating button + its snap-to-edge geometry (`position.ts`)              | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
+| `useDraggableMenuButton`, `useDrawerSwipeClose`, `useEdgeSwipeOpen`, `useSidebarInset` | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
+| The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)                         | The CSS token values and the drawer keyframes (see below)                     |
 
 The **state is deliberately not part of this module.** An app's nav state is
 usually fused with concerns the framework knows nothing about (the active view,
@@ -90,6 +90,42 @@ snaps back open, and a vertical drag still scrolls the panel. A nav row that
 owns its _own_ horizontal swipe (reveal-to-delete, swipe-to-archive) should tag
 its swipeable element `data-drawer-swipe-ignore` so the drawer swipe stands
 down while the finger is on it.
+
+### Open with an edge swipe (`useEdgeSwipeOpen`)
+
+When an app **hides the floating button** (a "swipe to open" preference, a
+phone-only PWA where the button gets in the way), `useEdgeSwipeOpen` is the way
+back in: a touch that starts at the drawer's resting edge and travels inward
+opens it — the mirror of `useDrawerSwipeClose`. Pass `showButton={false}` to the
+`Sidebar` and wire the hook in the same shell:
+
+```tsx
+const swipeToOpen = !pinned && menuMode === "swipe";
+
+useEdgeSwipeOpen({
+  side: position.side, // watch whichever edge the drawer rests on
+  enabled: swipeToOpen && !open, // only while closed, and only in swipe mode
+  onOpen: () => setOpen(true),
+});
+
+<Sidebar
+  pinned={pinned}
+  open={open}
+  showButton={!pinned && !swipeToOpen}
+  position={position}
+  /* … */
+>
+```
+
+The hook is **touch-only by design** — an edge swipe is a phone gesture, and an
+app typically only offers it in the installed PWA, where the browser's own
+back-swipe isn't competing for the same edge. It attaches document-level
+listeners once and reads the latest `side`/`enabled` each event, stands down
+while a `[aria-modal="true"]` element is open, and ignores a mostly-vertical
+drag so a scroll is never hijacked. The thresholds default to a 30px edge zone
+and 48px of inward travel; override `edgeZone` / `openDistance` if your app's
+feel differs. The host owns the open state and the resting-side choice; the hook
+only recognises the gesture and calls `onOpen`.
 
 ## Styling contract
 

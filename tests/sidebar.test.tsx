@@ -9,8 +9,10 @@ import {
   clampUnit,
   rectToPosition,
   restingRect,
+  useEdgeSwipeOpen,
   useSidebarInset,
   type MenuButtonPosition,
+  type MenuButtonSide,
   type SidebarProps,
 } from "../src/sidebar/index.ts";
 
@@ -190,5 +192,125 @@ describe("Sidebar", () => {
   it("applies overridden accessible labels", () => {
     renderSidebar({ open: false, labels: { open: "Menu" } });
     expect(screen.getByRole("button", { name: "Menu" })).toBeTruthy();
+  });
+});
+
+// --- useEdgeSwipeOpen ----------------------------------------------------
+
+// A bare host that mounts the gesture and surfaces nothing — the assertions
+// read the `onOpen` spy. jsdom's innerWidth defaults to 1024.
+function EdgeSwipeHost(props: {
+  side: MenuButtonSide;
+  enabled: boolean;
+  onOpen: () => void;
+  edgeZone?: number;
+  openDistance?: number;
+}) {
+  useEdgeSwipeOpen(props);
+  return null;
+}
+
+function touchStart(x: number, y: number) {
+  fireEvent.touchStart(document, { touches: [{ clientX: x, clientY: y }] });
+}
+function touchMove(x: number, y: number) {
+  fireEvent.touchMove(document, { touches: [{ clientX: x, clientY: y }] });
+}
+
+describe("useEdgeSwipeOpen", () => {
+  afterEach(() => {
+    // Clear any stray modal marker a test left on the body.
+    document
+      .querySelectorAll('[aria-modal="true"]')
+      .forEach((el) => el.remove());
+  });
+
+  it("opens on an inward swipe from the watched left edge", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled onOpen={onOpen} />);
+    touchStart(10, 200); // within the 30px edge zone
+    touchMove(70, 205); // +60px inward, past the 48px threshold, ~horizontal
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens from the right edge with a leftward swipe", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="right" enabled onOpen={onOpen} />);
+    touchStart(1020, 200); // window.innerWidth (1024) - 30 = 994; 1020 ≥ 994
+    touchMove(950, 205); // -70px inward (leftward), past the threshold
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a touch that starts away from the edge", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled onOpen={onOpen} />);
+    touchStart(200, 200); // far from the left edge — never arms
+    touchMove(300, 205);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("ignores a mostly-vertical drag so a scroll is not hijacked", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled onOpen={onOpen} />);
+    touchStart(10, 200);
+    touchMove(70, 400); // dx 60 but dy 200 dominates → treated as a scroll
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("fires only once per gesture", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled onOpen={onOpen} />);
+    touchStart(10, 200);
+    touchMove(70, 205);
+    touchMove(120, 205); // further travel must not re-fire
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("no-ops while disabled", () => {
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled={false} onOpen={onOpen} />);
+    touchStart(10, 200);
+    touchMove(70, 205);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("stands down while a modal is open", () => {
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    document.body.appendChild(modal);
+    const onOpen = vi.fn();
+    render(<EdgeSwipeHost side="left" enabled onOpen={onOpen} />);
+    touchStart(10, 200);
+    touchMove(70, 205);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("honours a custom edgeZone and openDistance", () => {
+    const onOpen = vi.fn();
+    render(
+      <EdgeSwipeHost
+        side="left"
+        enabled
+        onOpen={onOpen}
+        edgeZone={60}
+        openDistance={100}
+      />,
+    );
+    touchStart(50, 200); // outside the default 30px zone, inside the custom 60
+    touchMove(110, 205); // +60px: past the default 48 but short of the custom 100
+    expect(onOpen).not.toHaveBeenCalled();
+    touchMove(170, 205); // +120px inward, past the custom 100 threshold
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("detaches its document listeners on unmount", () => {
+    const onOpen = vi.fn();
+    const { unmount } = render(
+      <EdgeSwipeHost side="left" enabled onOpen={onOpen} />,
+    );
+    unmount();
+    touchStart(10, 200);
+    touchMove(70, 205);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 import {
   Sidebar,
+  useEdgeSwipeOpen,
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
 import {
@@ -48,6 +49,17 @@ export function App() {
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // "Open the menu with" (Settings → General): on phones, the user picks
+  // between the floating button and an inward edge swipe. In swipe mode the
+  // button is hidden and `useEdgeSwipeOpen` opens the drawer from whichever
+  // edge it rests on — the same gesture the source apps offer in their PWA.
+  const swipeToOpen = !pinned && settings.menuMode === "swipe";
+  useEdgeSwipeOpen({
+    side: position.side,
+    enabled: swipeToOpen && !drawerOpen,
+    onOpen: () => setDrawerOpen(true),
+  });
+
   useEffect(() => {
     seedLogsOnce();
   }, []);
@@ -85,10 +97,10 @@ export function App() {
         onClose={() => setDrawerOpen(false)}
         position={position}
         onPositionChange={setPosition}
-        // The framework shell owns only swipe-to-close; edge-swipe-open is app
-        // glue it doesn't ship yet, so the floating button is always offered on
-        // phones whatever the (persisted) "open the menu with" preference says.
-        showButton={!pinned}
+        // On phones the button shows only in "Floating button" mode; in
+        // "Right-swipe" mode it's hidden and the edge-swipe gesture above opens
+        // the drawer instead. Wide screens dock the menu and never show either.
+        showButton={!pinned && !swipeToOpen}
         swipeToClose
         panelScroll={false}
         labels={{

@@ -170,8 +170,10 @@ swipe-dismissable drawer on phones, a permanent docked sidebar on wide screens.
 The host passes its navigation rows as `children` and threads the nav state
 (`open` / `position` / `pinned`) in as props — the shell is stateless and owns
 only the framing, plus the snap-to-edge geometry and a `useSidebarInset` helper.
-See [`src/sidebar/README.md`](src/sidebar/README.md) for the prop surface and
-the small CSS-token / keyframe contract an app supplies.
+A `useEdgeSwipeOpen` hook (the mirror of swipe-to-close) opens the drawer with
+an inward edge swipe, for apps that hide the floating button. See
+[`src/sidebar/README.md`](src/sidebar/README.md) for the prop surface and the
+small CSS-token / keyframe contract an app supplies.
 
 ```ts
 import { Sidebar } from "@niclaslindstedt/oss-framework/sidebar";
