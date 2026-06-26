@@ -13,6 +13,7 @@ export default defineConfig({
     "storage/index": "src/storage/index.ts",
     "logging/index": "src/logging/index.ts",
     "sidebar/index": "src/sidebar/index.ts",
+    "components/index": "src/components/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

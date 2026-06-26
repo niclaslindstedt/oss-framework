@@ -13,6 +13,7 @@
 //   theme/      — theme vocabulary, palettes, and the projection engine
 //   logging/    — in-app log buffer + capture mirror for the storage sink
 //   sidebar/    — responsive navigation shell (docked / drawer framing)
+//   components/ — shared UI primitives (modal, buttons, inputs, dropdown, glyphs)
 //   encryption/ — at-rest crypto and the encrypt/decrypt migration queue
 
 export * from "./hooks/index.ts";
@@ -21,3 +22,4 @@ export * from "./changelog/index.ts";
 export * from "./storage/index.ts";
 export * from "./logging/index.ts";
 export * from "./sidebar/index.ts";
+export * from "./components/index.ts";

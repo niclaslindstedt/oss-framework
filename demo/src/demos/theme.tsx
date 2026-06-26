@@ -3,25 +3,23 @@ import { useState } from "react";
 
 import {
   AppearancePicker,
-  DEFAULT_THEME_APPEARANCE,
   SettingsModal,
-  useApplyTheme,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
-// Demonstrates the theme module end to end: the SettingsModal and the inline
-// AppearancePicker both edit one `ThemeAppearance`, and `useApplyTheme`
-// projects it onto <html> so the entire demo repaints live as the controls
-// change. The sample chrome below is built from the framework's semantic colour
-// slots so a theme switch is immediately visible.
-export function ThemeDemo() {
-  const [appearance, setAppearance] = useState<ThemeAppearance>(
-    DEFAULT_THEME_APPEARANCE,
-  );
-  const [open, setOpen] = useState(false);
+type Props = {
+  appearance: ThemeAppearance;
+  onChange: (next: ThemeAppearance) => void;
+};
 
-  // Paint the chosen appearance onto <html> for the whole page.
-  useApplyTheme(appearance);
+// Demonstrates the theme module end to end: the SettingsModal and the inline
+// AppearancePicker both edit one `ThemeAppearance`, projected onto <html> by
+// the single `useApplyTheme` the demo shell owns (see `App.tsx`) so the entire
+// page repaints live as the controls change. The sample chrome below is built
+// from the framework's semantic colour slots so a theme switch is immediately
+// visible.
+export function ThemeDemo({ appearance, onChange: setAppearance }: Props) {
+  const [open, setOpen] = useState(false);
 
   return (
     <section className="flex flex-col gap-6">
