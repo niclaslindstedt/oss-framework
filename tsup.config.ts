@@ -14,6 +14,7 @@ export default defineConfig({
     "logging/index": "src/logging/index.ts",
     "sidebar/index": "src/sidebar/index.ts",
     "components/index": "src/components/index.ts",
+    "checklist/index": "src/checklist/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

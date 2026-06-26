@@ -4,14 +4,17 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  Badge,
   Button,
   Checkbox,
   ClearableInput,
+  Fab,
   Modal,
   SelectPicker,
   computeFloatingRect,
   CheckIcon,
   CloseIcon,
+  GripIcon,
   type FloatingPlacement,
 } from "../src/components/index.ts";
 
@@ -327,5 +330,40 @@ describe("glyphs", () => {
 
     rerender(<CloseIcon className="x" />);
     expect(container.querySelector("svg")?.getAttribute("class")).toBe("x");
+  });
+
+  it("renders a filled glyph (grip) with a currentColor fill and no stroke", () => {
+    const { container } = render(<GripIcon className="g" />);
+    const svg = container.querySelector("svg")!;
+    expect(svg.getAttribute("fill")).toBe("currentColor");
+    expect(svg.getAttribute("stroke")).toBe("none");
+  });
+});
+
+// --- Badge + Fab --------------------------------------------------------
+
+describe("Badge", () => {
+  it("renders its content with the tone class", () => {
+    const { container } = render(<Badge tone="accent">7</Badge>);
+    const el = container.firstChild as HTMLElement;
+    expect(el.textContent).toBe("7");
+    expect(el.className).toContain("text-accent");
+  });
+});
+
+describe("Fab", () => {
+  it("is a labelled button that defaults to type=button and fires onClick", () => {
+    const onClick = vi.fn();
+    render(
+      <Fab aria-label="Add item" onClick={onClick}>
+        +
+      </Fab>,
+    );
+    const btn = screen.getByRole("button", {
+      name: "Add item",
+    }) as HTMLButtonElement;
+    expect(btn.type).toBe("button");
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalled();
   });
 });
