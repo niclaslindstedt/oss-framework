@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   ArchiveIcon,
@@ -11,8 +11,10 @@ import {
   FolderOpenIcon,
   HeartIcon,
   HelpCircleIcon,
+  PencilIcon,
   PlusIcon,
   RedoIcon,
+  RowActionMenu,
   SearchIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
@@ -52,11 +54,26 @@ type Props = {
 
 export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
   const t = useT();
-  const { data, addList, addFolder, setActive, undo, redo, canUndo, canRedo } =
-    store;
+  const {
+    data,
+    addList,
+    addFolder,
+    renameFolder,
+    setActive,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = store;
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
     () => new Set(),
   );
+  // A new folder isn't created until it's named: the "New folder" action drops
+  // an inline editor into the list, and only a non-empty name commits it.
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  // The folder whose name is being edited in place (via its action menu's
+  // Rename), or `null` when none is.
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
 
   function toggleFolder(id: string) {
     setCollapsedFolders((prev) => {
@@ -92,22 +109,63 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
 
       {/* Scrolling list region. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* A fresh, unnamed folder editor — committing it creates the folder,
+            defocusing it empty (or Escape) discards it. */}
+        {creatingFolder && (
+          <FolderEditRow
+            placeholder={t("menu.folderName")}
+            onCommit={(name) => {
+              addFolder(name);
+              setCreatingFolder(false);
+            }}
+            onCancel={() => setCreatingFolder(false)}
+          />
+        )}
         {data.folders.map((folder) => {
           const lists = data.lists.filter((l) => l.folderId === folder.id);
           const expanded = !collapsedFolders.has(folder.id);
+          // Renaming swaps the folder's row for the same inline editor, seeded
+          // with its current name.
+          if (renamingFolderId === folder.id) {
+            return (
+              <FolderEditRow
+                key={folder.id}
+                initial={folder.name}
+                placeholder={t("menu.folderName")}
+                onCommit={(name) => {
+                  renameFolder(folder.id, name);
+                  setRenamingFolderId(null);
+                }}
+                onCancel={() => setRenamingFolderId(null)}
+              />
+            );
+          }
           return (
             <div key={folder.id}>
-              <FolderRow
-                name={folder.name}
-                addLabel={t("menu.newChecklistIn", { name: folder.name })}
-                count={lists.length}
-                expanded={expanded}
-                onToggle={() => toggleFolder(folder.id)}
-                onAdd={() => {
-                  addList(folder.id);
-                  onNavigate();
-                }}
-              />
+              {/* A long press (touch) or right-click (desktop) on the folder
+                  row opens its action menu — today just Rename. */}
+              <RowActionMenu
+                ariaLabel={t("menu.folderActions")}
+                actions={[
+                  {
+                    label: t("menu.renameFolder"),
+                    icon: <PencilIcon className="h-5 w-5" />,
+                    onSelect: () => setRenamingFolderId(folder.id),
+                  },
+                ]}
+              >
+                <FolderRow
+                  name={folder.name}
+                  addLabel={t("menu.newChecklistIn", { name: folder.name })}
+                  count={lists.length}
+                  expanded={expanded}
+                  onToggle={() => toggleFolder(folder.id)}
+                  onAdd={() => {
+                    addList(folder.id);
+                    onNavigate();
+                  }}
+                />
+              </RowActionMenu>
               {expanded &&
                 lists.map((list) => (
                   <NavRow
@@ -151,7 +209,10 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
             >
               <PlusIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label={t("menu.newFolder")} onClick={addFolder}>
+            <BarButton
+              label={t("menu.newFolder")}
+              onClick={() => setCreatingFolder(true)}
+            >
               <FolderIcon className="h-5 w-5" />
             </BarButton>
             <BarButton label={t("menu.archive")} badge="13">
@@ -314,6 +375,74 @@ function FolderRow({
       >
         <PlusIcon className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+// The inline folder name editor, used both for creating a folder (empty) and
+// renaming one (seeded with its name). Committing on Enter or blur with a
+// non-empty trimmed name; an empty name (or Escape) cancels — which is what
+// makes a freshly-added, never-named folder simply vanish on defocus. The
+// `committed` latch stops the blur that follows an Enter from firing twice.
+function FolderEditRow({
+  initial = "",
+  placeholder,
+  onCommit,
+  onCancel,
+}: {
+  initial?: string;
+  placeholder: string;
+  onCommit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const [committed, setCommitted] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  // Focus (and select) on mount without the a11y-flagged `autoFocus` prop —
+  // the row only appears on an explicit "new folder" / "rename" action, so it
+  // takes focus the moment it shows.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, []);
+  function finish() {
+    if (committed) return;
+    setCommitted(true);
+    const name = value.trim();
+    if (name) onCommit(name);
+    else onCancel();
+  }
+  return (
+    <div className="flex items-center gap-2 py-[var(--density-row-py)] pr-2 pl-3">
+      {/* A chevron-sized spacer (no chevron — a brand-new folder can't be
+          expanded) keeps the folder glyph aligned with the existing folders'
+          glyphs, which sit one notch right of their chevron. */}
+      <span className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className="text-muted">
+        <FolderIcon className="h-5 w-5" />
+      </span>
+      <input
+        ref={ref}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={finish}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            finish();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setCommitted(true);
+            onCancel();
+          }
+        }}
+        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-bright outline-none placeholder:text-muted/60"
+      />
     </div>
   );
 }

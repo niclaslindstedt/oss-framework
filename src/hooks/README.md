@@ -15,6 +15,7 @@ component decides what to render with them.
 | `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
 | `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
 | `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.             |
+| `useLongPress`         | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.    |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
