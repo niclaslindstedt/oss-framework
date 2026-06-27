@@ -9,9 +9,11 @@ import {
   FloatingButton,
   Sidebar,
   useEdgeSwipeOpen,
+  useSidebarInset,
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
 import { CogIcon } from "@niclaslindstedt/oss-framework/components";
+import { UpdateToast } from "@niclaslindstedt/oss-framework/pwa";
 import {
   useMediaQuery,
   useUndoRedoShortcuts,
@@ -53,6 +55,11 @@ export function App() {
     y: 0.5,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // A simulated "a new build is ready" flag. A real installed PWA would drive
+  // this from `usePwaUpdate()` (its service worker reaching the `waiting`
+  // state); this static demo has no service worker, so the Developer tab lets
+  // you trigger the prompt to see the framework `UpdateToast` in its real spot.
+  const [updateReady, setUpdateReady] = useState(false);
   // The settings button rests on the opposite edge from the menu button by
   // default, so the two floating buttons don't stack — drag either anywhere.
   const [settingsPosition, setSettingsPosition] = useState<MenuButtonPosition>({
@@ -93,6 +100,12 @@ export function App() {
     onRedo: store.redo,
     enabled: pinned || !drawerOpen,
   });
+
+  // Publish the docked sidebar's footprint as CSS variables so a
+  // viewport-`fixed` overlay mounted outside this flex layout — the
+  // `UpdateToast` below — centres over the content band rather than the whole
+  // window when the menu is pinned on a wide screen.
+  useSidebarInset(pinned, position.side);
 
   useEffect(() => {
     seedLogsOnce();
@@ -184,6 +197,23 @@ export function App() {
         setAppearance={setAppearance}
         settings={settings}
         commitSettings={setSettings}
+        // Close Settings and surface the update prompt so it isn't hidden
+        // behind the dialog — the prompt is a page-level overlay.
+        onSimulateUpdate={() => {
+          setSettingsOpen(false);
+          setUpdateReady(true);
+        }}
+      />
+
+      {/* The framework's PWA "a new version is ready" prompt. An installed app
+          would feed this from `usePwaUpdate()`; here it's driven by the
+          simulated flag the Developer tab toggles. Applying it just clears the
+          prompt (a real app reloads onto the new build). */}
+      <UpdateToast
+        needRefresh={updateReady}
+        incomingVersion="2.0.0-demo"
+        onReload={() => setUpdateReady(false)}
+        onDismiss={() => setUpdateReady(false)}
       />
     </div>
   );
