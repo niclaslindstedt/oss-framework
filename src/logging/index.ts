@@ -26,3 +26,9 @@ export {
   DEFAULT_LOG_VIEWER_LABELS,
   type LogViewerLabels,
 } from "./LogViewer.tsx";
+export {
+  LogModal,
+  DEFAULT_LOG_MODAL_LABELS,
+  type LogModalEntry,
+  type LogModalLabels,
+} from "./LogModal.tsx";

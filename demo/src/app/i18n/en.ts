@@ -179,6 +179,9 @@ export const en = {
       flakyBackend: "Simulate a flaky backend",
       flakyBackendHint:
         "Inject transient save failures so the framework's retry policy rides its backoff curve until the write lands.",
+      viewSaveLog: "View save log",
+      saveLogTitle: "Save log",
+      saveLogEmpty: "This save logged nothing.",
       encryptionTitle: "Encryption at rest",
       encryptDocument: "Encrypt this document",
       encryptDocumentHint:

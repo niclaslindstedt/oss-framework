@@ -176,6 +176,9 @@ export const sv: Catalog = {
       flakyBackend: "Simulera en ostadig backend",
       flakyBackendHint:
         "Injicera tillfälliga sparfel så att ramverkets omförsökspolicy rider sin backoff-kurva tills skrivningen går igenom.",
+      viewSaveLog: "Visa sparlogg",
+      saveLogTitle: "Sparlogg",
+      saveLogEmpty: "Den här sparningen loggade ingenting.",
       encryptionTitle: "Kryptering i vila",
       encryptDocument: "Kryptera det här dokumentet",
       encryptDocumentHint:

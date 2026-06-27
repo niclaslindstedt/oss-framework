@@ -101,6 +101,7 @@ Today:
 | `backoffDelayMs`         | `.` and `./storage`      | Pure save-path retry policy: equal-jitter backoff + retryable-error predicate.                                             |
 | `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                                                                 |
 | `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                                                        |
+| `LogModal`               | `.` and `./logging`      | Modal showing one operation's step log; opened on demand from a status line.                                               |
 | `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                                                             |
 | `FloatingButton`         | `.` and `./sidebar`      | The draggable, edge-resting FAB the shell floats, reusable on its own.                                                     |
 | `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                                                           |
