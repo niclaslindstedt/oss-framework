@@ -98,6 +98,24 @@ seam is **over-extraction**, the opposite failure — it ossifies app domain
 into the framework. That is a _rejection_, recorded in Investigated-and-
 skipped, not a lift.
 
+### Integrate into an existing component — don't reflexively make a new one
+
+A lift's home is almost always an **existing** component, hook, or module — the
+whole point is that the surface already ships and is handing too much back. So
+**integrating the absorbed behaviour into that existing component / hook is the
+expected and encouraged outcome**; it does **not** need to become a new
+component, hook, or shared primitive. A new optional prop, a new default the
+component now owns, an extra exported helper on a module that already ships —
+these are the normal shape of a lift, and they're better than a new export
+because the adopter already imports the thing. A clean, logical integration
+beats a fresh primitive every time.
+
+Only mint a **new** shared primitive when the responsibility is genuinely its
+own concern duplicated across N≥2 components with no clean existing home (the
+cross-module-duplication survey angle). When in doubt, fold the behaviour into
+the component that already owns the surrounding surface — as long as the
+integration is clean and logical and stays additive / backward-compatible.
+
 ## Bootstrap — first run, before anything else
 
 `docs/refactoring-roadmap.md` does not exist yet. The **first** time this

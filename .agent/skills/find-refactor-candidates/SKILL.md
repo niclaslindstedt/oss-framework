@@ -17,6 +17,12 @@ It does **not** perform the extraction. It produces the candidate list and
 the evidence (similarity, line counts, whole-module clusters) a human or a
 follow-up agent uses to decide what to extract, then how.
 
+An extraction's home can be a **new** module _or_ an **existing** component,
+hook, or module it enhances — integrating mined behaviour into a surface the
+framework already ships is fully encouraged when it's the cleaner fit. See
+["An extraction can enhance an existing component"](#an-extraction-can-enhance-an-existing-component--it-neednt-be-a-new-one)
+under Extraction conventions.
+
 > **Who consumes the framework — read this first.** The framework targets
 > **new, green-field apps** built on top of it. `notes` and `checklist` are
 > **source material, not consumers**: their duplicated code is the best
@@ -811,6 +817,50 @@ the point, not a detour:
   applies to the shared, generic surface only. The store, domain types, and
   business rules still stay app-side — pulling more across the seam to "complete"
   the merge is the failure mode, not the goal.
+
+### An extraction can enhance an existing component — it needn't be a new one
+
+**The unit of extraction is the behaviour, not a new file.** When the best home
+for the code you're mining is an **existing** framework component, hook, or
+module, integrate it there — do **not** spin up a new component / hook / subpath
+just because the source apps happened to keep it separate. A clean, logical
+integration into a surface the framework already ships is a **first-class,
+encouraged** outcome, not a lesser one — often it's the _better_ result, because
+the adopter already imports the thing.
+
+This already has precedent across the framework:
+
+- **Behaviour folded into an existing component.** `useRowSwipe` (a standalone
+  hook lift) is **consumed inside** the framework's own `Checklist` to grow an
+  optional `onDelete` swipe-to-delete; `useDesktopPointer` earned its canonical
+  use by **widening `Checklist`** with an optional `onRowContextMenu` prop rather
+  than shipping a dead export.
+- **Logic added to an existing module, no new subpath.** `createMigrator`
+  (`storage/migrations.ts`) and the `save-retry` policy both landed **inside the
+  existing `storage` module** — new exports on a module that already shipped, not
+  new subpaths.
+
+Decide the home by where the behaviour belongs, not by how the apps filed it:
+
+- **Enhance an existing component / hook** when the behaviour is a capability of
+  something the framework already ships (a new optional prop, an extra exported
+  helper, a default the component now owns). Make it **additive and
+  overridable** so existing callers see no change — the absorbed behaviour
+  defaults to today's output, exactly the backward-compatible bar the `refactor`
+  skill's lifts hold to.
+- **Add to an existing module (no new subpath)** when the code is a sibling of
+  what a module already owns — extend its barrel and `src/index.ts` only; skip
+  the `tsup.config.ts` / `package.json` `exports` wiring a brand-new subpath
+  needs (that's the four-place checklist below — an in-module addition touches
+  just the first two).
+- **Create a new component / module** only when the behaviour is genuinely its
+  own concern with no existing home.
+
+The seam rules don't change: integrating into an existing surface is **not** a
+licence to drag the store, domain types, or business rules across — hold the
+same generic-only boundary. And when you enhance an existing component, the demo
+integration (required, below) is to **deepen that component's existing seat** in
+the demo, not bolt on a new screen.
 
 ### Every component ships a usage README (required)
 
