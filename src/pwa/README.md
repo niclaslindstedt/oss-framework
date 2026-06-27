@@ -9,12 +9,13 @@ soft "reload to apply" prompt, apply it on the user's say-so) and
 near-identical copies in the source apps; the framework owns the drift-prone
 state machine and the prompt UI, the host owns the service-worker build.
 
-| Export                  | What it is                                                                                               |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- |
-| `usePwaUpdate(config)`  | Singleton hook driving the SW update lifecycle: download `progress`, `needRefresh`, `reload`, `dismiss`. |
-| `UpdateToast`           | Presentational "a new version is ready" prompt — drive it from `usePwaUpdate`'s state.                   |
-| `isStandaloneMobile()`  | `true` when running as an installed PWA on Android/iOS (where hiding chrome / edge gestures is safe).    |
-| `useStandaloneMobile()` | The same flag as a hook (read once — it can't change without a reload).                                  |
+| Export                  | What it is                                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `usePwaUpdate(config)`  | Singleton hook driving the SW update lifecycle: download `progress`, `needRefresh`, `checking`, `reload`, `dismiss`, `checkForUpdate`. |
+| `UpdateToast`           | Presentational "a new version is ready" prompt — drive it from `usePwaUpdate`'s state.                                                 |
+| `CheckForUpdatesItem`   | Presentational "check for updates" menu row for a footer — drives `checkForUpdate`, owns the spinner / result feedback / aria.         |
+| `isStandaloneMobile()`  | `true` when running as an installed PWA on Android/iOS (where hiding chrome / edge gestures is safe).                                  |
+| `useStandaloneMobile()` | The same flag as a hook (read once — it can't change without a reload).                                                                |
 
 ## What it owns vs. what stays in your app
 
@@ -94,6 +95,50 @@ function UpdatePrompt() {
 `null`) — the same singleton state can feed a second surface, e.g. a header
 wordmark that fills as the download lands. That is exactly why the hook is a
 singleton and `UpdateToast` is presentational: one driver, many views.
+
+### Check for updates on demand
+
+The hook checks automatically (on registration, hourly, and when the tab
+regains focus), but an installed app usually also offers a manual **"check for
+updates"** affordance — a footer / settings row the user taps to probe now.
+`checkForUpdate()` is that probe and `CheckForUpdatesItem` is the row, so an
+adopter doesn't re-implement either:
+
+```tsx
+import {
+  usePwaUpdate,
+  CheckForUpdatesItem,
+} from "@niclaslindstedt/oss-framework/pwa";
+
+function SideMenuFooter() {
+  const update = usePwaUpdate({ base, cacheId });
+  return (
+    <CheckForUpdatesItem
+      checking={update.checking}
+      updateAvailable={update.needRefresh}
+      onCheck={update.checkForUpdate}
+      // English by default; override per string.
+      labels={{ idle: t("menu.checkUpdates") }}
+    />
+  );
+}
+```
+
+`checkForUpdate()` runs `reg.update()` against the network and resolves with
+`"update-found"` (a build is downloading or already waiting — the prompt
+surfaces as usual; a dismissed prompt is re-raised), `"up-to-date"` (the running
+build is newest), or `"unavailable"` (no service worker — a dev build or an
+unsupported browser). `checking` is `true` only while a **manual** probe runs,
+so the row can show a spinner without the silent background checks flickering
+it.
+
+`CheckForUpdatesItem` owns the whole row: the resting "check for updates" label,
+the spinner while `checking`, a brief "you're up to date" reassurance, the
+"update available" nudge once a build waits, and the `aria-live` / disabled-busy
+wiring. It's presentational like `UpdateToast` — feed it the three values above
+and supply your strings via `labels`. The default row geometry themes off the
+same CSS variables the rest of a framework menu uses; pass `className` to match
+a different footer.
 
 `isStandaloneMobile()` / `useStandaloneMobile()` gate affordances that are only
 safe inside an installed window:

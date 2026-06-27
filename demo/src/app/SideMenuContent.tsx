@@ -22,6 +22,10 @@ import {
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
 import type { Namespace } from "@niclaslindstedt/oss-framework/namespaces";
+import {
+  CheckForUpdatesItem,
+  type PwaUpdateCheckResult,
+} from "@niclaslindstedt/oss-framework/pwa";
 
 import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
@@ -58,6 +62,11 @@ type Props = {
   onOpenSearch: () => void;
   // Close the drawer after a navigation (a no-op when the sidebar is docked).
   onNavigate: () => void;
+  // PWA update state, threaded from `usePwaUpdate` (here, the demo's simulated
+  // stand-in). The footer's "check for updates" row drives them.
+  checkingUpdate: boolean;
+  updateAvailable: boolean;
+  onCheckUpdate: () => Promise<PwaUpdateCheckResult>;
 };
 
 export function SideMenuContent({
@@ -67,6 +76,9 @@ export function SideMenuContent({
   onOpenSettings,
   onOpenSearch,
   onNavigate,
+  checkingUpdate,
+  updateAvailable,
+  onCheckUpdate,
 }: Props) {
   const t = useT();
   const {
@@ -354,6 +366,21 @@ export function SideMenuContent({
         <FooterRow icon={<HelpCircleIcon className="h-5 w-5" />}>
           {t("menu.about")}
         </FooterRow>
+        {/* The framework owns the whole row — spinner, "up to date" / "update
+            available" feedback, the aria-live wiring — so the demo only feeds
+            it the update state and the translated strings. */}
+        <CheckForUpdatesItem
+          checking={checkingUpdate}
+          updateAvailable={updateAvailable}
+          onCheck={onCheckUpdate}
+          labels={{
+            idle: t("menu.checkUpdates"),
+            checking: t("menu.checkingUpdates"),
+            upToDate: t("menu.upToDate"),
+            updateAvailable: t("menu.updateAvailable"),
+            unavailable: t("menu.updatesUnavailable"),
+          }}
+        />
         <FooterRow
           icon={<CogIcon className="h-5 w-5" />}
           onClick={onOpenSettings}

@@ -118,6 +118,7 @@ Today:
 | glyph picker kit         | `.` and `./glyphs`       | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.                |
 | `usePwaUpdate`           | `.` and `./pwa`          | Service-worker update lifecycle singleton: download progress + reload prompt state.            |
 | `UpdateToast`            | `.` and `./pwa`          | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.                      |
+| `CheckForUpdatesItem`    | `.` and `./pwa`          | Presentational "check for updates" footer row — drives `usePwaUpdate().checkForUpdate`.        |
 | `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.                    |
 | `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.                         |
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.               |

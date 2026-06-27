@@ -32,6 +32,11 @@ export const sv: Catalog = {
     search: "Sök",
     donate: "Donera",
     about: "Om",
+    checkUpdates: "Sök efter uppdateringar",
+    checkingUpdates: "Söker efter uppdateringar…",
+    upToDate: "Du har senaste versionen",
+    updateAvailable: "Uppdatering tillgänglig",
+    updatesUnavailable: "Uppdateringar ej tillgängliga",
     settings: "Inställningar",
   },
   search: {
