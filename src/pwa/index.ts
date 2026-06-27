@@ -12,6 +12,7 @@ export {
   type PwaUpdate,
   type PwaUpdateConfig,
   type PwaUpdateState,
+  type PwaUpdateCheckResult,
 } from "./usePwaUpdate.ts";
 export {
   UpdateToast,
@@ -19,4 +20,10 @@ export {
   type UpdateToastProps,
   type UpdateToastLabels,
 } from "./UpdateToast.tsx";
+export {
+  CheckForUpdatesItem,
+  DEFAULT_CHECK_FOR_UPDATES_LABELS,
+  type CheckForUpdatesItemProps,
+  type CheckForUpdatesLabels,
+} from "./CheckForUpdatesItem.tsx";
 export { isStandaloneMobile, useStandaloneMobile } from "./standalone.ts";

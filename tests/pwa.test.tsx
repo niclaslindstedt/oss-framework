@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { render, renderHook, screen } from "@testing-library/react";
+import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  CheckForUpdatesItem,
   UpdateToast,
   isStandaloneMobile,
   useStandaloneMobile,
@@ -86,6 +87,85 @@ describe("usePwaUpdate", () => {
     expect(result.current.incomingVersion).toBeNull();
     expect(typeof result.current.reload).toBe("function");
     expect(typeof result.current.dismiss).toBe("function");
+    expect(result.current.checking).toBe(false);
+    expect(typeof result.current.checkForUpdate).toBe("function");
+  });
+
+  it("reports `unavailable` from a manual check with no service worker", async () => {
+    const { result } = renderHook(() =>
+      usePwaUpdate({ base: "/", cacheId: "app", enabled: false }),
+    );
+    await expect(result.current.checkForUpdate()).resolves.toBe("unavailable");
+  });
+});
+
+describe("CheckForUpdatesItem", () => {
+  it("renders the resting label and checks on click", async () => {
+    const onCheck = vi.fn().mockResolvedValue("up-to-date" as const);
+    render(
+      <CheckForUpdatesItem
+        checking={false}
+        updateAvailable={false}
+        onCheck={onCheck}
+      />,
+    );
+    const button = screen.getByRole("menuitem", { name: /check for updates/i });
+    button.click();
+    expect(onCheck).toHaveBeenCalledOnce();
+    // The "up to date" reassurance lands once the probe resolves.
+    expect(await screen.findByText("You’re up to date")).toBeTruthy();
+  });
+
+  it("shows a disabled, busy row while checking", () => {
+    render(
+      <CheckForUpdatesItem
+        checking
+        updateAvailable={false}
+        onCheck={vi.fn()}
+      />,
+    );
+    const button = screen.getByRole("menuitem");
+    expect(screen.getByText("Checking for updates…")).toBeTruthy();
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(button.getAttribute("aria-busy")).toBe("true");
+  });
+
+  it("reads 'Update available' once a build is waiting", () => {
+    render(
+      <CheckForUpdatesItem
+        checking={false}
+        updateAvailable
+        onCheck={vi.fn().mockResolvedValue("update-found" as const)}
+      />,
+    );
+    expect(screen.getByText("Update available")).toBeTruthy();
+  });
+
+  it("keeps the resting label when a check finds an update (the prompt surfaces it)", async () => {
+    const onCheck = vi.fn().mockResolvedValue("update-found" as const);
+    render(
+      <CheckForUpdatesItem
+        checking={false}
+        updateAvailable={false}
+        onCheck={onCheck}
+      />,
+    );
+    screen.getByRole("menuitem").click();
+    await waitFor(() => expect(onCheck).toHaveBeenCalledOnce());
+    expect(screen.getByText("Check for updates")).toBeTruthy();
+    expect(screen.queryByText("You’re up to date")).toBeNull();
+  });
+
+  it("accepts label overrides", () => {
+    render(
+      <CheckForUpdatesItem
+        checking={false}
+        updateAvailable
+        onCheck={vi.fn()}
+        labels={{ updateAvailable: "Uppdatering tillgänglig" }}
+      />,
+    );
+    expect(screen.getByText("Uppdatering tillgänglig")).toBeTruthy();
   });
 });
 
