@@ -11,6 +11,7 @@ import {
 import { CheckIcon, ChevronDownIcon } from "./icons.tsx";
 import { FloatingPanel } from "./FloatingPanel.tsx";
 import type { FloatingPlacement } from "./useFloatingPosition.ts";
+import { matchPrefixRange, useTypeahead } from "../hooks/useTypeahead.ts";
 
 export type SelectOption<T extends string | number> = {
   value: T;
@@ -19,6 +20,10 @@ export type SelectOption<T extends string | number> = {
   hint?: React.ReactNode;
   // Inline style applied to the option's label (e.g. a font preview).
   labelStyle?: React.CSSProperties;
+  // The string type-ahead matches against (see the `typeahead` prop). Defaults
+  // to `label` when it's a string; set it when the label is a React node (an
+  // icon + text, a styled span) so typing still jumps to this option.
+  typeaheadLabel?: string;
   disabled?: boolean;
 };
 
@@ -41,6 +46,13 @@ type Props<T extends string | number> = {
   // Required when no visible label wraps the picker (a settings row
   // usually supplies one via the surrounding field).
   ariaLabel?: string;
+  // Type-ahead: while the panel is open, printable keystrokes jump the
+  // highlight to the first option whose label starts with what's been typed
+  // (the same "type to select" a native `<select>` has), and the matched
+  // characters are emphasised on that option. On by default whenever an
+  // option exposes a string to match (its `label` or `typeaheadLabel`); pass
+  // `false` to switch it off.
+  typeahead?: boolean;
   disabled?: boolean;
 };
 
@@ -49,6 +61,28 @@ const DEFAULT_PLACEMENT: FloatingPlacement = {
   anchor: "left",
   coordinateSpace: "document",
 };
+
+// Emphasise the characters the active type-ahead query matched on the
+// highlighted option. Only string labels can be sliced; a React-node label
+// (an icon + text, a styled preview) is left intact — it still navigates by
+// `typeaheadLabel`, it just isn't marked.
+function renderTypeaheadMatch(
+  label: React.ReactNode,
+  query: string,
+): React.ReactNode {
+  if (typeof label !== "string") return label;
+  const range = matchPrefixRange(label, query);
+  if (!range) return label;
+  return (
+    <>
+      {label.slice(0, range.start)}
+      <mark className="rounded-[2px] bg-accent/30 text-fg-bright [font-weight:inherit]">
+        {label.slice(range.start, range.end)}
+      </mark>
+      {label.slice(range.end)}
+    </>
+  );
+}
 
 // Custom <select> replacement built on `FloatingPanel`. The trigger is a
 // styled bordered field; the panel is a `role="listbox"` of
@@ -64,17 +98,33 @@ export function SelectPicker<T extends string | number>({
   panelClassName,
   renderValue,
   ariaLabel,
+  typeahead = true,
   disabled,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const listboxId = useId();
 
   const selected = useMemo(
     () => options.find((o) => o.value === value) ?? null,
     [options, value],
   );
+
+  // One match-string per option, index-aligned with `options`. An option with
+  // no string to match (a node label and no `typeaheadLabel`) gets "" so it's
+  // skipped without throwing off the matched index. Type-ahead is live only
+  // when at least one option offers something to match.
+  const typeaheadLabels = useMemo(
+    () =>
+      options.map(
+        (o) => o.typeaheadLabel ?? (typeof o.label === "string" ? o.label : ""),
+      ),
+    [options],
+  );
+  const typeaheadEnabled =
+    typeahead && typeaheadLabels.some((l) => l.length > 0);
 
   // Seed the highlight to the currently selected option each time the
   // panel opens so ArrowDown moves to "the next thing", not back to
@@ -85,10 +135,29 @@ export function SelectPicker<T extends string | number>({
     setHighlight(idx === -1 ? 0 : idx);
   }, [open, options, value]);
 
+  const {
+    onKeyDown: onTypeaheadKey,
+    query: typeaheadQuery,
+    reset: resetTypeahead,
+  } = useTypeahead({
+    labels: typeaheadLabels,
+    onMatch: (i) => {
+      if (!options[i]?.disabled) setHighlight(i);
+    },
+  });
+
   const close = useCallback(() => {
     setOpen(false);
     setHighlight(-1);
-  }, []);
+    resetTypeahead();
+  }, [resetTypeahead]);
+
+  // Keep the highlighted option scrolled into view — both arrow/Home/End
+  // moves and type-ahead jumps can land on a row below the panel's fold.
+  useEffect(() => {
+    if (!open || highlight < 0) return;
+    optionRefs.current[highlight]?.scrollIntoView?.({ block: "nearest" });
+  }, [open, highlight]);
 
   const commit = useCallback(
     (option: SelectOption<T>) => {
@@ -131,16 +200,20 @@ export function SelectPicker<T extends string | number>({
   function handleListKey(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      resetTypeahead();
       moveHighlight(1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      resetTypeahead();
       moveHighlight(-1);
     } else if (e.key === "Home") {
       e.preventDefault();
+      resetTypeahead();
       const i = options.findIndex((o) => !o.disabled);
       if (i !== -1) setHighlight(i);
     } else if (e.key === "End") {
       e.preventDefault();
+      resetTypeahead();
       for (let i = options.length - 1; i >= 0; i--) {
         if (!options[i]?.disabled) {
           setHighlight(i);
@@ -151,6 +224,10 @@ export function SelectPicker<T extends string | number>({
       e.preventDefault();
       const option = options[highlight];
       if (option) commit(option);
+    } else if (typeaheadEnabled) {
+      // Printable keys jump the highlight to the first matching option; the
+      // hook ignores everything it shouldn't consume (Tab, Escape, …).
+      onTypeaheadKey(e);
     }
   }
 
@@ -209,6 +286,9 @@ export function SelectPicker<T extends string | number>({
             return (
               <button
                 key={String(option.value)}
+                ref={(el) => {
+                  optionRefs.current[i] = el;
+                }}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
@@ -226,7 +306,9 @@ export function SelectPicker<T extends string | number>({
               >
                 <span className="flex flex-1 flex-col gap-0.5 truncate">
                   <span className="truncate" style={option.labelStyle}>
-                    {option.label}
+                    {isHighlighted && typeaheadQuery
+                      ? renderTypeaheadMatch(option.label, typeaheadQuery)
+                      : option.label}
                   </span>
                   {option.hint && (
                     <span className="truncate text-xs text-muted">

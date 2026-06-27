@@ -91,6 +91,7 @@ Today:
 | `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                             |
 | `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |
 | `useClipboard`           | `.` and `./hooks`        | Copy-to-clipboard with a self-resetting `copied` flag; `copyTextToClipboard` is the pure, React-free write.                |
+| `useTypeahead`           | `.` and `./hooks`        | List-box "type to select": printable keys jump to a matching option; `matchPrefixRange` marks the matched characters.      |
 | `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                             |
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |
@@ -238,8 +239,8 @@ The `components` module is the shared **UI primitives** — the consistent desig
 vocabulary an app builds its surfaces from. One implementation of the `Modal`
 (portalled, accessible, scroll-locking, stacked-Escape), the `Button` (four
 themed variants), the form controls (`Checkbox`, `ClearableInput`), the
-`SelectPicker` dropdown (a keyboard-navigable `<select>` replacement on a
-portalled `FloatingPanel`), and a dependency-free inline glyph set. Everything
+`SelectPicker` dropdown (a keyboard-navigable, type-ahead `<select>` replacement
+on a portalled `FloatingPanel`), and a dependency-free inline glyph set. Everything
 paints through the theme token vocabulary, so the primitives follow the active
 theme with no extra wiring; they carry no i18n, no domain types, and no asset
 imports (the few user-facing strings inject as props with English defaults). See
