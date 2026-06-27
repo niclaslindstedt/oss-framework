@@ -128,9 +128,10 @@ for a normal change; add a fragment instead (see below).
 Agent skills live in `.agent/skills/<name>/SKILL.md`; `.claude/skills` is a
 symlink to `.agent/skills`. Shipped today:
 
-| Skill                      | When to run                                                                                                                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `find-refactor-candidates` | Deciding what shared code to extract from `notes`/`checklist` into the framework next. Clones both apps (via the `MIRROR_*` env vars) and ranks files by cross-app similarity. |
+| Skill                      | When to run                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `find-refactor-candidates` | Deciding what shared code to extract from `notes`/`checklist` into the framework next. Clones both apps (via the `MIRROR_*` env vars) and ranks files by cross-app similarity.                                                                                                                                                               |
+| `refactor`                 | Improving the components already extracted. Works a roadmap (`docs/refactoring-roadmap.md`) of components extracted _too lightly_ — lifting generic, non-domain responsibility (UI plumbing, defaults, accessibility, gesture-to-markup) off the adopter and into the component, without dragging the store or domain types across the seam. |
 
 The per-artifact maintenance skills required by §21.5 (`update-readme`,
 `update-docs`, the `maintenance` umbrella, `sync-oss-spec`) are **not yet
