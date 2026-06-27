@@ -22,6 +22,7 @@ export default defineConfig({
     "i18n/index": "src/i18n/index.ts",
     "namespaces/index": "src/namespaces/index.ts",
     "sync/index": "src/sync/index.ts",
+    "search/index": "src/search/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

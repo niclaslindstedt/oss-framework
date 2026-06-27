@@ -5,6 +5,7 @@ import {
   FolderIcon,
   PaletteIcon,
   PlusIcon,
+  SearchIcon,
   SlidersIcon,
   SparklesIcon,
   UndoIcon,
@@ -145,6 +146,16 @@ export const CATALOG: readonly Achievement<AchState>[] = [
     name: "Time Traveler",
     condition: "Undo a change.",
     // Undo lives outside the document state, so it fires through the manual bus.
+    trigger: { kind: "manual" },
+  },
+  {
+    id: "seeker",
+    tier: "intermediate",
+    glyph: SearchIcon,
+    name: "Seeker",
+    condition: "Search your lists.",
+    // Searching is a gesture, not a document change, so it fires through the
+    // manual bus from the search overlay.
     trigger: { kind: "manual" },
   },
 ];

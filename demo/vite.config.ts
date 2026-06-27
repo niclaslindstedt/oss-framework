@@ -82,6 +82,10 @@ export default defineConfig({
         replacement: here("../src/sync/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/search",
+        replacement: here("../src/search/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

@@ -55,6 +55,7 @@ type Props = {
   activeNamespace: Namespace;
   onOpenNamespaces: () => void;
   onOpenSettings: () => void;
+  onOpenSearch: () => void;
   // Close the drawer after a navigation (a no-op when the sidebar is docked).
   onNavigate: () => void;
 };
@@ -64,6 +65,7 @@ export function SideMenuContent({
   activeNamespace,
   onOpenNamespaces,
   onOpenSettings,
+  onOpenSearch,
   onNavigate,
 }: Props) {
   const t = useT();
@@ -337,7 +339,7 @@ export function SideMenuContent({
             >
               <RedoIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label={t("menu.search")}>
+            <BarButton label={t("menu.search")} onClick={onOpenSearch}>
               <SearchIcon className="h-5 w-5" />
             </BarButton>
           </div>
