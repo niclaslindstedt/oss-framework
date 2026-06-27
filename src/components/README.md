@@ -187,6 +187,39 @@ Because the localStorage backends resolve in well under a frame, pair it with a
 small minimum-display window (a standard anti-flicker beat) when fronting a fast
 async op so the animation reads rather than flashes past.
 
+### Copy-to-clipboard button (`CopyButton`)
+
+A bordered glyph button that drops a value on the clipboard and flashes a tick
+for a beat — so the action reads even where toasts are off. It owns the robust
+write (the async Clipboard API, falling back to a hidden-`<textarea>`
+`execCommand` for insecure-context / older engines) and the reset timer; your app
+supplies only the value and the labels:
+
+```tsx
+import { CopyButton } from "@niclaslindstedt/oss-framework/components";
+
+<CopyButton
+  value={() => list.title + "\n" + renderAsMarkdown(list)}
+  labels={{ copy: "Copy list", copied: "Copied" }}
+  onCopied={() => toast.success("Copied to clipboard")}
+  onError={() => toast.error("Couldn't copy")}
+/>;
+```
+
+`value` is either a ready string or a `() => string | Promise<string>` getter —
+pass a getter when the text is expensive or should be snapshotted at click time
+rather than on every render. `labels` defaults to English (`"Copy"` / `"Copied"`)
+and overrides as a partial. `resetDelay` (default `1500`ms) tunes how long the
+tick and "copied" label persist. `onCopied` / `onError` fire after the write
+resolves so the app can raise its own toast or unlock an achievement — the button
+never imports your i18n or toast layer. It paints through the theme tokens
+(`line` / `muted` / `surface-2` / `fg` at rest, `success` after a copy) and adds
+a focus-visible ring; append layout classes via `className`.
+
+Need the write without the button — a "copy link" menu item, a code block's copy
+affordance? Reach for the [`useClipboard`](../hooks/README.md) hook (or the pure
+`copyTextToClipboard`) that backs it.
+
 ### Pull-to-refresh affordance (`PullToRefreshIndicator`)
 
 The slide-down pill that surfaces a pull-to-refresh gesture. It is purely

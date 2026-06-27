@@ -17,6 +17,7 @@ component decides what to render with them.
 | `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.              |
 | `useLongPress`         | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.     |
 | `isModalOpen`          | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate. |
+| `useClipboard`         | Copy text with a self-resetting `copied` flag; `copyTextToClipboard` is the pure write.       |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -357,3 +358,32 @@ and there's a single place to honour a new marker should the contract ever grow.
 Call it **imperatively at event time** (inside the handler), not at mount — it
 reads the live DOM each time, so it reflects whatever dialog is open the instant
 the gesture fires.
+
+## `useClipboard`
+
+Copy-to-clipboard with a self-resetting "just copied" acknowledgement. It owns
+the robust write — the async Clipboard API where available, falling back to a
+hidden-`<textarea>` `execCommand` for the odd insecure-context / older-engine
+case — and the timer that flips a `copied` flag back off, so a button only has to
+render off `copied`.
+
+```tsx
+import { useClipboard } from "@niclaslindstedt/oss-framework/hooks";
+
+const { copy, copied } = useClipboard();
+
+<button onClick={() => copy(shareUrl)}>
+  {copied ? "Copied!" : "Copy link"}
+</button>;
+```
+
+`copy(text)` resolves to `true` when the text reached the clipboard and `false`
+when every path failed (permission denied, no API) — branch on it to raise an
+error toast. `resetDelay` (default `1500`ms) sets how long `copied` stays true;
+pass `0` to latch it until you call `reset()`. The pending reset is cleared on
+unmount. For the styled glyph button this backs, see
+[`CopyButton`](../components/README.md).
+
+The pure, React-free **`copyTextToClipboard(text)`** is exported alongside it for
+non-component callers (an event handler, a utility) that want the same best-effort
+write without the `copied` state.

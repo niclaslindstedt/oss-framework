@@ -90,6 +90,7 @@ Today:
 | `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.                                                 |
 | `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                             |
 | `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |
+| `useClipboard`           | `.` and `./hooks`        | Copy-to-clipboard with a self-resetting `copied` flag; `copyTextToClipboard` is the pure, React-free write.                |
 | `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                             |
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |
@@ -112,6 +113,7 @@ Today:
 | `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.                                             |
 | `SwipeableRow`           | `.` and `./components`   | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action (glyphs/colours configurable). |
 | `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                                                                 |
+| `CopyButton`             | `.` and `./components`   | Glyph button that copies a value (string or getter) to the clipboard and flashes a tick; built on `useClipboard`.          |
 | settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.                                                  |
 | `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner.                                       |
 | `ConfirmDialog`          | `.` and `./components`   | In-app `window.confirm` replacement — title, message, confirm/cancel, danger tone.                                         |

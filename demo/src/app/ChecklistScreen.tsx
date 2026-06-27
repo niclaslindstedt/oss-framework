@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ClearableInput,
+  CopyButton,
   Fab,
   PullToRefreshIndicator,
-  CopyIcon,
   PlusIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
@@ -60,7 +60,6 @@ export function ChecklistScreen({
   } = store;
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Desktop pointers (mouse / trackpad) have no swipe, so they reach a row's
@@ -104,20 +103,16 @@ export function ChecklistScreen({
     }
   }
 
-  async function copyList() {
-    const lines = flattenNodes(activeList!.items)
+  // The whole active list as plain task-list markdown, snapshotted when the
+  // copy fires. `CopyButton` owns the robust clipboard write and the tick flash.
+  function listMarkdown() {
+    const lines = flattenNodes(activeList.items)
       .map(
         (n) =>
           `${n.checked ? "[x]" : "[ ]"} ${typeof n.label === "string" ? n.label : ""}`,
       )
       .join("\n");
-    try {
-      await navigator.clipboard.writeText(`${activeList!.title}\n${lines}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // Clipboard blocked (insecure context) — no-op for the demo.
-    }
+    return `${activeList.title}\n${lines}`;
   }
 
   return (
@@ -153,12 +148,10 @@ export function ChecklistScreen({
           labels={{ progress: (c, total) => `${c}/${total}` }}
         />
         {trophy}
-        <GlyphButton
-          label={copied ? t("screen.copied") : t("screen.copyList")}
-          onClick={copyList}
-        >
-          <CopyIcon className="h-4 w-4" />
-        </GlyphButton>
+        <CopyButton
+          value={listMarkdown}
+          labels={{ copy: t("screen.copyList"), copied: t("screen.copied") }}
+        />
         {/* The framework sync glyph — morphs over the engine's save state and
             opens the command centre on tap. The pull-to-refresh gesture above
             stays the read-side "sync"; this is the write-side status. */}
@@ -243,33 +236,5 @@ export function ChecklistScreen({
         </Fab>
       </div>
     </div>
-  );
-}
-
-// A bordered square icon button — the copy / sync affordances in the header.
-function GlyphButton({
-  children,
-  label,
-  tone = "neutral",
-  onClick,
-}: {
-  children: React.ReactNode;
-  label: string;
-  tone?: "neutral" | "accent";
-  onClick?: () => void;
-}) {
-  const toneClass =
-    tone === "accent"
-      ? "border-accent/50 text-accent hover:bg-accent/10"
-      : "border-line text-muted hover:bg-surface-2 hover:text-fg";
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border ${toneClass}`}
-    >
-      {children}
-    </button>
   );
 }
