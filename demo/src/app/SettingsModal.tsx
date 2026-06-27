@@ -22,6 +22,7 @@ import { CodeIcon, ScrollTextIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import { DEFAULT_SETTINGS, type AppSettings } from "./useAppSettings.ts";
+import type { MockSync } from "./useMockSync.ts";
 import {
   DeveloperTab,
   EditorTab,
@@ -72,6 +73,10 @@ type Props = {
   setAppearance: (next: ThemeAppearance) => void;
   settings: AppSettings;
   commitSettings: (next: AppSettings) => void;
+  // The simulated sync engine — its backend picker lives in the Storage tab and
+  // its fault injectors in the Developer tab. These controls apply live (like
+  // the appearance preview), not staged in the draft.
+  sync: MockSync;
   // Trigger the page-level PWA update prompt (Developer tab → Software updates).
   onSimulateUpdate: () => void;
   // Replace the active document with a legacy file so the migrator upgrades it
@@ -86,6 +91,7 @@ export function SettingsModal({
   setAppearance,
   settings,
   commitSettings,
+  sync,
   onSimulateUpdate,
   onLoadLegacy,
 }: Props) {
@@ -224,11 +230,12 @@ export function SettingsModal({
         {activeTab === "editor" && (
           <EditorTab settings={draft} update={update} />
         )}
-        {activeTab === "storage" && <StorageTab />}
+        {activeTab === "storage" && <StorageTab sync={sync} />}
         {activeTab === "developer" && (
           <DeveloperTab
             settings={draft}
             update={update}
+            sync={sync}
             onSimulateUpdate={onSimulateUpdate}
             onLoadLegacy={onLoadLegacy}
           />

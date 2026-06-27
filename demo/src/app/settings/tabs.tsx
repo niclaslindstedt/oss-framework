@@ -27,6 +27,7 @@ import { log, logStore } from "../log.ts";
 import { useT } from "../i18n/index.ts";
 import { LATEST_VERSION } from "../migrations.ts";
 import type { AppSettings } from "../useAppSettings.ts";
+import type { MockSync, SyncFault } from "../useMockSync.ts";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -165,7 +166,7 @@ type EncMode = "plaintext" | "setup" | "unlocked" | "locked";
 const inputClass =
   "rounded-md border border-line bg-surface-2 px-2 py-1 font-mono text-sm text-fg outline-none focus:border-accent";
 
-export function StorageTab() {
+export function StorageTab({ sync }: { sync: MockSync }) {
   const t = useT();
   // The raw browser backend, and a passphrase ref the encrypting wrapper reads
   // fresh on every op — the seam a real app owns: the framework holds the
@@ -488,6 +489,29 @@ export function StorageTab() {
           </pre>
         )}
       </Section>
+
+      {/* Where the *document* lives — the backend the header's `SyncStatus`
+          glyph and the `SyncDetailsModal` command centre report on. The cloud
+          is simulated (see `useMockSync`); these controls apply live. */}
+      <Section title={t("settings.storage.cloudSyncTitle")}>
+        <p className="text-xs text-muted">
+          {t("settings.storage.cloudSyncHint")}
+        </p>
+        <SegmentedControl
+          value={sync.backend}
+          onChange={sync.setBackend}
+          options={[
+            { value: "local", label: t("settings.storage.backendThisDevice") },
+            { value: "cloud", label: t("settings.storage.backendCloud") },
+          ]}
+        />
+        <ToggleRow
+          label={t("settings.storage.encryptSync")}
+          hint={t("settings.storage.encryptSyncHint")}
+          checked={sync.encrypted}
+          onChange={sync.setEncrypted}
+        />
+      </Section>
     </div>
   );
 }
@@ -497,11 +521,14 @@ export function StorageTab() {
 export function DeveloperTab({
   settings,
   update,
+  sync,
   onSimulateUpdate,
   onLoadLegacy,
 }: {
   settings: AppSettings;
   update: Update;
+  // The simulated sync engine — its fault injectors live here.
+  sync: MockSync;
   onSimulateUpdate: () => void;
   // Replace the active document with a genuine pre-versioning file, so the
   // migration runner upgrades it live (Developer tab → Document migrations).
@@ -544,6 +571,37 @@ export function DeveloperTab({
         >
           {t("settings.developer.simulateUpdate")}
         </Button>
+      </Section>
+      <Section title={t("settings.developer.syncFaultsTitle")}>
+        <p className="text-xs text-muted">
+          {t("settings.developer.syncFaultsIntro")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["offline", t("settings.developer.faultOffline")],
+              ["auth-error", t("settings.developer.faultAuth")],
+              ["conflict", t("settings.developer.faultConflict")],
+              ["throttled", t("settings.developer.faultThrottle")],
+            ] as [SyncFault, string][]
+          ).map(([fault, label]) => (
+            <Button
+              key={fault}
+              variant={sync.fault === fault ? "primary" : "secondary"}
+              disabled={sync.backend !== "cloud"}
+              onClick={() => sync.setFault(fault)}
+            >
+              {label}
+            </Button>
+          ))}
+          <Button
+            variant="secondary"
+            disabled={sync.backend !== "cloud" || sync.fault === "none"}
+            onClick={() => sync.setFault("none")}
+          >
+            {t("settings.developer.faultClear")}
+          </Button>
+        </div>
       </Section>
       <Section title={t("settings.developer.migrationsTitle")}>
         <p className="text-xs text-muted">

@@ -12,6 +12,8 @@ import {
   useSidebarInset,
 } from "@niclaslindstedt/oss-framework/sidebar";
 import { UpdateToast } from "@niclaslindstedt/oss-framework/pwa";
+import { SyncDetailsModal } from "@niclaslindstedt/oss-framework/sync";
+import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 import {
   useMediaQuery,
   useUndoRedoShortcuts,
@@ -39,10 +41,11 @@ import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { CATALOG } from "./app/achievements.ts";
 import { useT } from "./app/i18n/index.ts";
 import { APP_LOOK } from "./app/look.ts";
-import { seedLogsOnce } from "./app/log.ts";
+import { logStore, seedLogsOnce } from "./app/log.ts";
 import { useAchievements } from "./app/useAchievements.ts";
 import { useAppSettings } from "./app/useAppSettings.ts";
 import { useChecklistStore } from "./app/useChecklistStore.ts";
+import { useMockSync } from "./app/useMockSync.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 
 // The demo *is* a fully-fledged app: a local-first nested-checklist PWA built
@@ -65,6 +68,14 @@ export function App() {
   const store = useChecklistStore(ns.activeSlug);
   const [namespacesOpen, setNamespacesOpen] = useState(false);
   const { settings, setSettings } = useAppSettings();
+
+  // The (simulated) sync engine — the app-owned state machine the framework's
+  // `SyncStatus` glyph + `SyncDetailsModal` command centre paint over. It
+  // watches the document store's edit counter to know when there are unsaved
+  // changes and fakes a cloud round trip; the Developer tab injects the faults
+  // that exercise the modal's recovery affordances.
+  const sync = useMockSync(store, ns.activeSlug);
+  const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
 
   // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
   // collapse it to a draggable drawer. The app derives this — the framework
@@ -207,6 +218,8 @@ export function App() {
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <ChecklistScreen
           store={store}
+          sync={sync}
+          onOpenSyncDetails={() => setSyncDetailsOpen(true)}
           trophy={
             achievementsEnabled ? (
               <TrophyButton
@@ -230,6 +243,7 @@ export function App() {
         setAppearance={setAppearance}
         settings={settings}
         commitSettings={setSettings}
+        sync={sync}
         // Close Settings and surface the update prompt so it isn't hidden
         // behind the dialog — the prompt is a page-level overlay.
         onSimulateUpdate={() => {
@@ -250,6 +264,64 @@ export function App() {
         incomingVersion="2.0.0-demo"
         onReload={() => setUpdateReady(false)}
         onDismiss={() => setUpdateReady(false)}
+      />
+
+      {/* The sync command centre — opened by the list header's `SyncStatus`
+          glyph. Purely presentational: the app's simulated engine (`useMockSync`)
+          owns the state and the actions; the framework lays them out. The
+          developer log slot is gated on dev mode and fed the same in-app buffer
+          the Logs tab shows, scoped to the `sync` activity the engine emits. */}
+      <SyncDetailsModal
+        open={syncDetailsOpen}
+        onClose={() => setSyncDetailsOpen(false)}
+        providerName={sync.providerName}
+        backendKind={sync.backendKind}
+        location={sync.location}
+        encrypted={sync.encrypted}
+        status={sync.status}
+        dirty={sync.dirty}
+        offline={sync.offline}
+        onSaveNow={sync.saveNow}
+        onReload={sync.reload}
+        onReconnect={sync.reconnect}
+        onCheckConnection={sync.checkConnection}
+        logPanel={settings.devMode ? <LogViewer store={logStore} /> : undefined}
+        labels={{
+          cloudSync: t("sync.cloudSync"),
+          close: t("common.close"),
+          status: t("sync.status"),
+          backend: t("sync.backend"),
+          fileLocation: t("sync.fileLocation"),
+          encryptionLabel: t("sync.encryptionLabel"),
+          encryptionOn: t("sync.encryptionOn"),
+          encryptionOff: t("sync.encryptionOff"),
+          reloadFromBackend: t("sync.reloadFromBackend"),
+          saveNow: t("sync.saveNow"),
+          tryAgain: t("sync.tryAgain"),
+          reconnect: (name) => t("sync.reconnect", { name }),
+          openIn: (name) => t("sync.openIn", { name }),
+          checkConnection: t("sync.checkConnection"),
+          viewSyncLog: t("sync.viewSyncLog"),
+          hideSyncLog: t("sync.hideSyncLog"),
+          syncingNow: t("sync.syncingNow"),
+          failedHeading: t("sync.failedHeading"),
+          throttledHeading: t("sync.throttledHeading"),
+          throttledDetail: (name) => t("sync.throttledDetail", { name }),
+          reauthHeading: t("sync.reauthHeading"),
+          reauthDetail: (name) => t("sync.reauthDetail", { name }),
+          conflictHeading: t("sync.conflictHeading"),
+          conflictDetail: t("sync.conflictDetail"),
+          pendingHeading: t("sync.pendingHeading"),
+          pendingDetail: (name) => t("sync.pendingDetail", { name }),
+          offlineHeading: t("sync.offlineHeading"),
+          offlineDetail: (name) => t("sync.offlineDetail", { name }),
+          syncedTo: (name) => t("sync.syncedTo", { name }),
+          checkPinging: (name) => t("sync.checkPinging", { name }),
+          checkStillOffline: (name) => t("sync.checkStillOffline", { name }),
+          checkAuthExpired: (name) => t("sync.checkAuthExpired", { name }),
+          failedDetailFallback: (name) =>
+            t("sync.failedDetailFallback", { name }),
+        }}
       />
 
       {/* The namespaces manager — create / switch / rename / restyle / delete
