@@ -211,11 +211,28 @@ is a mobile idiom) and gates itself three ways so it never fights normal use:
 - **Form gate** — a drag that starts on an `input` / `textarea` / `select` /
   `contenteditable` is ignored.
 
+It owns an **anti-flicker floor** too: a local-first read off IndexedDB /
+localStorage usually resolves near-instantly, which would snap the spinner away
+before the user perceives it. The hook holds `state: "refreshing"` for at least
+`minDisplayMs` (default `600`) from gesture-release, even when `onRefresh`
+settles sooner — so you no longer pad the handler with a hand-rolled
+`setTimeout` floor. A refresh that already outlasts the floor resets the instant
+it settles; the floor delays only the visual reset, never `onRefresh` itself.
+Pass `{ minDisplayMs: 0 }` to opt out.
+
+```tsx
+// Re-read the persisted document; the hook keeps the spinner up long enough to
+// read even though this resolves instantly. No min-delay pad needed.
+const { state, pullDistance } = usePullToRefresh(reload);
+```
+
 Pass `{ enabled: false }` to suspend it (e.g. while a refresh you triggered some
 other way is already running); disabling mid-pull clears any armed indicator.
-The shell that hosts the content needs `position: relative` (or a fixed
-ancestor) so the indicator — which pins to the top of the visual viewport —
-lands in the right place.
+The hook already ignores a second gesture while a refresh is in flight, so you
+need `enabled` only to gate against a refresh path _outside_ the gesture. The
+shell that hosts the content needs `position: relative` (or a fixed ancestor) so
+the indicator — which pins to the top of the visual viewport — lands in the
+right place.
 
 ### Migrating an existing pull-to-refresh
 
@@ -234,8 +251,9 @@ lands in the right place.
 ### Verifying `usePullToRefresh`
 
 - A pull from the top past the trigger flips `state` to `release`; letting go
-  fires `onRefresh` and holds `state: "refreshing"` until the promise settles,
-  then returns to `idle` with `pullDistance: 0`.
+  fires `onRefresh` and holds `state: "refreshing"` until the promise settles
+  **or** the `minDisplayMs` floor elapses, whichever is later, then returns to
+  `idle` with `pullDistance: 0`.
 - A short pull (under the trigger) settles back to `idle` without firing.
 - An upward drag, a drag inside an open modal, and a drag while mid-scrolled all
   leave `state: "idle"` and never fire `onRefresh`.
