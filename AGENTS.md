@@ -20,16 +20,36 @@ each other.
 
 Use the Makefile targets (OSS_SPEC §9); CI invokes the same ones.
 
-| Command          | What it does                                    |
-| ---------------- | ----------------------------------------------- |
-| `make build`     | Bundle the library with tsup (ESM + CJS + d.ts) |
-| `make test`      | Run the Vitest suite                            |
-| `make lint`      | ESLint + `tsc --noEmit`, zero warnings          |
-| `make fmt`       | Format in place with Prettier                   |
-| `make fmt-check` | Verify formatting without writing               |
-| `make clean`     | Remove `dist/`                                  |
+| Command          | What it does                                                  |
+| ---------------- | ------------------------------------------------------------- |
+| `make build`     | Bundle the library with tsup (ESM + CJS + d.ts)               |
+| `make test`      | Run the Vitest suite                                          |
+| `make lint`      | ESLint + `tsc --noEmit` (library **and** demo), zero warnings |
+| `make fmt`       | Format in place with Prettier                                 |
+| `make fmt-check` | Verify formatting without writing                             |
+| `make clean`     | Remove `dist/`                                                |
 
-`npm run <script>` works for every target too (see `package.json`).
+`npm run <script>` works for every target too (see `package.json`). `make lint`
+type-checks the `demo/` workspace as well as the library (`npm run typecheck
+--workspace demo`) — the demo is built by Vite, not `tsc`, so without this its
+types would drift unchecked.
+
+### No errors get through
+
+This codebase ships clean. **Any error a command surfaces is yours to fix before
+you finish — no matter who introduced it.** A pre-existing failure is not
+someone else's problem to route around; treat "it was already broken" as a bug
+to close, not an excuse to leave it. Concretely:
+
+- Never land work while `make lint`, `make test`, `make build`, or `make
+fmt-check` is red. If a check you didn't touch is failing, fix it (or, if it's
+  genuinely out of scope, say so explicitly rather than ignoring it).
+- When you run a check that isn't yet in the gate (e.g. you type-check a
+  workspace by hand) and it surfaces errors, fix them **and** wire that check
+  into the gate so they can't come back. Errors you can see but the gate can't
+  are the ones that rot.
+- "Not my errors" is not a reason to skip them. The bar is a clean tree, not a
+  clean diff.
 
 ## Commit and PR conventions
 
@@ -152,6 +172,40 @@ symlink to `.agent/skills`. Shipped today:
 The per-artifact maintenance skills required by §21.5 (`update-readme`,
 `update-docs`, the `maintenance` umbrella, `sync-oss-spec`) are **not yet
 present** — add them as the framework grows the artifacts they keep in sync.
+
+## Local environment & debugging
+
+Notes on this execution environment — the gotchas that cost time if you don't
+know them up front:
+
+- **Dependencies are not pre-installed.** A fresh container has no
+  `node_modules`, so `make lint` / `make test` / `make build` fail with
+  `ERR_MODULE_NOT_FOUND` (e.g. `@eslint/js`) until you install. Run `npm
+install` first; it installs the workspaces (the `demo/`) too. In CI this is
+  `npm ci`.
+- **The demo is a workspace.** Type-check it with `npm run typecheck --workspace
+demo` and build it with `npm run build:demo` (or `make`-equivalent scripts).
+  Its `tsconfig` resolves the framework against `../src` via path aliases and
+  pulls the framework's ambient `*.d.ts` into its program, so it type-checks the
+  source it imports — keep those ambient decls (`src/**/*.d.ts`) resolvable from
+  the demo program when you touch them.
+- **Playwright is installed globally, not in the project.** It lives at
+  `/opt/node22/lib/node_modules`, so a project script can't `import "playwright"`
+  directly. `NODE_PATH` does **not** help an ESM (`.mjs`) script — Node ignores
+  it for `import`. Resolve it by absolute path instead:
+  ```js
+  import { createRequire } from "node:module";
+  const require = createRequire(import.meta.url);
+  const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+  ```
+- **Chromium is pre-installed; do not run `playwright install`.** Launch it with
+  an explicit `executablePath: "/opt/pw-browsers/chromium"`
+  (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` is already set).
+- **To verify a demo change in a real browser**, start the dev server
+  (`npm run dev --workspace demo`, serves on `http://localhost:5173/`) and drive
+  it with a Playwright script — don't `sleep`-poll a built `site/` directory.
+- **Bash shell state doesn't persist** between tool calls and `cd` can trip a
+  permission prompt; prefer absolute paths or a single compound command.
 
 ## Governing spec
 

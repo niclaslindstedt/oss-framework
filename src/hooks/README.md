@@ -77,7 +77,13 @@ scrolling is never hijacked), then drives a live transform with two outcomes:
   Delete button, say) — a deliberate two-step, so a destructive tap is never one
   flick.
 - **swipe right** → fire `onDismiss` once past the threshold; the foreground
-  slides off and you drop the row on the next render.
+  slides off and you drop the row on the next render. Omit `onDismiss` and the
+  right swipe has no outcome — it rubber-bands and snaps back, for a row that
+  offers the left reveal alone.
+
+> Reaching for the markup too? The components `SwipeableRow` wraps this hook
+> with the strip, the archive backdrop, and the mobile-gesture tags already
+> wired — reach for the hook directly only when you need a custom row shape.
 
 ```tsx
 import { useRowSwipe } from "@niclaslindstedt/oss-framework/hooks";

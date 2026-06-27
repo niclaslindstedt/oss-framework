@@ -24,6 +24,7 @@ defaults.
 | `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                    |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                  |
+| `SwipeableRow`                                 | component | A list row with the two-handed swipe: left latches an action strip (rename/delete), right archives.        |
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                |
 | `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row. |
 | `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.         |

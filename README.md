@@ -106,6 +106,7 @@ Today:
 | `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
 | `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
 | `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.       |
+| `SwipeableRow`           | `.` and `./components`   | A list row: swipe left to latch a rename/delete strip, swipe right to archive.       |
 | `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                           |
 | settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
 | `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |

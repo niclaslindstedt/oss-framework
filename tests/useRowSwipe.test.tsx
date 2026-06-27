@@ -88,6 +88,35 @@ describe("useRowSwipe", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it("snaps back on a right swipe when no onDismiss is wired", () => {
+    // A row that offers only the left reveal passes no dismiss handler; a
+    // right swipe past the usual threshold then has no outcome and settles back
+    // closed rather than sliding the row off.
+    function NoDismiss() {
+      const swipe = useRowSwipe();
+      return (
+        <div
+          data-testid="fg"
+          data-offset={swipe.offset}
+          data-open={swipe.open}
+          {...swipe.handlers}
+        >
+          row
+        </div>
+      );
+    }
+    render(<NoDismiss />);
+    const fg = screen.getByTestId("fg");
+
+    down(fg, 100);
+    move(fg, 116); // arm horizontal
+    move(fg, 210); // dx +110, past the +96 dismiss point
+    up(fg, 210);
+
+    expect(fg.getAttribute("data-open")).toBe("false");
+    expect(Number(fg.getAttribute("data-offset"))).toBe(0);
+  });
+
   it("ignores a dominantly vertical drag (lets the list scroll)", () => {
     const onDismiss = vi.fn();
     render(<Row onDismiss={onDismiss} />);

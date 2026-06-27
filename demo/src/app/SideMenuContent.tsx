@@ -16,6 +16,8 @@ import {
   RedoIcon,
   RowActionMenu,
   SearchIcon,
+  SwipeableRow,
+  TrashIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
@@ -70,6 +72,11 @@ export function SideMenuContent({
     addList,
     addFolder,
     renameFolder,
+    deleteFolder,
+    archiveFolder,
+    renameList,
+    deleteList,
+    archiveList,
     setActive,
     undo,
     redo,
@@ -85,6 +92,9 @@ export function SideMenuContent({
   // The folder whose name is being edited in place (via its action menu's
   // Rename), or `null` when none is.
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  // The checklist being renamed in place (swipe-left pencil / right-click), or
+  // `null` when none is.
+  const [renamingListId, setRenamingListId] = useState<string | null>(null);
 
   function toggleFolder(id: string) {
     setCollapsedFolders((prev) => {
@@ -100,7 +110,74 @@ export function SideMenuContent({
     onNavigate();
   }
 
-  const standalone = data.lists.filter((l) => l.folderId === null);
+  // One checklist row, in a folder (`indent`) or at the root. Renaming swaps it
+  // for the inline editor; otherwise it's a swipeable nav row — swipe left for
+  // the pencil + trash strip (rename / delete), swipe right to archive — that
+  // also exposes the same actions to a desktop right-click via `RowActionMenu`.
+  function renderList(list: List, indent: boolean) {
+    if (renamingListId === list.id) {
+      return (
+        <ListEditRow
+          key={list.id}
+          indent={indent}
+          initial={list.title}
+          icon={listIcon(list, false)}
+          placeholder={t("menu.checklistName")}
+          onCommit={(title) => {
+            renameList(list.id, title);
+            setRenamingListId(null);
+          }}
+          onCancel={() => setRenamingListId(null)}
+        />
+      );
+    }
+    const actions = [
+      {
+        label: t("menu.renameChecklist"),
+        icon: <PencilIcon className="h-5 w-5" />,
+        onSelect: () => setRenamingListId(list.id),
+      },
+      {
+        label: t("menu.deleteChecklist"),
+        icon: <TrashIcon className="h-5 w-5" />,
+        danger: true,
+        onSelect: () => deleteList(list.id),
+      },
+    ];
+    return (
+      <RowActionMenu
+        key={list.id}
+        ariaLabel={t("menu.checklistActions")}
+        actions={actions}
+      >
+        <SwipeableRow
+          actions={actions}
+          onArchive={() => archiveList(list.id)}
+          archiveLabel={t("menu.archive")}
+        >
+          <NavRow
+            indent={indent}
+            active={list.id === data.activeListId}
+            icon={listIcon(list, list.id === data.activeListId)}
+            onClick={() => pick(list.id)}
+          >
+            <span className="flex-1 truncate">{list.title}</span>
+            <RowBadge value={remaining(list)} />
+          </NavRow>
+        </SwipeableRow>
+      </RowActionMenu>
+    );
+  }
+
+  // Archived folders / lists drop out of the menu but stay in the document —
+  // the Archive button's badge counts them.
+  const folders = data.folders.filter((f) => !f.archived);
+  const standalone = data.lists.filter(
+    (l) => l.folderId === null && !l.archived,
+  );
+  const archivedCount =
+    data.folders.filter((f) => f.archived).length +
+    data.lists.filter((l) => l.archived).length;
 
   return (
     <div className="flex h-full flex-col select-none">
@@ -150,8 +227,10 @@ export function SideMenuContent({
             onCancel={() => setCreatingFolder(false)}
           />
         )}
-        {data.folders.map((folder) => {
-          const lists = data.lists.filter((l) => l.folderId === folder.id);
+        {folders.map((folder) => {
+          const lists = data.lists.filter(
+            (l) => l.folderId === folder.id && !l.archived,
+          );
           const expanded = !collapsedFolders.has(folder.id);
           // Renaming swaps the folder's row for the same inline editor, seeded
           // with its current name.
@@ -169,60 +248,52 @@ export function SideMenuContent({
               />
             );
           }
+          // Swipe left for the pencil + trash strip (rename / delete), swipe
+          // right to archive; the same actions back a desktop right-click / a
+          // touch long press through `RowActionMenu`.
+          const folderActions = [
+            {
+              label: t("menu.renameFolder"),
+              icon: <PencilIcon className="h-5 w-5" />,
+              onSelect: () => setRenamingFolderId(folder.id),
+            },
+            {
+              label: t("menu.deleteFolder"),
+              icon: <TrashIcon className="h-5 w-5" />,
+              danger: true,
+              onSelect: () => deleteFolder(folder.id),
+            },
+          ];
           return (
             <div key={folder.id}>
-              {/* A long press (touch) or right-click (desktop) on the folder
-                  row opens its action menu — today just Rename. */}
               <RowActionMenu
                 ariaLabel={t("menu.folderActions")}
-                actions={[
-                  {
-                    label: t("menu.renameFolder"),
-                    icon: <PencilIcon className="h-5 w-5" />,
-                    onSelect: () => setRenamingFolderId(folder.id),
-                  },
-                ]}
+                actions={folderActions}
               >
-                <FolderRow
-                  name={folder.name}
-                  addLabel={t("menu.newChecklistIn", { name: folder.name })}
-                  count={lists.length}
-                  expanded={expanded}
-                  onToggle={() => toggleFolder(folder.id)}
-                  onAdd={() => {
-                    addList(folder.id);
-                    onNavigate();
-                  }}
-                />
+                <SwipeableRow
+                  actions={folderActions}
+                  onArchive={() => archiveFolder(folder.id)}
+                  archiveLabel={t("menu.archive")}
+                >
+                  <FolderRow
+                    name={folder.name}
+                    addLabel={t("menu.newChecklistIn", { name: folder.name })}
+                    count={lists.length}
+                    expanded={expanded}
+                    onToggle={() => toggleFolder(folder.id)}
+                    onAdd={() => {
+                      addList(folder.id);
+                      onNavigate();
+                    }}
+                  />
+                </SwipeableRow>
               </RowActionMenu>
-              {expanded &&
-                lists.map((list) => (
-                  <NavRow
-                    key={list.id}
-                    indent
-                    active={list.id === data.activeListId}
-                    icon={listIcon(list, list.id === data.activeListId)}
-                    onClick={() => pick(list.id)}
-                  >
-                    <span className="flex-1 truncate">{list.title}</span>
-                    <RowBadge value={remaining(list)} />
-                  </NavRow>
-                ))}
+              {expanded && lists.map((list) => renderList(list, true))}
             </div>
           );
         })}
 
-        {standalone.map((list) => (
-          <NavRow
-            key={list.id}
-            active={list.id === data.activeListId}
-            icon={listIcon(list, list.id === data.activeListId)}
-            onClick={() => pick(list.id)}
-          >
-            <span className="flex-1 truncate">{list.title}</span>
-            <RowBadge value={remaining(list)} />
-          </NavRow>
-        ))}
+        {standalone.map((list) => renderList(list, false))}
       </div>
 
       {/* Action grid — fixed. */}
@@ -244,7 +315,10 @@ export function SideMenuContent({
             >
               <FolderIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label={t("menu.archive")} badge="13">
+            <BarButton
+              label={t("menu.archive")}
+              badge={archivedCount > 0 ? String(archivedCount) : undefined}
+            >
               <ArchiveIcon className="h-5 w-5" />
             </BarButton>
           </div>
@@ -455,6 +529,73 @@ function FolderEditRow({
       <span className="text-muted">
         <FolderIcon className="h-5 w-5" />
       </span>
+      <input
+        ref={ref}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={finish}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            finish();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setCommitted(true);
+            onCancel();
+          }
+        }}
+        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-bright outline-none placeholder:text-muted/60"
+      />
+    </div>
+  );
+}
+
+// The inline checklist-name editor — the swipe-left / right-click Rename drops
+// it in place of the nav row, seeded with the list's title and wearing its own
+// icon. Same commit rules as `FolderEditRow`: Enter or blur with a non-empty
+// trimmed name commits, Escape (or an emptied name) cancels and keeps the old
+// title; the `committed` latch stops a post-Enter blur from firing twice.
+function ListEditRow({
+  initial,
+  indent,
+  icon,
+  placeholder,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  indent: boolean;
+  icon: ReactNode;
+  placeholder: string;
+  onCommit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const [committed, setCommitted] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, []);
+  function finish() {
+    if (committed) return;
+    setCommitted(true);
+    const name = value.trim();
+    if (name) onCommit(name);
+    else onCancel();
+  }
+  return (
+    <div
+      className={`flex items-center gap-3 py-[var(--density-row-py)] ${
+        indent ? "pr-5 pl-10" : "px-5"
+      }`}
+    >
+      <span className="shrink-0 text-muted">{icon}</span>
       <input
         ref={ref}
         type="text"

@@ -15,6 +15,7 @@ export { Checkbox } from "./Checkbox.tsx";
 export { ClearableInput } from "./ClearableInput.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
+export { SwipeableRow, type SwipeableRowProps } from "./SwipeableRow.tsx";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Section, Field, ToggleRow } from "./SettingsLayout.tsx";
 export { Modal } from "./Modal.tsx";
