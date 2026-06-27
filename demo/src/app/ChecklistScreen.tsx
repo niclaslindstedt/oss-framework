@@ -5,10 +5,8 @@ import {
   ClearableInput,
   Fab,
   PullToRefreshIndicator,
-  CloudCheckIcon,
   CopyIcon,
   PlusIcon,
-  RefreshIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   useDesktopPointer,
@@ -21,11 +19,13 @@ import {
   flattenNodes,
   setAllChecked,
 } from "@niclaslindstedt/oss-framework/checklist";
+import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 
 import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
 import { RowContextMenu, type RowMenuTarget } from "./RowContextMenu.tsx";
 import { useT } from "./i18n/index.ts";
 import type { ChecklistStore } from "./useChecklistStore.ts";
+import type { MockSync } from "./useMockSync.ts";
 
 // The list screen — the app's main view, rebuilt from the framework's
 // `/checklist`, `/components`, and `/glyphs` surface so it matches the real
@@ -34,9 +34,15 @@ import type { ChecklistStore } from "./useChecklistStore.ts";
 // with an inline composer for adding items.
 export function ChecklistScreen({
   store,
+  sync,
+  onOpenSyncDetails,
   trophy,
 }: {
   store: ChecklistStore;
+  // The app's simulated sync engine — drives the header `SyncStatus` glyph.
+  sync: MockSync;
+  // Open the framework `SyncDetailsModal` (mounted by the app shell).
+  onOpenSyncDetails: () => void;
   // The framework `TrophyButton`, slotted into the header by the app shell (or
   // nothing when achievements are switched off). The screen owns the layout;
   // App owns what the button opens.
@@ -72,8 +78,9 @@ export function ChecklistScreen({
   // The pull-to-refresh "sync": a local-first app re-checks where its data
   // lives. Here that means re-reading the persisted document (picking up edits
   // from another tab) behind a short min-delay so the gesture's spinner reads.
-  // The header sync glyph mirrors `syncing`; the same handler powers a tap.
-  const sync = useCallback(async () => {
+  // The header `SyncStatus` glyph reflects the *save* lifecycle separately; this
+  // is the read side, and tapping the glyph opens the command centre instead.
+  const doPull = useCallback(async () => {
     setSyncing(true);
     await new Promise((r) => setTimeout(r, 900));
     reload();
@@ -83,7 +90,7 @@ export function ChecklistScreen({
   // Pull down from the top of the list to sync. The hook owns the gesture and
   // gates itself (touch-only, stands down inside a modal, only at scroll-top);
   // the indicator below renders its three states.
-  const pull = usePullToRefresh(sync, { enabled: !syncing });
+  const pull = usePullToRefresh(doPull, { enabled: !syncing });
 
   if (!activeList) return null;
 
@@ -153,17 +160,26 @@ export function ChecklistScreen({
         >
           <CopyIcon className="h-4 w-4" />
         </GlyphButton>
-        <GlyphButton
-          label={syncing ? t("screen.syncing") : t("screen.inSync")}
-          tone="accent"
-          onClick={() => void sync()}
-        >
-          {syncing ? (
-            <RefreshIcon className="h-4 w-4 animate-spin" />
-          ) : (
-            <CloudCheckIcon className="h-4 w-4" />
-          )}
-        </GlyphButton>
+        {/* The framework sync glyph — morphs over the engine's save state and
+            opens the command centre on tap. The pull-to-refresh gesture above
+            stays the read-side "sync"; this is the write-side status. */}
+        <SyncStatus
+          providerName={sync.providerName}
+          status={sync.status}
+          dirty={sync.dirty}
+          offline={sync.offline}
+          onOpenDetails={onOpenSyncDetails}
+          labels={{
+            saving: t("sync.saving"),
+            syncedTo: (name) => t("sync.syncedTo", { name }),
+            saveUnsaved: t("sync.saveUnsaved"),
+            failed: t("sync.failed"),
+            throttled: t("sync.throttled"),
+            reauthRequired: t("sync.reauthRequired"),
+            syncConflict: t("sync.syncConflict"),
+            offline: t("sync.offline"),
+          }}
+        />
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-28">

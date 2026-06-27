@@ -393,6 +393,69 @@ export function CloudCheckIcon({ className }: IconProps) {
   );
 }
 
+/** A plain cloud — names a hosted backend in the sync command centre. */
+export function CloudIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+    </Glyph>
+  );
+}
+
+/** A cloud with an alert — a save that failed / a sync that needs attention. */
+export function CloudAlertIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 12v4" />
+      <path d="M12 20h.01" />
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    </Glyph>
+  );
+}
+
+/** A struck-through cloud — the backend is unreachable (offline). */
+export function CloudOffIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="m2 2 20 20" />
+      <path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" />
+      <path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" />
+    </Glyph>
+  );
+}
+
+/** A cloud with an up-arrow — unsaved local edits waiting to push. */
+export function CloudUploadIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 13v8" />
+      <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+      <path d="m8 17 4-4 4 4" />
+    </Glyph>
+  );
+}
+
+/** A shield — the "off" twin of {@link LockIcon} for an at-rest encryption
+ *  state that is disabled. */
+export function ShieldIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </Glyph>
+  );
+}
+
+/** A scroll of text — fronts a collapsible log / activity panel. */
+export function ScrollTextIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M5 3h11a2 2 0 0 1 2 2v13a3 3 0 0 0 3 3H8a3 3 0 0 1-3-3V3z" />
+      <path d="M21 18a3 3 0 0 1-3 3" />
+      <path d="M8 7h7M8 11h7" />
+    </Glyph>
+  );
+}
+
 /** A warning triangle — fronts a destructive confirmation (see
  *  {@link ConfirmDialog}'s `danger` tone). */
 export function AlertTriangleIcon({ className }: IconProps) {

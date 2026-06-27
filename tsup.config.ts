@@ -21,6 +21,7 @@ export default defineConfig({
     "encryption/index": "src/encryption/index.ts",
     "i18n/index": "src/i18n/index.ts",
     "namespaces/index": "src/namespaces/index.ts",
+    "sync/index": "src/sync/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

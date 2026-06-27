@@ -59,8 +59,56 @@ export const en = {
     clear: "Clear",
     copyList: "Copy list",
     copied: "Copied",
-    inSync: "In sync — tap or pull to refresh",
-    syncing: "Syncing…",
+  },
+  sync: {
+    // The header status glyph (`SyncStatus`).
+    saving: "Saving…",
+    syncedTo: "Synced to {name}",
+    saveUnsaved: "Unsaved changes — tap for details",
+    failed: "Sync failed — tap for details",
+    throttled: "Rate limited — tap for details",
+    reauthRequired: "Reconnect needed — tap to fix",
+    syncConflict: "Sync conflict — tap to resolve",
+    offline: "Offline — editing a local copy",
+    // The command centre (`SyncDetailsModal`).
+    cloudSync: "Sync",
+    status: "Status",
+    backend: "Backend",
+    fileLocation: "File location",
+    encryptionLabel: "Encryption",
+    encryptionOn: "On",
+    encryptionOff: "Off",
+    reloadFromBackend: "Reload from the backend",
+    saveNow: "Save now",
+    tryAgain: "Try again",
+    reconnect: "Reconnect {name}",
+    openIn: "Open in {name}",
+    checkConnection: "Check connection",
+    viewSyncLog: "View sync log",
+    hideSyncLog: "Hide sync log",
+    syncingNow: "Saving your changes…",
+    failedHeading: "Sync failed",
+    failedDetailFallback:
+      "The last save to {name} didn't go through. Try again — and if it keeps failing, check your connection.",
+    throttledHeading: "Rate limited",
+    throttledDetail:
+      "{name} is asking the app to slow down. Saving will resume automatically in a moment.",
+    reauthHeading: "Reconnect needed",
+    reauthDetail:
+      "Your session with {name} has expired. Reconnect to keep saving.",
+    conflictHeading: "Sync conflict",
+    conflictDetail:
+      "Another device saved a newer version. Open the document to pick which copy to keep.",
+    pendingHeading: "Waiting to sync",
+    pendingDetail: "Your latest edits aren't saved to {name} yet.",
+    offlineHeading: "Offline",
+    offlineDetail:
+      "Can't reach {name} right now, so you're working on the copy saved on this device. Any changes are kept locally and sync automatically when you're back online.",
+    checkPinging: "Reaching {name}…",
+    checkStillOffline:
+      "Still can't reach {name}. Your edits are saved on this device and will sync automatically once you're back online.",
+    checkAuthExpired:
+      "Your session with {name} has expired — reconnect to continue.",
   },
   settings: {
     tabs: {
@@ -124,6 +172,14 @@ export const en = {
         "What localStorage actually holds for this document — plaintext, or the JSON envelope when encrypted.",
       showStoredBytes: "Show stored bytes",
       refresh: "Refresh",
+      cloudSyncTitle: "Where your data lives",
+      cloudSyncHint:
+        "Pick a backend for the document. The header's cloud glyph reflects the save state; tap it for the sync command centre. The cloud here is simulated — no data leaves your device.",
+      backendThisDevice: "This device",
+      backendCloud: "Simulated cloud",
+      encryptSync: "Encrypt at rest",
+      encryptSyncHint:
+        "Show the backend as encrypted in the command centre's details grid (On/Off).",
     },
     developer: {
       intro: "Diagnostic tools. These stay on this device.",
@@ -134,6 +190,14 @@ export const en = {
       writeTestLine: "Write a test log line",
       updatesTitle: "Software updates",
       simulateUpdate: "Simulate an available update",
+      syncFaultsTitle: "Sync faults",
+      syncFaultsIntro:
+        "Inject a fault into the simulated cloud backend, then open the header's sync glyph to see how the command centre surfaces and recovers from it. Switch the backend to the simulated cloud (Storage tab) first.",
+      faultOffline: "Go offline",
+      faultAuth: "Expire the session",
+      faultConflict: "Trigger a conflict",
+      faultThrottle: "Rate limit",
+      faultClear: "Clear fault",
       migrationsTitle: "Document migrations",
       migrationsIntro:
         "Your saved document carries a version; the framework's migrator runs older documents forward on load. Drop a legacy (pre-versioning) document on disk to watch it climb to the current version — the upgrade is logged on the Logs tab.",

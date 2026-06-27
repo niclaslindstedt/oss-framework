@@ -656,26 +656,74 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   with each attempt logged under a new `save` scope routed into the demo's log
   buffer (Logs tab). See `src/storage/README.md` (the "Retrying the save path"
   section).
-- **Extract next (recommendation, after `save-retry`):** the cheap shared wins
-  are mined; what's left in the ≥ 50% band is **store-heavy or app-domain** (the
-  per-file ranking below `settings/shared.tsx` is `storage/backend-preference.ts`,
-  `dev/useDevMode.ts`, `ui/SyncStatus.tsx`, `ui/modal-bus.ts`, `domain/search.ts`
-  — all fused to a store or a domain). The standout realistic pull is **the
-  sync-status surface** (`ui/SyncStatus.tsx` 68% + `ui/SyncDetailsModal.tsx` 48%)
-  — a presentational "where your data lives / last synced / retry" panel over the
-  already-extracted `storage` adapters (now including `save-retry`), dropping the
-  store at the seam like every modal before it. `SyncStatus` itself is purely
-  presentational (a glyph button morphing over a `SaveStatus` union + `dirty` +
-  `offline`, opening a details modal); the apps **drifted** on the tone set —
-  notes `ok|busy|warn|err|push`, checklist `ok|busy|warn|err|accent|flag` — so
-  take **checklist's richer superset** (it matches the converged 18-slot theme).
-  The blocker is the **`SaveStatus` contract**: it's the app sync engine's, so
-  the demo needs a real backend/sync model it doesn't have yet (today's namespaces
-  are local-only) — **budget for widening the demo with a "where your data lives"
-  picker / a mock sync engine first**, then the glyph + details modal seat
-  naturally. The locale _tables_ are **not** candidates (translations diverge by
-  design). When weighing "extract next", remember the store rule will shave most
-  of a store-heavy cluster down to its pure core — scope to that core up front.
+- **`sync/` (sync-status surface) — extracted (done).** Lives in the framework
+  as `@niclaslindstedt/oss-framework/sync`: `SyncStatus` (the header glyph
+  morphing over a `SaveStatus` union + `dirty`/`offline`, opening the details)
+  and `SyncDetailsModal` (the command centre — headline status + _why_, Save now
+  / Reconnect / Reload / Check connection, the backend + at-rest-encryption +
+  file-location grid, an optional collapsible developer log), plus the
+  `SaveStatus` / `ConnectionProbeResult` / `BackendKind` / `SyncLocation`
+  contract and injectable `SyncStatusLabels` / `SyncDetailsLabels`. The two apps
+  had **converged** on the same `SaveStatus` union already (both carry the
+  `throttled`/`auth-error` superset), so that lifted clean; the **tone set**
+  drifted (notes `ok|busy|warn|err|push`, checklist `ok|busy|warn|err|accent|flag`)
+  and the framework took **checklist's richer superset** (matches the converged
+  18-slot theme). **Per-axis merge, not a copy:** the modal took **checklist's
+  cleaner base** (no attachment/encryption-conversion/upload fusion notes' copy
+  carried) but grafted on **notes' explicit `encrypted?: boolean` prop** — dropping
+  checklist's hack of parsing an `(encrypted)` suffix off `providerName`. **Seam
+  drawn hard at the store:** the apps computed the path/URL from a `BackendId` +
+  the namespace folder mapping (`namespaceCloudFolder` + `DROPBOX_APP_FOLDER` +
+  `dropboxWebUrl`/`gdriveWebUrl`) inline — all of that **stays app-side**; the
+  framework takes a resolved `location: { path, url }` instead, so the component
+  imports no storage layer. `backendGlyph` generalised from `BackendId` to a
+  `backendKind: "cloud" | "folder"` prop. **App glue dropped at the seam:** `useT`
+  → injectable `labels` (English defaults), the app `Modal`/`Button`/icons → the
+  framework's own `/components` (six new icons added: `CloudIcon`,
+  `CloudAlertIcon`, `CloudOffIcon`, `CloudUploadIcon`, `ShieldIcon`,
+  `ScrollTextIcon`), and the **developer log inverted to a slot**: the apps fused
+  `useDevMode` + a `SyncLogPanel` reading the logger ring buffer + a
+  `SYNC_LOG_SCOPES` filter _inside_ the modal; the framework exposes an optional
+  `logPanel?: ReactNode` (the collapsible "View sync log" chrome stays, the
+  content + dev-mode gate go app-side — pass the framework's own `LogViewer`).
+  **Every action handler is optional** (`onSaveNow`/`onReload`/`onReconnect`/
+  `onCheckConnection`) — omit one and its affordance simply doesn't render, so a
+  local-only app and a cloud app share one surface. **The store stayed app-side**
+  as predicted: the apps' `use-*-sync.ts` engines (the save queue, the conflict /
+  auth / throttle handling, the offline mirror) did **not** come. **Demo widened
+  with a simulated sync engine** (the recommendation's prerequisite): a new
+  app-side `useMockSync(store, slug)` watches the document store's edit counter
+  for `dirty`, debounces a fake cloud round trip (Saving → Saved), and lets the
+  Developer tab inject the faults (offline / expired session / conflict /
+  rate-limit) that exercise the command centre. The list-screen header's bespoke
+  "In sync" glyph was **replaced** by the framework `SyncStatus` (pull-to-refresh
+  stays the read-side gesture; the glyph is the write-side status and opens the
+  modal); Settings → Storage gained a **"Where your data lives"** section (a
+  `SegmentedControl` This device / Simulated cloud + an "Encrypt at rest"
+  `ToggleRow`); Settings → Developer gained a **"Sync faults"** section. The
+  engine logs its round trip under a `sync` scope routed into the demo's log
+  buffer, so the modal's dev log slot (`LogViewer`, gated on dev mode) shows real
+  activity. See `src/sync/README.md`.
+- **Extract next (recommendation, after `sync`):** the cheap shared wins and the
+  whole sync surface are now mined; what's left in the ≥ 50% band is
+  **store-heavy or app-domain** and shrinks to little once the store rule is
+  applied. The per-file ranking below the already-done entries is
+  `storage/backend-preference.ts` (65% — the backend-id enum + the persisted
+  preference; the _enum_ + the pure default-resolution could come, but it's
+  mostly a tiny store), `dev/useDevMode.ts` (67% — a React store fused with the
+  cross-tab `storage` event + achievements, **store rule says leave it**),
+  `ui/modal-bus.ts` (64% — a global event bus for opening modals; app glue, not
+  reusable surface), and `domain/search.ts` (55% / 394 lines — a domain search
+  over `Note`/`Checklist` shapes, **app-domain, not a candidate**). The realistic
+  next pull is **`ui/SearchModal.tsx`** (54%, 329 lines) — a presentational
+  command-palette / search overlay — but only its _chrome_ (the input + result
+  list + keyboard nav) is generic; the query + result types are domain-coupled,
+  so scope to a generic `SearchModal<T>` that takes results + a row renderer and
+  leaves `domain/search.ts` app-side. The locale _tables_ are **not** candidates
+  (translations diverge by design). When weighing "extract next", remember the
+  store rule will shave most of a store-heavy cluster down to its pure core —
+  scope to that core up front, and expect to **widen the demo** to give the new
+  surface a real home (the sync extraction needed a whole mock engine first).
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
@@ -685,11 +733,12 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   `ui/namespace-favicon.ts` (→ `namespaces/favicon.ts` — basename differs, so it
   still ranks; done), `ui/hooks/useSwipeReveal.ts` (the side-menu-row sibling of
   the extracted `useRowSwipe` — left app-side, the framework's `Checklist`
-  consumes `useRowSwipe` directly). Note `storage/namespaces.ts` and
-  `ui/NamespacesModal.tsx` now **dedupe out** (their basenames exist in the
-  framework's `src/namespaces/`), but the app copies still carry the
-  store/path-mapping glue the framework deliberately left behind — that residue
-  is **not** a candidate. When weighing "extract next", start **below** these.
+  consumes `useRowSwipe` directly). Note `storage/namespaces.ts`,
+  `ui/NamespacesModal.tsx`, `ui/SyncStatus.tsx`, and `ui/SyncDetailsModal.tsx`
+  now **dedupe out** (their basenames exist in the framework's `src/namespaces/`
+  and `src/sync/`), but the app copies still carry the store / path-mapping /
+  sync-engine glue the framework deliberately left behind — that residue is
+  **not** a candidate. When weighing "extract next", start **below** these.
 - **Demo app — current scope (the integration target).** `demo/` is a
   fully-fledged local-first nested-checklist PWA in the apps' pure-black/green
   look, built end to end from the framework's own surface — the reference app
@@ -724,10 +773,10 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   `isRetryableSaveError` + `MAX_TRANSIENT_SAVE_RETRIES`) rides its backoff curve
   to recover ("saved after N retries"), logging each attempt under a `save`
   scope; and a list-screen **pull-to-refresh
-  sync** — the header's "In sync" glyph is live (tap to sync, spins while in
-  flight) and an inward pull from the list top triggers the same `sync()`
+  sync** — an inward pull from the list top re-reads the persisted document
   (`useChecklistStore.reload` behind a min-delay), surfaced by
-  `PullToRefreshIndicator`; and a **desktop right-click context menu** on the
+  `PullToRefreshIndicator` (the header's write-side status now lives in the
+  `SyncStatus` glyph — see the sync surface above); and a **desktop right-click context menu** on the
   list rows (`ListAppearancePopover`'s sibling `RowContextMenu`) — gated on
   `useDesktopPointer()`, wired through `Checklist`'s new `onRowContextMenu`, it
   gives a mouse the Copy text / Delete item a touch user reaches by swiping;
@@ -777,12 +826,23 @@ Sweep`, undo → manual `Time Traveler`); the Settings → General
   pre-versioning file to the active doc key and re-reads it, so the runner climbs
   it v0→v2 live and logs "migrated v0 → v2" into the Logs tab (the `migrate`
   scope routes into the demo's `logStore`).
-  **Not yet modelled, so the natural next homes to widen into:** real
-  **sync/backends** (the menu's namespaces are local-only — a "where your data
-  lives" picker + a sync-status surface would seat the `storage` adapters and a
-  future SyncStatus extraction), per-namespace **encryption** (lock one
-  workspace), a real **Search**, and **Archive**. Keep this note current as the
-  demo grows.
+  And a **simulated sync surface** (`/sync`) — an app-side `useMockSync(store,
+slug)` engine (the "store stays in the app" seam) watches the document store's
+  edit counter for `dirty` and fakes a cloud round trip; the list-screen header's
+  `SyncStatus` glyph morphs over its `SaveStatus` and opens the framework
+  `SyncDetailsModal` command centre. Settings → Storage has a **"Where your data
+  lives"** section (a `SegmentedControl` This device / Simulated cloud + an
+  "Encrypt at rest" `ToggleRow`, both live), and Settings → Developer a **"Sync
+  faults"** section (Go offline / Expire the session / Trigger a conflict / Rate
+  limit / Clear) that injects the faults the command centre recovers from. The
+  engine logs its round trip under a `sync` scope, so the modal's dev-mode log
+  slot (`LogViewer`) shows real activity. The header's pull-to-refresh stays the
+  read-side gesture; the glyph is the write-side status.
+  **Not yet modelled, so the natural next homes to widen into:** **real**
+  storage backends (the sync is simulated — a genuine Dropbox/folder connect
+  would seat the `storage` adapters), per-namespace **encryption** (lock one
+  workspace), a real **Search** (the realistic next extraction — a generic
+  `SearchModal<T>`), and **Archive**. Keep this note current as the demo grows.
 
 ## Extraction conventions
 

@@ -126,6 +126,8 @@ Today:
 | `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.   |
 | namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).     |
 | `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.   |
+| `SyncStatus`             | `.` and `./sync`         | Header glyph that morphs over a `SaveStatus` + `dirty`/`offline`; opens the details. |
+| `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.    |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -360,6 +362,26 @@ import {
   addNamespace,
   namespaceFaviconHref,
 } from "@niclaslindstedt/oss-framework/namespaces";
+```
+
+The `sync` module is the **surface over a sync engine**: a header `SyncStatus`
+glyph that morphs over a `SaveStatus` union (plus `dirty` / `offline`), and a
+`SyncDetailsModal` command centre that spells out _what_ sync is doing and _why_
+a save failed, with Save now / Reconnect / Reload / Check connection actions, a
+backend + encryption + file-location grid, and an optional collapsible developer
+log. It is **purely presentational** — your app's sync engine owns the state
+machine and the actions; the module just paints them and gives the user the
+buttons. Every action handler is optional, so a local-only app and a
+cloud-backed one share the same surface. See
+[`src/sync/README.md`](src/sync/README.md) for the contract and an adoption
+guide.
+
+```ts
+import {
+  SyncStatus,
+  SyncDetailsModal,
+  type SaveStatus,
+} from "@niclaslindstedt/oss-framework/sync";
 ```
 
 ## Demo / preview site

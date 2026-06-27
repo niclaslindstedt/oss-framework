@@ -58,8 +58,54 @@ export const sv: Catalog = {
     clear: "Rensa",
     copyList: "Kopiera lista",
     copied: "Kopierad",
-    inSync: "Synkroniserad — tryck eller dra för att uppdatera",
-    syncing: "Synkroniserar…",
+  },
+  sync: {
+    saving: "Sparar…",
+    syncedTo: "Synkad till {name}",
+    saveUnsaved: "Osparade ändringar — tryck för detaljer",
+    failed: "Synk misslyckades — tryck för detaljer",
+    throttled: "Hastighetsbegränsad — tryck för detaljer",
+    reauthRequired: "Återanslutning krävs — tryck för att åtgärda",
+    syncConflict: "Synkkonflikt — tryck för att lösa",
+    offline: "Offline — redigerar en lokal kopia",
+    cloudSync: "Synk",
+    status: "Status",
+    backend: "Backend",
+    fileLocation: "Filplats",
+    encryptionLabel: "Kryptering",
+    encryptionOn: "På",
+    encryptionOff: "Av",
+    reloadFromBackend: "Läs om från backend",
+    saveNow: "Spara nu",
+    tryAgain: "Försök igen",
+    reconnect: "Återanslut {name}",
+    openIn: "Öppna i {name}",
+    checkConnection: "Kontrollera anslutning",
+    viewSyncLog: "Visa synklogg",
+    hideSyncLog: "Dölj synklogg",
+    syncingNow: "Sparar dina ändringar…",
+    failedHeading: "Synk misslyckades",
+    failedDetailFallback:
+      "Den senaste sparningen till {name} gick inte igenom. Försök igen — och om det fortsätter, kontrollera anslutningen.",
+    throttledHeading: "Hastighetsbegränsad",
+    throttledDetail:
+      "{name} ber appen att sakta ner. Sparningen återupptas automatiskt strax.",
+    reauthHeading: "Återanslutning krävs",
+    reauthDetail:
+      "Din session med {name} har gått ut. Återanslut för att fortsätta spara.",
+    conflictHeading: "Synkkonflikt",
+    conflictDetail:
+      "En annan enhet sparade en nyare version. Öppna dokumentet för att välja vilken kopia som ska behållas.",
+    pendingHeading: "Väntar på synk",
+    pendingDetail: "Dina senaste ändringar är inte sparade till {name} än.",
+    offlineHeading: "Offline",
+    offlineDetail:
+      "Kan inte nå {name} just nu, så du arbetar på kopian som är sparad på den här enheten. Ändringar behålls lokalt och synkas automatiskt när du är online igen.",
+    checkPinging: "Når {name}…",
+    checkStillOffline:
+      "Kan fortfarande inte nå {name}. Dina ändringar är sparade på den här enheten och synkas automatiskt när du är online igen.",
+    checkAuthExpired:
+      "Din session med {name} har gått ut — återanslut för att fortsätta.",
   },
   settings: {
     tabs: {
@@ -123,6 +169,14 @@ export const sv: Catalog = {
         "Vad localStorage faktiskt innehåller för det här dokumentet — klartext, eller JSON-kuvertet när det är krypterat.",
       showStoredBytes: "Visa lagrade byten",
       refresh: "Uppdatera",
+      cloudSyncTitle: "Var dina data finns",
+      cloudSyncHint:
+        "Välj en backend för dokumentet. Molnglyfen i sidhuvudet speglar sparstatusen; tryck på den för synkens kommandocentral. Molnet här är simulerat — inga data lämnar din enhet.",
+      backendThisDevice: "Den här enheten",
+      backendCloud: "Simulerat moln",
+      encryptSync: "Krypterad i vila",
+      encryptSyncHint:
+        "Visa backend som krypterad i kommandocentralens detaljruta (På/Av).",
     },
     developer: {
       intro: "Diagnostikverktyg. De stannar på den här enheten.",
@@ -133,6 +187,14 @@ export const sv: Catalog = {
       writeTestLine: "Skriv en testloggrad",
       updatesTitle: "Programuppdateringar",
       simulateUpdate: "Simulera en tillgänglig uppdatering",
+      syncFaultsTitle: "Synkfel",
+      syncFaultsIntro:
+        "Injicera ett fel i den simulerade molnbackenden, öppna sedan synkglyfen i sidhuvudet för att se hur kommandocentralen visar och återhämtar sig från det. Byt först backend till det simulerade molnet (fliken Lagring).",
+      faultOffline: "Gå offline",
+      faultAuth: "Låt sessionen gå ut",
+      faultConflict: "Utlös en konflikt",
+      faultThrottle: "Hastighetsbegränsa",
+      faultClear: "Rensa fel",
       migrationsTitle: "Dokumentmigreringar",
       migrationsIntro:
         "Ditt sparade dokument bär en version; ramverkets migrerare kör äldre dokument framåt vid inläsning. Lägg ett äldre dokument (utan version) på disk för att se det klättra till den aktuella versionen — uppgraderingen loggas på fliken Loggar.",

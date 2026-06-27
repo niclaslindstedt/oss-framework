@@ -90,6 +90,11 @@
       "types": "./dist/namespaces/index.d.ts",
       "import": "./dist/namespaces/index.js",
       "require": "./dist/namespaces/index.cjs"
+    },
+    "./sync": {
+      "types": "./dist/sync/index.d.ts",
+      "import": "./dist/sync/index.js",
+      "require": "./dist/sync/index.cjs"
     }
   },
   "scripts": {
