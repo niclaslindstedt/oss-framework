@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useRef, useState, type ReactNode } from "react";
 
+import { useDesktopPointer } from "../hooks/useMediaQuery.ts";
 import { useLongPress } from "../hooks/useLongPress.ts";
 import { FloatingPanel } from "./FloatingPanel.tsx";
 import type { FloatingPlacement } from "./useFloatingPosition.ts";
@@ -50,6 +51,12 @@ export function RowActionMenu({
   const [highlight, setHighlight] = useState(-1);
   const wrapRef = useRef<HTMLDivElement>(null);
 
+  // The two entry points split by pointer: a real secondary (right) click opens
+  // the menu on desktop, a long press opens it on touch. Each gesture is gated
+  // to its own pointer so neither fires on the other's device — no long press
+  // on a mouse, no synthesised right-click menu on a phone.
+  const desktop = useDesktopPointer();
+
   const active = enabled && actions.length > 0;
 
   const openMenu = useCallback(() => {
@@ -66,14 +73,21 @@ export function RowActionMenu({
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (!active) return;
+      // Always swallow the browser's native menu so it never covers the row.
+      // Only a desktop pointer opens *our* menu from here; on touch the long
+      // press owns opening it, and the platform-synthesised contextmenu a long
+      // press emits would otherwise double-fire (or replace it) — so suppress
+      // and stop.
       e.preventDefault();
-      openMenu();
+      if (desktop) openMenu();
     },
-    [active, openMenu],
+    [active, desktop, openMenu],
   );
 
+  // Long press is the touch counterpart to the desktop right-click — gate it to
+  // touch so a held mouse button never opens the menu on desktop.
   const longPress = useLongPress(openMenu, {
-    enabled: active,
+    enabled: active && !desktop,
     delayMs: longPressMs,
   });
 

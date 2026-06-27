@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { type ReactNode } from "react";
 
+import { useDesktopPointer } from "../hooks/useMediaQuery.ts";
 import {
   useRowSwipe,
   type RowSwipeOptions,
@@ -163,15 +164,24 @@ export function SwipeableRow({
         (leadingSide.buttonWidth ?? DEFAULT_BUTTON_WIDTH)
       : 0;
 
+  // Swipe is a touch affordance — a desktop pointer reaches the same actions
+  // through a right-click menu (`RowActionMenu`), so the gesture stays off there
+  // rather than letting a mouse drag latch a row open. `options.enabled` lets a
+  // caller force the gesture on (or off) regardless of pointer.
+  const desktop = useDesktopPointer();
+  const swipeEnabled = options?.enabled ?? !desktop;
+
   const swipe = useRowSwipe(undefined, {
     ...options,
+    enabled: swipeEnabled,
     trailing: toHookSide(trailingSide, trailingWidth),
     leading: toHookSide(leadingSide, leadingWidth),
   });
 
-  // Nothing to swipe — render the content plainly so a bare row carries no
-  // gesture, no extra DOM, and no phantom latch.
-  if (!trailingSide && !leadingSide) {
+  // Nothing to swipe — a bare row, or one whose swipe is gated off (desktop) —
+  // renders its content plainly, carrying no gesture, no extra DOM, and no
+  // phantom latch.
+  if ((!trailingSide && !leadingSide) || !swipeEnabled) {
     return <div className={className || undefined}>{children}</div>;
   }
 

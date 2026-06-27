@@ -45,6 +45,11 @@ export type RowSwipeSide =
     };
 
 export interface RowSwipeOptions {
+  // Gate the gesture off entirely. Default true. When false the pointer
+  // handlers are inert and the row never moves — used to keep swipe a
+  // touch-only affordance (desktop pointers reach a row's actions through a
+  // right-click menu instead). Callers pass `enabled: !useDesktopPointer()`.
+  enabled?: boolean;
   // Default rest width (px) for a `reveal` side that doesn't set its own, and
   // the width of the legacy trailing reveal. Default 96.
   actionWidth?: number;
@@ -97,6 +102,7 @@ export function useRowSwipe(
   onDismiss?: () => void,
   options: RowSwipeOptions = {},
 ): RowSwipe {
+  const enabled = options.enabled ?? true;
   const ACTION_W = options.actionWidth ?? DEFAULTS.actionWidth;
   const OPEN_AT = options.openAt ?? DEFAULTS.openAt;
   const DISMISS_AT = options.dismissAt ?? DEFAULTS.dismissAt;
@@ -160,6 +166,7 @@ export function useRowSwipe(
 
   const onPointerDown = useCallback(
     (e: PointerEvent<HTMLElement>) => {
+      if (!enabled) return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
       pointerId.current = e.pointerId;
       startX.current = e.clientX;
@@ -170,11 +177,12 @@ export function useRowSwipe(
       wasOpen.current = openSide;
       setAnimating(false);
     },
-    [openSide],
+    [enabled, openSide],
   );
 
   const onPointerMove = useCallback(
     (e: PointerEvent<HTMLElement>) => {
+      if (!enabled) return;
       if (pointerId.current !== e.pointerId) return;
       const mx = e.clientX - startX.current;
       const my = e.clientY - startY.current;
@@ -215,6 +223,7 @@ export function useRowSwipe(
       setOffset(next);
     },
     [
+      enabled,
       AXIS_LOCK,
       trailingReveal,
       leadingReveal,
@@ -227,6 +236,7 @@ export function useRowSwipe(
 
   const onPointerUp = useCallback(
     (e: PointerEvent<HTMLElement>) => {
+      if (!enabled) return;
       if (pointerId.current !== e.pointerId) return;
       pointerId.current = null;
       if (e.currentTarget.hasPointerCapture(e.pointerId))
@@ -271,6 +281,7 @@ export function useRowSwipe(
       setOffset(0);
     },
     [
+      enabled,
       OPEN_AT,
       DISMISS_AT,
       DISMISS_MS,
@@ -287,6 +298,7 @@ export function useRowSwipe(
   // own controls), and turn a tap on an already-open row into a close.
   const onClickCapture = useCallback(
     (e: React.MouseEvent) => {
+      if (!enabled) return;
       if (dragged.current) {
         e.preventDefault();
         e.stopPropagation();
@@ -299,7 +311,7 @@ export function useRowSwipe(
         close();
       }
     },
-    [openSide, close],
+    [enabled, openSide, close],
   );
 
   return {

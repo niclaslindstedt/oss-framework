@@ -237,11 +237,15 @@ export function useChecklistStore(slug: string) {
     [commit, data],
   );
 
+  // Create a checklist under a user-picked title and open it, returning its id.
+  // Like `addFolder`, the title is collected inline before this fires — an empty
+  // draft never reaches the store, so a list is never born unnamed.
   const addList = useCallback(
-    (folderId: string | null) => {
+    (folderId: string | null, title: string): string => {
       const id = freshId("list");
-      const list: List = { id, title: "Ny lista", folderId, items: [] };
+      const list: List = { id, title, folderId, items: [] };
       commit({ ...data, lists: [...data.lists, list], activeListId: id });
+      return id;
     },
     [commit, data],
   );
