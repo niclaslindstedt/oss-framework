@@ -4,6 +4,11 @@
 // re-exported from here and become available under the
 // "@niclaslindstedt/oss-framework/hooks" subpath.
 export { useEscapeKey } from "./useEscapeKey.ts";
+export {
+  useLongPress,
+  type LongPressHandlers,
+  type LongPressOptions,
+} from "./useLongPress.ts";
 export { useMediaQuery, useDesktopPointer } from "./useMediaQuery.ts";
 export {
   useRowSwipe,

@@ -158,10 +158,28 @@ export function useChecklistStore() {
     [commit, data],
   );
 
-  const addFolder = useCallback(() => {
-    const folder: Folder = { id: freshId("folder"), name: "Ny mapp" };
-    commit({ ...data, folders: [...data.folders, folder] });
-  }, [commit, data]);
+  // Create a folder under a user-picked name and return its id, so the caller
+  // can act on the fresh folder (expand it, focus it). The name is collected
+  // inline before this fires — an empty draft never reaches the store.
+  const addFolder = useCallback(
+    (name: string): string => {
+      const id = freshId("folder");
+      const folder: Folder = { id, name };
+      commit({ ...data, folders: [...data.folders, folder] });
+      return id;
+    },
+    [commit, data],
+  );
+
+  // Rename a folder. Goes through `commit`, so a rename is one Undo away.
+  const renameFolder = useCallback(
+    (id: string, name: string) =>
+      commit({
+        ...data,
+        folders: data.folders.map((f) => (f.id === id ? { ...f, name } : f)),
+      }),
+    [commit, data],
+  );
 
   // Set a list's appearance — the glyph and/or accent colour the framework's
   // `/glyphs` pickers feed. A partial patch so the colour and the icon can be
@@ -199,6 +217,7 @@ export function useChecklistStore() {
     deleteItem,
     addList,
     addFolder,
+    renameFolder,
     setListAppearance,
     reload,
     undo,

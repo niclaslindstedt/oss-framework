@@ -88,6 +88,7 @@ Today:
 | `useRowSwipe`            | `.` and `./hooks`        | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
 | `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.  |
 | `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.           |
+| `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.       |
 | `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                       |
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                    |
@@ -102,6 +103,7 @@ Today:
 | `FloatingButton`         | `.` and `./sidebar`      | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
 | `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
 | `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
+| `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.       |
 | `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                           |
 | settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
 | `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
