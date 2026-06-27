@@ -11,10 +11,16 @@ Deployed to GitHub Pages by
 it was built from — not a published package.
 
 It is the **reference app the framework is meant to seed**: a new app can lift
-[`src/app/`](./src/app) wholesale as a starting point. Everything visible is
+[`src/app/`](./src/app) as a starting point. Everything visible is
 assembled from the published modules — the `Sidebar` shell, the `/checklist`
 tree, the `/components` primitives, the `/theme` appearance projection, the
 `/storage` adapter, and the `/logging` buffer.
+
+> **Adopting this as your own app?** The demo carries demo-only scaffolding
+> (mock sync, a simulated PWA update, source-build aliases) you must replace, not
+> copy. [`ADOPTION.md`](./ADOPTION.md) is the seam manifest — every stand-in and
+> what to do with it — and the [`adopt-app`](../.agent/skills/adopt-app/SKILL.md)
+> skill runs the whole transform.
 
 What it implements:
 
@@ -43,14 +49,21 @@ adding a standalone showcase page.
 ### Styling
 
 The framework components are styled with Tailwind utilities that resolve through
-the theme module's CSS-variable contract. The demo wires that up in
-[`src/styles.css`](./src/styles.css): Tailwind v4 (via `@tailwindcss/vite`), an
-`@source` pointing at the framework source so its classes are scanned, and a
-`@theme` block mapping each colour utility to a slot variable. The per-preset
-slot _values_ are generated at runtime from the framework's `PRESET_PALETTES`
-(see [`src/theme-tokens.ts`](./src/theme-tokens.ts)) so the preview can never
-drift from the framework data — an app would normally hand-write those
-`[data-theme="…"]` blocks in its own stylesheet.
+the theme module's CSS-variable contract — and the framework now **ships that
+styling** (the token map, the flavour rules, the drawer keyframes, the preset
+palettes), so the demo no longer hand-writes it. [`src/styles.css`](./src/styles.css)
+is down to Tailwind v4 (via `@tailwindcss/vite`), an `@source` pointing at the
+framework source so its classes are scanned, an `@import` of the framework's
+[`framework.css`](../src/theme/framework.css), and the demo's own app-shell reset
+(the full-viewport, non-scrolling layout — that part stays the app's).
+
+Because the demo builds against framework **source** (not the published bundle),
+it injects the per-preset `[data-theme="…"]` colour blocks at runtime with the
+framework's `installPresetTokens()` (called in [`src/main.tsx`](./src/main.tsx)) —
+generated from `PRESET_PALETTES`, so the preview can never drift from the data. A
+**published** app does it in one line instead — `@import
+"@niclaslindstedt/oss-framework/styles.css"` — which bundles the structural CSS
+_and_ the baked-in preset palettes, with no runtime call.
 
 ## Run it locally
 

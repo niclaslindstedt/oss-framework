@@ -94,6 +94,8 @@ Today:
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |
 | `AppearancePicker`       | `.` and `./theme`        | Controlled theme / font / colour editor over a `ThemeAppearance`.                                                          |
+| `styles.css`             | `./styles.css`           | The framework's stylesheet — token map, flavour CSS, drawer keyframes, and every preset palette. One `@import`.            |
+| `installPresetTokens`    | `.` and `./theme`        | Inject the per-preset `[data-theme]` colour blocks at runtime (`PRESET_TOKENS_CSS` for the raw string).                    |
 | `ChangelogModal`         | `.` and `./changelog`    | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                                                                |
 | `parseChangelog`         | `.` and `./changelog`    | Parse a `CHANGELOG.md` into the typed release list it renders.                                                             |
 | `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                                                                    |
@@ -156,9 +158,18 @@ appearance UI: `AppearancePicker`, a controlled editor over a `ThemeAppearance`
 (theme mode/variant, font, text size, and the Custom colour and shape/motion
 controls), and `SettingsModal`, which wraps it in a self-contained accessible
 overlay. Feed the same appearance to `useApplyTheme` and the look previews live
-as the user picks. The appearance **store** stays in the consuming app. See
-[`src/theme/README.md`](src/theme/README.md) for the full API and a
-step-by-step guide to migrating an existing theme implementation onto it
+as the user picks. The appearance **store** stays in the consuming app.
+
+The module also **ships the styling itself**, so an app doesn't hand-write the
+token map, the flavour rules, and every preset's palette: `@import
+"@niclaslindstedt/oss-framework/styles.css"` into your Tailwind v4 entry pulls in
+the `@theme` token map, the button / control / elevation flavour CSS, the drawer
+keyframes, and the `[data-theme="…"]` colour blocks for every built-in preset
+(generated from `PRESET_PALETTES` so they never drift). Apps building against
+source inject the preset blocks at runtime with `installPresetTokens()` instead.
+What stays yours is just app-shell layout. See
+[`src/theme/README.md`](src/theme/README.md) for the full API, the styling paths,
+and a step-by-step guide to migrating an existing theme implementation onto it
 (including how to reconcile a partial match).
 
 ```ts
@@ -166,6 +177,11 @@ import {
   SettingsModal,
   useApplyTheme,
 } from "@niclaslindstedt/oss-framework/theme";
+```
+
+```css
+@import "tailwindcss";
+@import "@niclaslindstedt/oss-framework/styles.css";
 ```
 
 The `storage` module is the shared persistence layer: one `StorageAdapter` byte

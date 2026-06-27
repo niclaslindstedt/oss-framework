@@ -1,0 +1,181 @@
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
+/* The framework's own stylesheet — the styling a consuming app would otherwise
+   hand-write to make the components paint. It is the static half of the theme
+   contract; the per-preset colour *values* are generated from `PRESET_PALETTES`
+   (the single source of truth) by `installPresetTokens()` / `PRESET_TOKENS_CSS`
+   in this same module, or baked into the published `styles.css` bundle at build
+   time. Import it once near your Tailwind entry:
+
+     @import "tailwindcss";
+     @import "@niclaslindstedt/oss-framework/styles.css";   (presets baked in)
+
+   …or, building against source, import this file and inject the presets at
+   runtime (what the demo does):
+
+     @import "tailwindcss";
+     @import "@niclaslindstedt/oss-framework/theme/framework.css";
+     // + installPresetTokens() before first paint
+
+   Requires Tailwind v4: the framework's components paint with Tailwind utility
+   classes (`bg-surface`, `text-fg`, …) that resolve through the slot variables
+   mapped below, so the consumer's Tailwind build must also `@source`-scan the
+   framework package so those classes are emitted. */
+
+/* ── Theme token map ────────────────────────────────────────────────────────
+   Map each Tailwind colour utility (`bg-surface`, `text-fg`, `text-accent`, …)
+   to the framework's slot variable. `inline` keeps the utilities referencing
+   the var rather than freezing a value, so they follow the active theme: the
+   per-preset values arrive as `:root[data-theme="…"]` blocks (generated from
+   `PRESET_PALETTES`), and the `custom` theme's values are written inline on
+   `<html>` by the theme engine. */
+@theme inline {
+  --color-page-bg: var(--page-bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-fg: var(--fg);
+  --color-fg-bright: var(--fg-bright);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-meta: var(--meta);
+  --color-link: var(--link);
+  --color-path: var(--path);
+  --color-flag: var(--flag);
+  --color-pipe: var(--pipe);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+}
+
+/* ── Structural defaults ────────────────────────────────────────────────────
+   Pre-paint fallbacks for the vars the theme engine overrides inline on <html>
+   once it mounts (`--app-font-scale` via `applyFontScale`, `--density-row-*`
+   and `--radius-*` via `applyUiStyle`). They keep the first frame sane before
+   the first projection runs. The font *family* is intentionally left to the
+   app/engine (it owns the webfont choice). */
+:root {
+  --app-font-scale: 1;
+  /* Row vertical padding the sidebar shell reads for its footer inset and its
+     nav rows; the density setting tunes it. */
+  --density-row-py: 0.375rem;
+}
+
+/* ── Reduce motion ──────────────────────────────────────────────────────────
+   The engine sets `data-reduce-motion="true"` on <html> when the Custom
+   "reduce motion" toggle is on; this short-circuits every transition and
+   animation on demand. */
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* ── Button flavours ────────────────────────────────────────────────────────
+   The framework `Button` tags itself `data-ui="button"` with its
+   `data-variant`, so a single rule re-skins every button at once. The
+   per-variant accent rides on `--btn-color`; the default Tailwind classes are
+   the `soft` flavour, so only solid / outline / ghost are defined here. The
+   engine projects the chosen flavour onto `data-button-style` on <html>. */
+[data-ui="button"] {
+  --btn-color: var(--accent);
+}
+[data-ui="button"][data-variant="secondary"] {
+  --btn-color: var(--fg);
+}
+[data-ui="button"][data-variant="ghost"] {
+  --btn-color: var(--muted);
+}
+[data-ui="button"][data-variant="danger"] {
+  --btn-color: var(--danger);
+}
+
+:root[data-button-style="solid"] [data-ui="button"] {
+  background: var(--btn-color);
+  border-color: var(--btn-color);
+  color: var(--page-bg);
+  font-weight: 500;
+}
+:root[data-button-style="solid"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 85%, #fff);
+}
+
+:root[data-button-style="outline"] [data-ui="button"] {
+  background: transparent;
+  border-color: var(--btn-color);
+  color: var(--btn-color);
+}
+:root[data-button-style="outline"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 14%, transparent);
+}
+
+:root[data-button-style="ghost"] [data-ui="button"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--btn-color);
+}
+:root[data-button-style="ghost"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 12%, transparent);
+}
+
+/* ── Elevation ──────────────────────────────────────────────────────────────
+   `raised` (the default) keeps the components' own Tailwind shadow utilities;
+   `flat` strips them for the editor-like border-only look; `floating` lifts
+   surfaces well off the page. The selectors out-specify the single-class
+   utilities (`.shadow-md` …) so they win without `!important`. The engine
+   projects the choice onto `data-elevation` on <html>. */
+:root[data-elevation="flat"] .shadow-sm,
+:root[data-elevation="flat"] .shadow-md,
+:root[data-elevation="flat"] .shadow-lg,
+:root[data-elevation="flat"] .shadow-xl {
+  box-shadow: none;
+}
+:root[data-elevation="floating"] .shadow-md {
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.5),
+    0 2px 6px -2px rgba(0, 0, 0, 0.35);
+}
+:root[data-elevation="floating"] .shadow-lg {
+  box-shadow:
+    0 16px 40px -8px rgba(0, 0, 0, 0.6),
+    0 4px 10px -4px rgba(0, 0, 0, 0.4);
+}
+:root[data-elevation="floating"] .shadow-xl {
+  box-shadow:
+    0 28px 60px -12px rgba(0, 0, 0, 0.7),
+    0 8px 18px -6px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Drawer animation ───────────────────────────────────────────────────────
+   The framework `Sidebar` shell references these keyframes / classes by name
+   when it slides the mobile drawer in. They live here (not hard-coded in the
+   component) so an app can retune timing; the `data-reduce-motion` rule above
+   neutralises them when the user asks for less motion. */
+@keyframes drawer-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes drawer-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+.drawer-panel-left {
+  animation: drawer-slide-in-left 300ms ease-out;
+}
+.drawer-panel-right {
+  animation: drawer-slide-in-right 300ms ease-out;
+}
+.drawer-backdrop {
+  animation: drawer-backdrop-in 300ms ease-out;
+}

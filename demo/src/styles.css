@@ -1,56 +1,38 @@
 /* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
 
-/* Demo stylesheet. Wires the framework theme module into a real CSS token
-   system so the components paint:
+/* Demo stylesheet. The framework's styling is now a single import:
 
      1. Tailwind v4 base + utilities.
-     2. `@source` — scan the framework source (it lives outside the demo root,
+     2. The framework's own stylesheet — the theme-token map, the button /
+        elevation flavours, the drawer keyframes, and the reduce-motion
+        short-circuit. The per-preset colour *values* are injected at runtime
+        from `PRESET_PALETTES` by `installPresetTokens()` in `main.tsx`.
+     3. `@source` — scan the framework source (it lives outside the demo root,
         resolved through the Vite aliases) so its utility classes are emitted.
-     3. `@theme inline` — map each Tailwind colour utility (`bg-surface`,
-        `text-fg`, `text-accent`, …) to the framework's slot variables. The
-        per-preset *values* of those slots are generated at runtime from the
-        framework's `PRESET_PALETTES` (see `theme-tokens.ts`) and injected as
-        `:root[data-theme="…"]` blocks; the `custom` preset's values are written
-        inline on <html> by the theme engine.
-     4. Structural defaults + the html/body reset, plus the Custom "reduce
-        motion" short-circuit the engine toggles via `data-reduce-motion`. */
+     4. App-shell layout: the html/body reset that makes this a full-viewport,
+        non-scrolling PWA. This stays the app's — it is layout, not framework.
+
+   Building against source, the demo imports the framework's `framework.css`
+   directly and injects the presets at runtime. A *published* app would instead
+   write a single line — `@import "@niclaslindstedt/oss-framework/styles.css";`
+   — which bundles the structural CSS *and* the baked-in preset palettes, and
+   needs no `installPresetTokens()` call. */
 
 @import "tailwindcss";
+@import "../../src/theme/framework.css";
 
 @source "../../src";
 
-@theme inline {
-  --color-page-bg: var(--page-bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-fg: var(--fg);
-  --color-fg-bright: var(--fg-bright);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-meta: var(--meta);
-  --color-link: var(--link);
-  --color-path: var(--path);
-  --color-flag: var(--flag);
-  --color-pipe: var(--pipe);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
-  --color-positive: var(--positive);
-  --color-negative: var(--negative);
-}
-
+/* ── App-shell layout (the demo's own, not the framework's) ──────────────────
+   A real app supplies this for its chosen shell. The demo is a full-viewport
+   `100svh` flex app whose panes own their own scroll regions, so the document
+   itself never scrolls. */
 :root {
-  /* Structural defaults. The engine overrides the font vars inline on <html>;
-     the Custom theme additionally writes `--radius-*` (which Tailwind's own
-     `rounded-*` tokens read by the same name). */
+  /* The apps' signature monospace stack. The theme engine overrides
+     `--app-font-family` inline once it mounts; this is the pre-paint default. */
   --app-font-family:
     "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
-  --app-font-scale: 1;
-  /* Row vertical padding the sidebar shell reads for its footer inset and
-     its nav rows. An app tunes this with its density setting. */
-  --density-row-py: 0.375rem;
 }
 
 html,
@@ -58,11 +40,9 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  /* The app fills the viewport — a `100svh` flex shell whose panes own their
-     own scroll regions — so the document itself never needs to scroll. Lock it
-     down: no page scroll and no overscroll rubber-band, so a horizontal swipe
-     on a row (or a vertical drag at a list's edge) can't drag the whole page
-     around underneath it on mobile. */
+  /* Lock the document down: no page scroll and no overscroll rubber-band, so a
+     horizontal swipe on a row (or a vertical drag at a list's edge) can't drag
+     the whole page around underneath it on mobile. */
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -74,122 +54,4 @@ body {
   font-size: calc(1rem * var(--app-font-scale));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-/* Custom-theme "reduce motion" toggle. The engine sets
-   `data-reduce-motion="true"` on <html> when enabled; this short-circuits
-   every transition and animation on demand. */
-:root[data-reduce-motion="true"] *,
-:root[data-reduce-motion="true"] *::before,
-:root[data-reduce-motion="true"] *::after {
-  animation-duration: 0.001ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.001ms !important;
-}
-
-/* ── Component flavours ────────────────────────────────────────────────────
-   The theme engine projects three "flavour" axes onto <html> that shape the
-   chrome itself, not its colours: `data-button-style`, `data-control-style`
-   (handled entirely by the `--control-radius` var the framework `Checkbox`
-   reads), and `data-elevation`. CSS owns the actual paint for them — exactly
-   as it owns the `[data-theme]` palettes — so an app can tune the flavours
-   without the framework hard-coding one look. */
-
-/* Button flavours. The framework `Button` tags itself `data-ui="button"` with
-   its `data-variant`, so a single rule re-skins every button at once. The
-   per-variant accent rides on `--btn-color`; the default Tailwind classes are
-   the `soft` flavour, so only solid / outline / ghost are defined here. */
-[data-ui="button"] {
-  --btn-color: var(--accent);
-}
-[data-ui="button"][data-variant="secondary"] {
-  --btn-color: var(--fg);
-}
-[data-ui="button"][data-variant="ghost"] {
-  --btn-color: var(--muted);
-}
-[data-ui="button"][data-variant="danger"] {
-  --btn-color: var(--danger);
-}
-
-:root[data-button-style="solid"] [data-ui="button"] {
-  background: var(--btn-color);
-  border-color: var(--btn-color);
-  color: var(--page-bg);
-  font-weight: 500;
-}
-:root[data-button-style="solid"] [data-ui="button"]:hover {
-  background: color-mix(in srgb, var(--btn-color) 85%, #fff);
-}
-
-:root[data-button-style="outline"] [data-ui="button"] {
-  background: transparent;
-  border-color: var(--btn-color);
-  color: var(--btn-color);
-}
-:root[data-button-style="outline"] [data-ui="button"]:hover {
-  background: color-mix(in srgb, var(--btn-color) 14%, transparent);
-}
-
-:root[data-button-style="ghost"] [data-ui="button"] {
-  background: transparent;
-  border-color: transparent;
-  color: var(--btn-color);
-}
-:root[data-button-style="ghost"] [data-ui="button"]:hover {
-  background: color-mix(in srgb, var(--btn-color) 12%, transparent);
-}
-
-/* Elevation. `raised` (the default) keeps the components' own Tailwind shadow
-   utilities; `flat` strips them for the editor-like border-only look; `floating`
-   lifts surfaces well off the page. The selectors out-specify the single-class
-   utilities (`.shadow-md` …) so they win without `!important`. */
-:root[data-elevation="flat"] .shadow-sm,
-:root[data-elevation="flat"] .shadow-md,
-:root[data-elevation="flat"] .shadow-lg,
-:root[data-elevation="flat"] .shadow-xl {
-  box-shadow: none;
-}
-:root[data-elevation="floating"] .shadow-md {
-  box-shadow:
-    0 8px 24px -4px rgba(0, 0, 0, 0.5),
-    0 2px 6px -2px rgba(0, 0, 0, 0.35);
-}
-:root[data-elevation="floating"] .shadow-lg {
-  box-shadow:
-    0 16px 40px -8px rgba(0, 0, 0, 0.6),
-    0 4px 10px -4px rgba(0, 0, 0, 0.4);
-}
-:root[data-elevation="floating"] .shadow-xl {
-  box-shadow:
-    0 28px 60px -12px rgba(0, 0, 0, 0.7),
-    0 8px 18px -6px rgba(0, 0, 0, 0.45);
-}
-
-/* Drawer slide-in / backdrop-fade keyframes the framework's `Sidebar` shell
-   references by class name — the animation is the app's to define so it can
-   tune timing and honour reduce-motion. The shell only adds the classes. */
-@keyframes drawer-slide-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-}
-@keyframes drawer-slide-in-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes drawer-backdrop-in {
-  from {
-    opacity: 0;
-  }
-}
-.drawer-panel-left {
-  animation: drawer-slide-in-left 300ms ease-out;
-}
-.drawer-panel-right {
-  animation: drawer-slide-in-right 300ms ease-out;
-}
-.drawer-backdrop {
-  animation: drawer-backdrop-in 300ms ease-out;
 }
