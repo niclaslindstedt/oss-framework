@@ -1,26 +1,24 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
+
+import {
+  INLINE_EDIT_FIELD_CLASS,
+  InlineEditField,
+} from "./InlineEditField.tsx";
 
 // An in-place text editor row — the kind a list swaps in when you rename or
-// create one of its items. It owns the parts every inline editor wires the same
-// way and is easy to get subtly wrong:
-//
-// - **Focus + select on mount.** The row only appears on an explicit
-//   "rename" / "new" action, so it takes focus the moment it shows and selects
-//   its seed text so a keystroke replaces it. (Done with an effect, not the
-//   a11y-flagged `autoFocus` attribute.)
-// - **Commit / cancel semantics with a double-fire guard.** Enter or blur with
-//   a non-empty trimmed value commits; Escape (or a blurred-empty value)
-//   cancels and keeps the old value. A `committed` latch stops the blur that
-//   follows an Enter from firing the callback a second time.
+// create one of its items. It is the row-shaped shell around
+// {@link InlineEditField}: the field owns the fiddly behaviour every inline
+// editor shares (focus-and-select on mount, Enter/blur-commits-(trimmed)-
+// Escape-cancels, and the latch that stops a post-Enter blur from firing the
+// callback twice); this row owns the layout around it.
 //
 // Everything app-specific stays a prop: the row's own layout (`className`), a
 // leading `icon`, an optional `leading` slot (a spacer/chevron for alignment),
-// and the commit/cancel callbacks that decide what the value *means*. The
-// component takes and returns a plain string — it never sees a domain entity.
+// and the commit/cancel callbacks that decide what the value *means*. It takes
+// and returns a plain string — it never sees a domain entity.
 
-const DEFAULT_INPUT_CLASS =
-  "min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-bright outline-none placeholder:text-muted/60";
+const DEFAULT_INPUT_CLASS = INLINE_EDIT_FIELD_CLASS;
 
 type Props = {
   /** Seed value; the input mounts focused with this text selected. */
@@ -57,46 +55,18 @@ export function InlineEditRow({
   inputClassName = DEFAULT_INPUT_CLASS,
   ariaLabel,
 }: Props) {
-  const [value, setValue] = useState(initial);
-  const [committed, setCommitted] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.focus();
-    el.select();
-  }, []);
-  function finish() {
-    if (committed) return;
-    setCommitted(true);
-    const name = value.trim();
-    if (name) onCommit(name);
-    else onCancel();
-  }
   return (
     <div
       className={`flex items-center py-[var(--density-row-py)] ${className}`.trim()}
     >
       {leading}
       {icon != null && <span className={iconClassName}>{icon}</span>}
-      <input
-        ref={ref}
-        type="text"
-        value={value}
+      <InlineEditField
+        initial={initial}
         placeholder={placeholder}
-        aria-label={ariaLabel ?? placeholder}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={finish}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            finish();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            setCommitted(true);
-            onCancel();
-          }
-        }}
+        ariaLabel={ariaLabel ?? placeholder}
+        onCommit={onCommit}
+        onCancel={onCancel}
         className={inputClassName}
       />
     </div>

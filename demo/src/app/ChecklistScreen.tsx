@@ -201,6 +201,9 @@ export function ChecklistScreen({
                 }
               : undefined
           }
+          editable
+          editPlaceholder={t("screen.editItem")}
+          reorderable
           sinkChecked
           showGrips
         />

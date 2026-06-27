@@ -23,6 +23,7 @@ defaults.
 | `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                                                  |
 | `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                    |
 | `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard. |
+| `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                                        |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                      |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.     |

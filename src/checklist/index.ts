@@ -16,6 +16,8 @@ export {
   setNodeChecked,
   setAllChecked,
   removeNode,
+  renameNode,
+  moveNode,
   countProgress,
   isComplete,
   subtreeState,
