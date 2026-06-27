@@ -798,6 +798,37 @@ language` localStorage keys and `notes:language` / `checklist:language` events
     candidate does appear, remember the store rule shaves a store-heavy cluster
     down to its pure core — scope to that core up front, and expect to **widen the
     demo** to give the new surface a real home.
+- **Re-confirmed exhausted (2026-06-27, no extraction).** A run at the **same two
+  app hashes** already recorded in `.last-updated` (notes `163f044`, checklist
+  `9c3a55d` — neither app had moved a byte since the prior run) re-ran the report
+  and re-diffed the only doors the note above left ajar. The verdict holds: the
+  high-similarity seam is **exhausted**, no thin extraction forced.
+  - `storage/backend-preference.ts` (65%) was read end to end: it is a pure
+    **localStorage shim** — `read`/`write`/`clear` over hard-coded `app:backend` /
+    `:dropbox:token` / `:dropbox:refresh` / `:gdrive:token` / `:encryption` keys,
+    then getter/setter/clear triples. The store rule shaves it to just the
+    `BackendId` union (`"browser" | "folder" | "dropbox" | "gdrive"`) + the
+    `getBackend()` coercion (legacy `"local"` → `"browser"`, unknown → `"browser"`)
+    — ~12 lines, too thin to justify a `storage` addition + README section + demo
+    wiring (the demo's "Where your data lives" picker already runs on a bare
+    `SegmentedControl`). The apps **drifted** only trivially (comment wording,
+    checklist's extra `clearDropboxTokens()` pair-clear). **Leave it.** If a future
+    run does want it, the home is the existing `storage` module (no new subpath)
+    and it must land with the demo's storage picker rewired onto the `BackendId`.
+  - Two previously-undispositioned utility files were checked and are **not
+    candidates**: `ui/drag-activity.ts` (33% — an app-root React context that
+    coordinates a domain pointer-drag with `usePullToRefresh`'s `enabled` gate;
+    app glue, not reusable) and `ui/hooks/useViewportHeight.ts` (32% — genuinely
+    **diverged**: both copies mirror the visual viewport into CSS vars but by
+    different routes, and the framework already owns this band via
+    `components/appViewportRect` + the theme engine's `--app-top`/`--app-height`).
+  - Everything else ≥ 50% is an already-extracted **basename false positive** (see
+    the next bullet), an **i18n locale/translation table** (`i18n/locales/**` —
+    translations diverge per app, never reusable), **store glue**, an **app-host
+    wiring** file (`app/modals/*Host.tsx`, `app/main.tsx`), or a **domain catalog**
+    (`achievements/catalog.ts`, `ui/SideMenuRows.tsx`). No clean shared-component
+    candidate remains. The next run should re-clone first — only a **move in the
+    source apps** can reopen this seam.
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
