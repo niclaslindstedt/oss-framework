@@ -16,6 +16,20 @@ export interface UndoRedoShortcutsParams {
   // or overlay whose own controls take over, so a stray Cmd/Ctrl+Z doesn't
   // reach through it to mutate the document behind it.
   enabled?: boolean;
+  // Silence the shortcuts while a modal owns the keyboard (default `true`).
+  // When on, a chord no-ops as long as any `[aria-modal="true"]` element is
+  // mounted — the framework's `Modal`, `SettingsModal`, and `ChangelogModal`
+  // all set it — so a global Cmd/Ctrl+Z can't reach through an open dialog to
+  // mutate the document behind it. Set it `false` for a modal that genuinely
+  // wants undo to stay live, or one that doesn't carry `aria-modal`.
+  gateWhileModalOpen?: boolean;
+}
+
+// True while any `[aria-modal="true"]` element is mounted — the marker every
+// framework dialog carries. Checked per-chord (not at mount) so it reflects the
+// live DOM when the key is pressed.
+function hasOpenModal(): boolean {
+  return document.querySelector('[aria-modal="true"]') !== null;
 }
 
 // Global Cmd/Ctrl+Z (undo) and Cmd/Ctrl+Shift+Z / Ctrl+Y (redo) bound to a
@@ -29,7 +43,14 @@ export interface UndoRedoShortcutsParams {
 // what an undo/redo does (pass `canUndo`/`canRedo` and the `onUndo`/`onRedo`
 // steppers from your store).
 export function useUndoRedoShortcuts(params: UndoRedoShortcutsParams): void {
-  const { canUndo, canRedo, onUndo, onRedo, enabled = true } = params;
+  const {
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
+    enabled = true,
+    gateWhileModalOpen = true,
+  } = params;
 
   useEffect(() => {
     if (!enabled) return;
@@ -39,6 +60,7 @@ export function useUndoRedoShortcuts(params: UndoRedoShortcutsParams): void {
       const isUndo = key === "z" && !e.shiftKey;
       const isRedo = (key === "z" && e.shiftKey) || key === "y";
       if (!isUndo && !isRedo) return;
+      if (gateWhileModalOpen && hasOpenModal()) return;
       const target = e.target as HTMLElement | null;
       if (target) {
         const tag = target.tagName;
@@ -61,5 +83,5 @@ export function useUndoRedoShortcuts(params: UndoRedoShortcutsParams): void {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [enabled, canUndo, canRedo, onUndo, onRedo]);
+  }, [enabled, gateWhileModalOpen, canUndo, canRedo, onUndo, onRedo]);
 }

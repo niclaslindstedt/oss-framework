@@ -286,10 +286,17 @@ native field-level undo keeps working as the user types — the global timeline
 only steps the document history once focus leaves the text. When a chord does
 act, it `preventDefault()`s so the browser doesn't also run its own undo.
 
-`enabled` (default `true`) gates the whole listener. Set it `false` while another
-surface owns the keyboard — an open drawer or overlay whose own controls take
-over — so a stray Cmd/Ctrl+Z doesn't reach through and mutate the document
-behind it:
+It already **stands down while a modal owns the keyboard**: by default a chord
+no-ops whenever any `[aria-modal="true"]` element is mounted (the framework's
+`Modal`, `SettingsModal`, and `ChangelogModal` all set it), so a global
+Cmd/Ctrl+Z can't reach through an open dialog to mutate the document behind it —
+you don't wire that yourself. Pass `gateWhileModalOpen: false` for a modal that
+genuinely wants undo live, or one that doesn't carry `aria-modal`.
+
+`enabled` (default `true`) gates the whole listener. Set it `false` for the
+surfaces the modal gate doesn't cover — e.g. a navigation drawer that isn't an
+`aria-modal` dialog — so a stray Cmd/Ctrl+Z doesn't reach through and mutate the
+document behind it:
 
 ```tsx
 useUndoRedoShortcuts({

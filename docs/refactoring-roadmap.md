@@ -62,7 +62,26 @@ _(none yet)_
 
 ### Severity 7–8
 
-_(none yet)_
+- **Collapse the duplicated `[aria-modal="true"]` modal-gate probe into one
+  shared helper.**
+  - **Files:** the identical `document.querySelector('[aria-modal="true"]') !==
+null` check is now hand-rolled in three places —
+    `src/hooks/usePullToRefresh.ts:87`, `src/sidebar/useEdgeSwipeOpen.ts:42`,
+    and `src/hooks/useUndoRedoShortcuts.ts` (`hasOpenModal`). Each suppresses a
+    global gesture/shortcut while a framework dialog owns the screen.
+  - **Responsibility handed back:** none to the _adopter_ — this is internal
+    duplication. "Is a modal open?" is one generic DOM probe re-implemented N=3
+    times; a contract change (e.g. honouring `inert`, or a second marker
+    attribute) would have to be made in three spots and could silently drift.
+  - **Plan:** add a leaf helper in `hooks` (e.g. `isModalOpen()` /
+    `useModalOpen`) and have all three call it. `hooks` is a leaf so both
+    `sidebar` and the sibling hooks may import it without breaking the one-way
+    dependency rule (feature → hooks is allowed). Pure internal refactor, no
+    public-surface change beyond optionally exporting the helper.
+  - **Risk:** low — behaviour-identical extraction. Decide whether the helper
+    is public surface (exported, documented) or internal-only; if exported it
+    needs a changeset, if internal it's a pure refactor.
+  - **Severity: 7.**
 
 ### Severity 5–6
 
@@ -70,28 +89,7 @@ _(none yet)_
 
 ### Severity 3–4
 
-- **`hooks/useUndoRedoShortcuts`: own "silence while an overlay owns the
-  keyboard".**
-  - **Files:** `src/hooks/useUndoRedoShortcuts.ts:14-18` — the `enabled` doc
-    comment literally tells every adopter to pass `false` "while some other
-    surface owns the keyboard — e.g. an open drawer or overlay"; demo does
-    exactly that at `demo/src/App.tsx:172` (`enabled: pinned || !drawerOpen`).
-  - **Responsibility handed back:** the generic half of that gate — don't let a
-    global Cmd/Ctrl+Z reach through an open modal to the document behind it — is
-    accessibility/interaction wiring the README documents as the adopter's job.
-    (The `pinned` term in the demo's expression is app-specific and stays
-    app-side.)
-  - **Plan:** add `gateWhileModalOpen?: boolean` (default `true`). When on, the
-    listener also no-ops while a `[aria-modal="true"]` element is present in the
-    DOM. The existing `enabled` prop stays the manual override. An adopter who
-    relied solely on `enabled` is unaffected (the new check only _adds_ a
-    silence condition that their overlays should already want).
-  - **Risk:** the default surprises a caller whose overlay is genuinely meant to
-    keep undo live, or whose overlay lacks `aria-modal`. Document the contract
-    (the framework `Modal` already sets `aria-modal`; verify) and keep
-    `gateWhileModalOpen={false}` as the escape hatch. Confirm the framework
-    `Modal`/`FloatingPanel` actually carry `aria-modal` before relying on it.
-  - **Severity: 4.**
+_(none yet)_
 
 ### Easy wins (mechanical, any severity)
 
@@ -116,6 +114,13 @@ left}` px (read from CSS env vars), or a documented utility, in `hooks`.
 
 ## Landed
 
+- **`hooks/useUndoRedoShortcuts`: own "silence while a modal owns the
+  keyboard".** Added `gateWhileModalOpen` (default `true`): a chord now no-ops
+  while any `[aria-modal="true"]` element is mounted, so a global Cmd/Ctrl+Z
+  can't reach through an open dialog to the document behind it — accessibility
+  wiring the README used to document as the adopter's job. The demo's `enabled`
+  expression now only gates the non-modal navigation drawer; the modal case is
+  handled for free. (2026-06, _Severity 4_)
 - **`hooks/usePullToRefresh`: own the min-display anti-flicker window.** Added a
   `minDisplayMs` option (default `600`) that holds `"refreshing"` for at least
   that long from gesture-release, even when `onRefresh` settles sooner; a

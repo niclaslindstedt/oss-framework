@@ -110,6 +110,47 @@ describe("useUndoRedoShortcuts", () => {
     expect(onUndo).toHaveBeenCalledTimes(1);
   });
 
+  it("silences chords while a modal is open, by default", () => {
+    const { onUndo, onRedo } = setup({});
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    document.body.appendChild(modal);
+
+    const undo = press("z", { ctrlKey: true });
+    const redo = press("z", { ctrlKey: true, shiftKey: true });
+
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(onRedo).not.toHaveBeenCalled();
+    // It bows out without swallowing the key — the modal's own handlers run.
+    expect(undo.defaultPrevented).toBe(false);
+    expect(redo.defaultPrevented).toBe(false);
+  });
+
+  it("keeps chords live with an open modal when gateWhileModalOpen is false", () => {
+    const { onUndo } = setup({ gateWhileModalOpen: false });
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    document.body.appendChild(modal);
+
+    press("z", { ctrlKey: true });
+
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-arms once the modal closes", () => {
+    const { onUndo } = setup({});
+    const modal = document.createElement("div");
+    modal.setAttribute("aria-modal", "true");
+    document.body.appendChild(modal);
+
+    press("z", { ctrlKey: true });
+    expect(onUndo).not.toHaveBeenCalled();
+
+    modal.remove();
+    press("z", { ctrlKey: true });
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
   it("detaches the listener on unmount", () => {
     const { onUndo, view } = setup({});
 
