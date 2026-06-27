@@ -39,6 +39,22 @@ Use the Makefile targets (OSS_SPEC §9); CI invokes the same ones.
 - PRs are squash-merged; the PR title must itself be a conventional-commit
   subject (it becomes the squash commit).
 
+### Watching a PR after you open it
+
+This environment delivers PR lifecycle events — **merge, close, and CI
+failures** — as `<github-webhook-activity>` messages that wake the session.
+So once a PR is open and its CI checks are green:
+
+- **Do not** set up a recurring `CronCreate` (or `send_later`) self check-in to
+  poll the PR, and **do not** manually re-poll CI status "to be sure". Both are
+  wasted motion here — the webhook will wake you on a failure or the merge.
+- After confirming CI is green, **end the turn**. Act only when a webhook event
+  arrives (fix a reported CI failure, reply to a review comment); on the merged
+  event, stop — the work is done.
+- The generic harness advice to "schedule an hourly check-in because webhooks
+  miss merge transitions" does **not** apply to this repo: merges _are_
+  delivered (you'll get a "PR has been merged" event). Ignore that fallback.
+
 ## Architecture and dependency direction
 
 ```
