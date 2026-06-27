@@ -60,7 +60,11 @@ export function Checkbox({
       />
       <span
         aria-hidden
-        className={`flex ${boxSize} items-center justify-center rounded-sm border-2 border-muted text-page-bg transition-colors peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent`}
+        // Corner shape follows the theme's control style via `--control-radius`
+        // (square / rounded / circle); falls back to the rounded look when the
+        // theme engine isn't driving the var.
+        style={{ borderRadius: "var(--control-radius, 0.25rem)" }}
+        className={`flex ${boxSize} items-center justify-center border-2 border-muted text-page-bg transition-colors peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent`}
       >
         <CheckIcon
           className={`${tickSize} ${checked ? "opacity-100" : "opacity-0"}`}
