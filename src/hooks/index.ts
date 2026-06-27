@@ -14,6 +14,7 @@ export {
   useRowSwipe,
   type RowSwipe,
   type RowSwipeOptions,
+  type RowSwipeSide,
 } from "./useRowSwipe.ts";
 export {
   usePullToRefresh,

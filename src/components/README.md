@@ -16,24 +16,24 @@ go where. The primitives carry **no i18n, no domain types, and no asset
 imports** — the few strings that face the user inject as props with English
 defaults.
 
-| Export                                         | Kind      | What it is                                                                                                 |
-| ---------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------- |
-| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                     |
-| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                               |
-| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                              |
-| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                |
-| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                    |
-| `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                  |
-| `SwipeableRow`                                 | component | A list row with the two-handed swipe: left latches an action strip (rename/delete), right archives.        |
-| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                |
-| `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row. |
-| `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.         |
-| `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                |
-| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                    |
-| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                         |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                    |
-| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                          |
-| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                          |
+| Export                                         | Kind      | What it is                                                                                                                 |
+| ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                                     |
+| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                                               |
+| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                                              |
+| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                |
+| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                                    |
+| `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                  |
+| `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable. |
+| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                |
+| `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row.                 |
+| `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.                         |
+| `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                |
+| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                    |
+| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                         |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                                    |
+| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                          |
+| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                          |
 
 ## The contract
 
@@ -209,6 +209,72 @@ via `labels` (a partial `PullToRefreshLabels`). It paints through the theme
 tokens (`surface` / `line` / `fg`, the `rounded-sm` corner) and fixes itself to
 the top of the visual viewport below the iOS safe-area inset, so the host that
 scrolls the content should be `position: relative` (or under a fixed ancestor).
+
+### Swipeable rows (`SwipeableRow`)
+
+A list row with the two-handed swipe gesture both source apps grew, lifted off
+the adopter so a row only declares its actions — not the strip markup, the
+reveal masking, or the slide-off timing. Each side is configured independently:
+swipe **left** drives `trailing`, swipe **right** drives `leading`, and each
+side is either
+
+- a **reveal** — latch a strip of icon buttons open for a deliberate tap (the
+  natural home for rename / delete); or
+- a **commit** — flick the row off past the threshold to fire one action, with a
+  labelled, coloured backdrop bared as the row slides so the outcome reads before
+  release (the natural home for archive).
+
+Glyphs, labels, and the background / foreground **colours** are configurable on
+both the reveal buttons and the commit backdrop:
+
+```tsx
+import { SwipeableRow } from "@niclaslindstedt/oss-framework/components";
+import {
+  ArchiveIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@niclaslindstedt/oss-framework/components";
+
+<SwipeableRow
+  // Swipe left → a strip of buttons to tap.
+  trailing={{
+    kind: "reveal",
+    buttons: [
+      {
+        label: "Rename",
+        icon: <PencilIcon className="h-5 w-5" />,
+        onSelect: rename,
+      },
+      {
+        label: "Delete",
+        icon: <TrashIcon className="h-5 w-5" />,
+        danger: true,
+        onSelect: remove,
+      },
+    ],
+  }}
+  // Swipe right → flick to archive, with a custom-coloured backdrop.
+  leading={{
+    kind: "commit",
+    onCommit: archive,
+    label: "Archive",
+    icon: <ArchiveIcon className="h-5 w-5" />,
+    background: "bg-accent",
+    color: "text-page-bg",
+  }}
+>
+  <NavRow>…row content…</NavRow>
+</SwipeableRow>;
+```
+
+The classic shape stays a one-liner via back-compat sugar: `actions` (a
+`RowAction[]`) maps to a `trailing` reveal and `onArchive` (+ `archiveLabel` /
+`archiveIcon`) to a `leading` commit, so existing call sites need no change.
+Either side can be omitted (the row simply doesn't act that way), and the same
+`RowAction` shape feeds `RowActionMenu`, so a row offers identical actions
+through a desktop long-press menu and a touch swipe from one declaration. The
+component tags itself `data-drawer-swipe-ignore` so an enclosing `Sidebar`'s
+swipe-to-close stands down while a finger is on the row.
 
 ## Migrating an existing implementation
 

@@ -118,4 +118,88 @@ describe("SwipeableRow", () => {
     );
     expect(screen.getByText("Stash")).toBeTruthy();
   });
+
+  it("paints reveal buttons and the commit backdrop with custom colours", () => {
+    render(
+      <SwipeableRow
+        trailing={{
+          kind: "reveal",
+          buttons: [
+            {
+              label: "Pin",
+              icon: <span>📌</span>,
+              onSelect: vi.fn(),
+              background: "bg-warning",
+              color: "text-black",
+            },
+          ],
+        }}
+        leading={{
+          kind: "commit",
+          onCommit: vi.fn(),
+          label: "Done",
+          background: "bg-success",
+          color: "text-white",
+        }}
+      >
+        <button type="button">Groceries</button>
+      </SwipeableRow>,
+    );
+    const pin = screen.getByRole("button", { name: "Pin", hidden: true });
+    expect(pin.className).toContain("bg-warning");
+    expect(pin.className).toContain("text-black");
+    const backdrop = screen.getByText("Done").parentElement as HTMLElement;
+    expect(backdrop.className).toContain("bg-success");
+    expect(backdrop.className).toContain("text-white");
+  });
+
+  it("commits a left swipe when the trailing side is a commit action", () => {
+    vi.useFakeTimers();
+    const onDelete = vi.fn();
+    render(
+      <SwipeableRow
+        trailing={{ kind: "commit", onCommit: onDelete, label: "Delete" }}
+      >
+        <button type="button">Groceries</button>
+      </SwipeableRow>,
+    );
+    const fg = screen.getByText("Groceries").parentElement as HTMLElement;
+
+    down(fg, 200);
+    move(fg, 184); // arm horizontal (leftward)
+    move(fg, 90); // dx -110, past the default -96 commit point
+    up(fg, 90);
+
+    expect(onDelete).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(180);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("reveals a button strip on a right swipe when the leading side is a reveal", () => {
+    const onSelect = vi.fn();
+    render(
+      <SwipeableRow
+        leading={{
+          kind: "reveal",
+          buttons: [{ label: "Flag", icon: <span>🚩</span>, onSelect }],
+        }}
+      >
+        <button type="button">Groceries</button>
+      </SwipeableRow>,
+    );
+    // The leading strip is present (aria-hidden until swiped), and tapping its
+    // button fires the action — a right-swipe reveal, the mirror of the left.
+    fireEvent.click(screen.getByRole("button", { name: "Flag", hidden: true }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders plainly with no swipe DOM when neither side is wired", () => {
+    const { container } = render(
+      <SwipeableRow>
+        <button type="button">Groceries</button>
+      </SwipeableRow>,
+    );
+    expect(container.querySelector("[data-drawer-swipe-ignore]")).toBeNull();
+    expect(screen.getByText("Groceries")).toBeTruthy();
+  });
 });

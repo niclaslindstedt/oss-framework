@@ -131,6 +131,62 @@ describe("useRowSwipe", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
+  it("latches a leading reveal open on a right swipe", () => {
+    function RightReveal() {
+      const swipe = useRowSwipe(undefined, {
+        leading: { intent: "reveal", width: 64 },
+      });
+      return (
+        <div
+          data-testid="fg"
+          data-offset={swipe.offset}
+          data-open={swipe.open}
+          data-side={swipe.openSide ?? ""}
+          {...swipe.handlers}
+        >
+          row
+        </div>
+      );
+    }
+    render(<RightReveal />);
+    const fg = screen.getByTestId("fg");
+
+    down(fg, 100);
+    move(fg, 116); // arm horizontal (rightward)
+    move(fg, 160); // dx +60, past the +48 latch
+    up(fg, 160);
+
+    expect(fg.getAttribute("data-open")).toBe("true");
+    expect(fg.getAttribute("data-side")).toBe("leading");
+    expect(Number(fg.getAttribute("data-offset"))).toBe(64);
+  });
+
+  it("commits a trailing side on a left swipe", () => {
+    vi.useFakeTimers();
+    const onCommit = vi.fn();
+    function LeftCommit() {
+      const swipe = useRowSwipe(undefined, {
+        trailing: { intent: "commit", onCommit },
+      });
+      return (
+        <div data-testid="fg" data-offset={swipe.offset} {...swipe.handlers}>
+          row
+        </div>
+      );
+    }
+    render(<LeftCommit />);
+    const fg = screen.getByTestId("fg");
+
+    down(fg, 200);
+    move(fg, 184); // arm horizontal (leftward)
+    move(fg, 90); // dx -110, past the -96 commit point
+    up(fg, 90);
+
+    expect(onCommit).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(180);
+    expect(onCommit).toHaveBeenCalledTimes(1);
+  });
+
   it("honours custom thresholds", () => {
     function Tight() {
       const swipe = useRowSwipe(() => {}, { openAt: 20, actionWidth: 40 });

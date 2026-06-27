@@ -124,18 +124,33 @@ overridable:
 
 ```ts
 useRowSwipe(onDismiss, {
-  actionWidth: 96, // the strip width the left-latch rests open at
-  openAt: 48, // left-swipe distance that latches open
-  dismissAt: 96, // right-swipe distance that fires onDismiss
+  actionWidth: 96, // the strip width a reveal-latch rests open at
+  openAt: 48, // swipe distance that latches a reveal open
+  dismissAt: 96, // swipe distance that fires a commit
   axisLock: 8, // movement before committing to an axis
-  dismissMs: 180, // slide-off duration before onDismiss fires (match your CSS)
+  dismissMs: 180, // slide-off duration before a commit fires (match your CSS)
 });
 ```
 
-> Already wired into [`Checklist`](../checklist/README.md): pass it `onDelete`
-> and it builds the strip/foreground above for you. Reach for the bare hook when
-> your row needs something `Checklist` doesn't model — a second swipe direction,
-> a non-checklist row, a custom action.
+By default the gesture is the classic shape — a left **reveal** (`actionWidth`
+wide) and, when `onDismiss` is wired, a right **commit** firing it. Drive each
+side explicitly with `leading` (right swipe) / `trailing` (left swipe) to mix
+them — e.g. a left commit (delete-by-flick) or a right reveal:
+
+```ts
+useRowSwipe(undefined, {
+  trailing: { intent: "commit", onCommit: onDelete }, // left flick → delete
+  leading: { intent: "reveal", width: 56 }, // right swipe → latch a strip
+});
+```
+
+When you pass either side, an omitted side is simply off (it rubber-bands and
+snaps back). `openSide` in the return tells you which side is latched open.
+
+> Already wired into [`Checklist`](../checklist/README.md) (`onDelete`) and into
+> [`SwipeableRow`](../components/README.md), which builds the strip/backdrop
+> markup, the colours, and the slide-off for you. Reach for the bare hook when
+> your row needs something neither models.
 
 ### Migrating an existing swipe
 
@@ -143,9 +158,10 @@ useRowSwipe(onDismiss, {
   pointer-tracking for `useRowSwipe`; map your reveal/commit thresholds onto the
   `options`. The hook already swallows the click that trails a drag, so a swipe
   never also activates a control inside the row.
-- **Two actions, one per direction.** The hook latches **left** and dismisses
-  **right**. If you revealed a different action each way, keep that bespoke row
-  in your app — `useRowSwipe` is the one-action shape.
+- **Two actions, one per direction.** Configure each side with `leading` /
+  `trailing` — a reveal one way, a commit the other (or two reveals, two
+  commits). `SwipeableRow` wraps exactly this with the strip/backdrop markup and
+  colours, so reach for it before driving the bare hook.
 - **Touch-only in your app.** The hook is pointer-based, so it also responds to a
   mouse drag. Gate it yourself (e.g. a pointer-type / coarse-pointer check) if
   you only want it on touch.
