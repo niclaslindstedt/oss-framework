@@ -9,8 +9,11 @@ import {
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 import {
+  backoffDelayMs,
   BrowserLocalStorageAdapter,
   ConflictError,
+  isRetryableSaveError,
+  MAX_TRANSIENT_SAVE_RETRIES,
   type StorageAdapter,
 } from "@niclaslindstedt/oss-framework/storage";
 import {
@@ -139,6 +142,20 @@ const STORAGE_DOC_KEY = "oss-demo:checklist:storage-playground";
 const BUSY_MIN_MS = 650;
 const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// How many transient save failures the "flaky backend" toggle injects before a
+// save succeeds. Kept below MAX_TRANSIENT_SAVE_RETRIES so the framework's retry
+// policy always recovers — the point is to show the backoff curve working, not
+// the give-up path.
+const FLAKY_FAILURES = 3;
+
+// A snappier backoff than the production default (baseMs 500 → up to ~30s) so
+// the playground's retries read in a second or two rather than stalling.
+const DEMO_BACKOFF = { baseMs: 250, factor: 2, maxMs: 1500 };
+
+// Diagnostics for the retry path route into the same in-app buffer the Logs tab
+// renders, alongside the `encrypt` scope.
+const saveLog = logStore.createLogger("save");
+
 // Encryption lifecycle, mirroring a real app's: the document is plaintext, or
 // being set up with a fresh passphrase (`setup`), or an envelope we can read
 // (`unlocked`), or an envelope we can't because the session passphrase is gone
@@ -176,6 +193,29 @@ export function StorageTab() {
   const [pass, setPass] = useState("");
   const [encError, setEncError] = useState("");
   const [rawBytes, setRawBytes] = useState<string | null>(null);
+
+  // "Flaky backend" simulation: when on, the next save injects FLAKY_FAILURES
+  // transient errors before the real write lands, exercising the framework's
+  // `backoffDelayMs` + `isRetryableSaveError` + `MAX_TRANSIENT_SAVE_RETRIES`
+  // retry policy. A real cloud backend on a poor link does this for real; the
+  // toggle reproduces it on the synchronous browser backend.
+  const [flaky, setFlaky] = useState(false);
+  const pendingFailures = useRef(0);
+
+  // The app-owned save engine: thread the document through the encrypting
+  // adapter, but first drain any injected transient failures. This is the seam
+  // the framework deliberately leaves in the app — the policy is shared, the
+  // setTimeout/queue plumbing is yours.
+  const saveViaBackend = useCallback(
+    async (txt: string, rev: string | undefined) => {
+      if (pendingFailures.current > 0) {
+        pendingFailures.current -= 1;
+        throw new Error("simulated transient backend failure (HTTP 5xx)");
+      }
+      return adapter.save(txt, rev);
+    },
+    [adapter],
+  );
 
   const refreshRaw = useCallback(() => {
     setRawBytes(localStorage.getItem(STORAGE_DOC_KEY));
@@ -215,18 +255,47 @@ export function StorageTab() {
   }, [reload]);
 
   async function save() {
+    if (flaky) pendingFailures.current = FLAKY_FAILURES;
     await withBusy("writing", async () => {
-      try {
-        const saved = await adapter.save(text, baseRevision.current);
-        baseRevision.current = saved.revision;
-        setStatus("saved — reload the page, it persists");
-      } catch (err) {
-        if (err instanceof ConflictError) {
-          setText(err.remote.text);
-          baseRevision.current = err.remote.revision;
-          setStatus("ConflictError — adopted the other tab's bytes");
-        } else {
+      // The retry loop a real save queue runs: try the write, and on a
+      // retryable failure within budget, wait out the framework's backoff curve
+      // and try again. Typed signals (conflict) and the budget ceiling break
+      // out to dedicated handling / a hard error.
+      for (let attempt = 0; ; ) {
+        try {
+          const saved = await saveViaBackend(text, baseRevision.current);
+          baseRevision.current = saved.revision;
+          setStatus(
+            attempt > 0
+              ? `saved after ${attempt} ${attempt === 1 ? "retry" : "retries"} — it persists`
+              : "saved — reload the page, it persists",
+          );
+          return;
+        } catch (err) {
+          if (err instanceof ConflictError) {
+            setText(err.remote.text);
+            baseRevision.current = err.remote.revision;
+            setStatus("ConflictError — adopted the other tab's bytes");
+            return;
+          }
+          if (
+            isRetryableSaveError(err) &&
+            attempt < MAX_TRANSIENT_SAVE_RETRIES
+          ) {
+            const delay = backoffDelayMs(attempt, DEMO_BACKOFF);
+            const next = attempt + 1;
+            saveLog.warn(
+              `save failed (${err instanceof Error ? err.message : String(err)}) — retry ${next}/${MAX_TRANSIENT_SAVE_RETRIES} in ${delay}ms`,
+            );
+            setStatus(
+              `transient failure — retrying in ${delay}ms (${next}/${MAX_TRANSIENT_SAVE_RETRIES})`,
+            );
+            await settle(delay);
+            attempt = next;
+            continue;
+          }
           setStatus(err instanceof Error ? err.message : String(err));
+          return;
         }
       }
     });
@@ -289,6 +358,9 @@ export function StorageTab() {
         envelope. Save persists across reloads; a second tab saving meanwhile
         surfaces a <code>ConflictError</code>. While a read or write is in
         flight the framework's <code>CipherGlyph</code> stands in for a spinner.
+        Flip <em>Simulate a flaky backend</em> to inject transient failures and
+        watch the framework's retry policy ride the backoff curve until the
+        write lands (the attempts log under the <code>save</code> scope).
       </p>
       <Section title={t("settings.storage.documentTitle")}>
         <textarea
@@ -326,6 +398,12 @@ export function StorageTab() {
             status && <span className="text-sm text-success">{status}</span>
           )}
         </div>
+        <ToggleRow
+          label={t("settings.storage.flakyBackend")}
+          hint={t("settings.storage.flakyBackendHint")}
+          checked={flaky}
+          onChange={setFlaky}
+        />
       </Section>
 
       <Section title={t("settings.storage.encryptionTitle")}>

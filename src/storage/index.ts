@@ -46,6 +46,16 @@ export {
 // The logger seam.
 export { consoleLogger, noopLogger, type Logger } from "./logger.ts";
 
+// The save-path retry policy (the numbers + the backoff curve + the
+// should-I-retry predicate; the engine that applies it stays in your app).
+export {
+  backoffDelayMs,
+  isRetryableSaveError,
+  MAX_TRANSIENT_SAVE_RETRIES,
+  OFFLINE_RESUME_MS,
+  type BackoffOptions,
+} from "./save-retry.ts";
+
 // Offline-cache wrapper + the error helpers it defines.
 export {
   describeStorageError,

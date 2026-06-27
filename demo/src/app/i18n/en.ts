@@ -106,6 +106,9 @@ export const en = {
       reload: "Reload",
       enciphering: "enciphering…",
       reading: "reading…",
+      flakyBackend: "Simulate a flaky backend",
+      flakyBackendHint:
+        "Inject transient save failures so the framework's retry policy rides its backoff curve until the write lands.",
       encryptionTitle: "Encryption at rest",
       encryptDocument: "Encrypt this document",
       encryptDocumentHint:

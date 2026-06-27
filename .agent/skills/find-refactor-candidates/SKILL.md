@@ -625,22 +625,51 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   document" button drops a real pre-versioning file on disk and re-reads it, so
   the runner climbs it v0→v2 live (the upgrade logs "migrated v0 → v2" into the
   Logs tab). See `src/storage/README.md` (the "Versioning the bytes" section).
-- **Extract next (recommendation, after `migrations`):** the cheap shared wins
+- **`storage/save-retry.ts` (save-path retry policy) — extracted (done).** Lives
+  in the framework **inside the `storage` module** (not a new subpath) as
+  `backoffDelayMs` / `isRetryableSaveError` / `MAX_TRANSIENT_SAVE_RETRIES` /
+  `OFFLINE_RESUME_MS` (`@niclaslindstedt/oss-framework/storage`). This was the
+  **cheap precursor** the sync-status note named, and a clean shared-verbatim
+  lift: the apps were **byte-identical bar comments**, checklist carrying one
+  extra constant (`OFFLINE_RESUME_MS`) — the framework took **checklist's
+  superset**. **Heuristic miss to remember:** `similarity.mjs` scored it **37%**
+  (below the default `--min 50`, so it never showed in the report) purely from
+  **comment drift** — the executable code is identical. When the "extract next"
+  note names a sub-50% file by hand, trust the diff over the score; run
+  `--min 30` to surface comment-heavy near-twins. **The policy is shared; the
+  engine that applies it stays app-side** — `backoffDelayMs` is pure (injectable
+  `rand` for tests), `isRetryableSaveError` excludes only the three typed adapter
+  signals (`Conflict`/`Auth`/`RateLimit`, each with dedicated upstream handling),
+  and the save queue / `setTimeout` / dirty-flag plumbing is fused with the app's
+  document store and did not come. **Demo:** the Settings → Storage playground
+  gained a **"Simulate a flaky backend"** toggle (`StorageTab`, `tabs.tsx`) — when
+  on, the next save injects `FLAKY_FAILURES` (3) transient errors before the real
+  write, and the playground's save loop runs the framework policy (snappier
+  `DEMO_BACKOFF` so retries read in ~1–2s), surfacing "transient failure —
+  retrying in Nms (k/4)" mid-flight then "saved after 3 retries — it persists",
+  with each attempt logged under a new `save` scope routed into the demo's log
+  buffer (Logs tab). See `src/storage/README.md` (the "Retrying the save path"
+  section).
+- **Extract next (recommendation, after `save-retry`):** the cheap shared wins
   are mined; what's left in the ≥ 50% band is **store-heavy or app-domain** (the
   per-file ranking below `settings/shared.tsx` is `storage/backend-preference.ts`,
   `dev/useDevMode.ts`, `ui/SyncStatus.tsx`, `ui/modal-bus.ts`, `domain/search.ts`
   — all fused to a store or a domain). The standout realistic pull is **the
-  sync-status surface** (`ui/SyncStatus.tsx` 68% + `ui/SyncDetailsModal.tsx` 48%
-  - `storage/save-retry.ts` 37%) — a presentational "where your data lives / last
-    synced / retry" panel over the already-extracted `storage` adapters, dropping
-    the store at the seam like every modal before it. It is **larger and
-    store-heavy**, and its honest demo integration needs a real backend/sync model
-    the demo doesn't have yet (today's namespaces are local-only) — so budget for
-    widening the demo with a "where your data lives" picker first, or scope the pull
-    to just `save-retry.ts` (the pure retry/back-off helper) as a cheap precursor.
-    The locale _tables_ are **not** candidates (translations diverge by design).
-    When weighing "extract next", remember the store rule will shave most of a
-    store-heavy cluster down to its pure core — scope to that core up front.
+  sync-status surface** (`ui/SyncStatus.tsx` 68% + `ui/SyncDetailsModal.tsx` 48%)
+  — a presentational "where your data lives / last synced / retry" panel over the
+  already-extracted `storage` adapters (now including `save-retry`), dropping the
+  store at the seam like every modal before it. `SyncStatus` itself is purely
+  presentational (a glyph button morphing over a `SaveStatus` union + `dirty` +
+  `offline`, opening a details modal); the apps **drifted** on the tone set —
+  notes `ok|busy|warn|err|push`, checklist `ok|busy|warn|err|accent|flag` — so
+  take **checklist's richer superset** (it matches the converged 18-slot theme).
+  The blocker is the **`SaveStatus` contract**: it's the app sync engine's, so
+  the demo needs a real backend/sync model it doesn't have yet (today's namespaces
+  are local-only) — **budget for widening the demo with a "where your data lives"
+  picker / a mock sync engine first**, then the glyph + details modal seat
+  naturally. The locale _tables_ are **not** candidates (translations diverge by
+  design). When weighing "extract next", remember the store rule will shave most
+  of a store-heavy cluster down to its pure core — scope to that core up front.
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
@@ -684,7 +713,11 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   on disk" panel that reveals plaintext vs the `oss.encrypted.v1` envelope JSON,
   and a "Lock (simulate reload)" + unlock prompt modelling the
   locked-after-reload lifecycle (wrong password → the framework's "Wrong
-  password"); and a list-screen **pull-to-refresh
+  password"), plus a **"Simulate a flaky backend"** toggle that injects transient
+  save failures so the framework's `save-retry` policy (`backoffDelayMs` +
+  `isRetryableSaveError` + `MAX_TRANSIENT_SAVE_RETRIES`) rides its backoff curve
+  to recover ("saved after N retries"), logging each attempt under a `save`
+  scope; and a list-screen **pull-to-refresh
   sync** — the header's "In sync" glyph is live (tap to sync, spins while in
   flight) and an inward pull from the list top triggers the same `sync()`
   (`useChecklistStore.reload` behind a min-delay), surfaced by
