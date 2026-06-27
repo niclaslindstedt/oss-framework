@@ -14,6 +14,7 @@ import {
   type StorageAdapter,
 } from "@niclaslindstedt/oss-framework/storage";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
+import { useStandaloneMobile } from "@niclaslindstedt/oss-framework/pwa";
 
 import { log, logStore } from "../log.ts";
 import type { AppSettings } from "../useAppSettings.ts";
@@ -260,10 +261,15 @@ export function StorageTab() {
 export function DeveloperTab({
   settings,
   update,
+  onSimulateUpdate,
 }: {
   settings: AppSettings;
   update: Update;
+  onSimulateUpdate: () => void;
 }) {
+  // Real install context, read from the framework's PWA detection. `true` only
+  // inside an installed PWA window on a phone/tablet — a normal tab is `false`.
+  const standalone = useStandaloneMobile();
   return (
     <div>
       <p className="mb-3 text-xs text-muted">
@@ -284,6 +290,22 @@ export function DeveloperTab({
           Write a test log line
         </Button>
       </Section>
+      <Section title="Software updates">
+        <p className="text-xs text-muted">
+          An installed PWA drives the framework's <code>UpdateToast</code> from{" "}
+          <code>usePwaUpdate()</code> — its service worker reaching the{" "}
+          <code>waiting</code> state. This demo has no service worker, so
+          trigger the prompt here to see it slide up at the bottom of the
+          screen.
+        </p>
+        <Button
+          variant="secondary"
+          className="self-start"
+          onClick={onSimulateUpdate}
+        >
+          Simulate an available update
+        </Button>
+      </Section>
       <Section title="Build">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
           <dt className="text-muted">framework</dt>
@@ -292,6 +314,10 @@ export function DeveloperTab({
           </dd>
           <dt className="text-muted">mode</dt>
           <dd className="text-fg">{import.meta.env.MODE}</dd>
+          <dt className="text-muted">display</dt>
+          <dd className="text-fg">
+            {standalone ? "installed PWA (standalone)" : "browser tab"}
+          </dd>
         </dl>
       </Section>
     </div>

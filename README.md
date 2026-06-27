@@ -110,6 +110,9 @@ Today:
 | `Checklist`              | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
 | checklist tree           | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
 | glyph picker kit         | `.` and `./glyphs`     | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
+| `usePwaUpdate`           | `.` and `./pwa`        | Service-worker update lifecycle singleton: download progress + reload prompt state.  |
+| `UpdateToast`            | `.` and `./pwa`        | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.            |
+| `useStandaloneMobile`    | `.` and `./pwa`        | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.          |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -248,6 +251,24 @@ import {
   GlyphPicker,
   ColorPalette,
 } from "@niclaslindstedt/oss-framework/glyphs";
+```
+
+The `pwa` module is the **service-worker glue** an installable local-first app
+needs: `usePwaUpdate` is a singleton that registers the SW (via the optional
+`workbox-window` peer dep), tracks the download, and flips a "new version ready"
+flag; `UpdateToast` is the presentational prompt that renders it; and
+`useStandaloneMobile` reports whether the app is running as an installed PWA (so
+chrome-hiding / edge-swipe affordances stay safely off in a normal tab). The app
+owns the SW build and where the prompt mounts; the framework owns the lifecycle
+and the prompt UI. See [`src/pwa/README.md`](src/pwa/README.md) for the contract
+and a migration guide.
+
+```ts
+import {
+  usePwaUpdate,
+  UpdateToast,
+  useStandaloneMobile,
+} from "@niclaslindstedt/oss-framework/pwa";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

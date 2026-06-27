@@ -16,6 +16,7 @@
 //   components/ — shared UI primitives (modal, buttons, inputs, dropdown, glyphs)
 //   checklist/  — nested checkable list (items, child checklists, progress)
 //   glyphs/     — glyph + accent-colour picker kit (icon catalogue, pickers)
+//   pwa/        — service-worker update lifecycle + install-context detection
 //   encryption/ — at-rest crypto and the encrypt/decrypt migration queue
 
 export * from "./hooks/index.ts";
@@ -27,3 +28,4 @@ export * from "./sidebar/index.ts";
 export * from "./components/index.ts";
 export * from "./checklist/index.ts";
 export * from "./glyphs/index.ts";
+export * from "./pwa/index.ts";

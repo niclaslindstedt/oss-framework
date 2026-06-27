@@ -65,6 +65,11 @@
       "types": "./dist/glyphs/index.d.ts",
       "import": "./dist/glyphs/index.js",
       "require": "./dist/glyphs/index.cjs"
+    },
+    "./pwa": {
+      "types": "./dist/pwa/index.d.ts",
+      "import": "./dist/pwa/index.js",
+      "require": "./dist/pwa/index.cjs"
     }
   },
   "scripts": {
@@ -86,7 +91,13 @@
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "workbox-window": "^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "workbox-window": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -16,6 +16,7 @@ export default defineConfig({
     "components/index": "src/components/index.ts",
     "checklist/index": "src/checklist/index.ts",
     "glyphs/index": "src/glyphs/index.ts",
+    "pwa/index": "src/pwa/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
@@ -26,5 +27,7 @@ export default defineConfig({
   // theme font loaders dynamically import `@fontsource/*` CSS; those
   // specifiers pass through untouched so the consuming app's bundler resolves
   // and ships the font bytes from its own node_modules (optional peer deps).
-  external: ["react", "react-dom", /^@fontsource\//],
+  // `workbox-window` is the same shape: the PWA update hook lazily imports it,
+  // and the consuming app (which owns the service-worker build) supplies it.
+  external: ["react", "react-dom", /^@fontsource\//, "workbox-window"],
 });

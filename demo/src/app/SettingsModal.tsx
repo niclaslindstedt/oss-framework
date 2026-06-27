@@ -67,6 +67,8 @@ type Props = {
   setAppearance: (next: ThemeAppearance) => void;
   settings: AppSettings;
   commitSettings: (next: AppSettings) => void;
+  // Trigger the page-level PWA update prompt (Developer tab → Software updates).
+  onSimulateUpdate: () => void;
 };
 
 export function SettingsModal({
@@ -76,6 +78,7 @@ export function SettingsModal({
   setAppearance,
   settings,
   commitSettings,
+  onSimulateUpdate,
 }: Props) {
   const [tab, setTab] = useState<TabId>("general");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -210,7 +213,11 @@ export function SettingsModal({
         )}
         {activeTab === "storage" && <StorageTab />}
         {activeTab === "developer" && (
-          <DeveloperTab settings={draft} update={update} />
+          <DeveloperTab
+            settings={draft}
+            update={update}
+            onSimulateUpdate={onSimulateUpdate}
+          />
         )}
         {activeTab === "logs" && <LogsTab />}
       </div>

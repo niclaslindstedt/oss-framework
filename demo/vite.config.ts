@@ -58,6 +58,10 @@ export default defineConfig({
         replacement: here("../src/glyphs/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/pwa",
+        replacement: here("../src/pwa/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
@@ -67,6 +71,13 @@ export default defineConfig({
       {
         find: /^@fontsource\/.+/,
         replacement: here("../tests/stubs/fontsource.ts"),
+      },
+      // `workbox-window` is an optional peer dependency of the PWA update hook,
+      // not installed here; stub it so a build that pulls the pwa graph resolves
+      // (the demo never registers a service worker, so it never runs).
+      {
+        find: "workbox-window",
+        replacement: here("../tests/stubs/workbox-window.ts"),
       },
     ],
   },

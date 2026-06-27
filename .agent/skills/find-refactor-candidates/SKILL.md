@@ -382,6 +382,38 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   Testing `useMediaQuery` in jsdom needs a fake `matchMedia` whose `matches` is a
   **live getter** (not a snapshot) — the hook re-reads `mql.matches` on each
   `change`, so a snapshot never reflects a flip. See `src/hooks/README.md`.
+- **`pwa/` (service-worker update + install detection) — extracted (done).**
+  Lives in the framework as `@niclaslindstedt/oss-framework/pwa`: `usePwaUpdate`
+  (the SW update-lifecycle singleton), `UpdateToast` (the reload prompt), and
+  `isStandaloneMobile`/`useStandaloneMobile`. The whole `pwa/` cluster was
+  **near-identical bar comments**: `standalone.ts` was byte-identical apart from
+  the comment block; `usePwaUpdate.ts` (319 lines) differed **only** in comments
+  plus the one app-specific seam — the precache `cacheIdForBase` (`notes` vs
+  `checklist`). The seam was generalised by **removing the `import.meta.env`
+  coupling entirely** (the storage precedent: push env to the app), turning the
+  hook into `usePwaUpdate({ base, cacheId, enabled })` — `import.meta.env.DEV` →
+  `enabled`, `BASE_URL` → `base`, and the per-deploy-slot `cacheIdForBase` logic
+  (`-preview`/`-branch`) dropped to the app (it passes a resolved `cacheId`).
+  Removing `import.meta` also sidesteps the CJS-build problem (esbuild can't emit
+  `import.meta` to CJS). `UpdateToast` had **drifted**: notes computed the
+  docked-sidebar inset inline via `useNav()`, checklist read the
+  `--app-content-{left,right}` CSS vars `useSidebarInset` already publishes — the
+  framework took **checklist's** version (it reuses the already-extracted sidebar
+  inset) and **inverted the container/presentational split**: the apps called
+  `usePwaUpdate()` _inside_ the toast, but the framework makes `UpdateToast`
+  **props-driven** (`needRefresh`/`incomingVersion`/`onReload`/`onDismiss`) so
+  the singleton's state can feed several surfaces (the prompt _and_ a header
+  progress fill — checklist's `progress` drives a wordmark). App glue dropped at
+  the seam: `useT` → `labels` (English defaults), the app icons →
+  `components/icons` (`RefreshIcon`/`CloseIcon`), the radius drift → `rounded-sm`.
+  **`workbox-window` is an optional peer dep** handled exactly like
+  `@fontsource/*`: lazy `import("workbox-window")`, **ambient `declare module`**
+  in `src/pwa/workbox-window.d.ts` (no devDep, keeps the framework dep-free at
+  type-check), `external` in `tsup.config.ts`, and a `tests/stubs/workbox-window.ts`
+  aliased in **both** `vitest.config.ts` and `demo/vite.config.ts`. Each app's
+  migration: delete its `pwa/` copies, import from `/pwa`, pass its `BASE_URL` /
+  resolved `cacheId` / `!DEV` as config, lift the hook above the toast, and pass
+  translated `labels`. See `src/pwa/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -429,7 +461,14 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   `PullToRefreshIndicator`; and a **desktop right-click context menu** on the
   list rows (`ListAppearancePopover`'s sibling `RowContextMenu`) — gated on
   `useDesktopPointer()`, wired through `Checklist`'s new `onRowContextMenu`, it
-  gives a mouse the Copy text / Delete item a touch user reaches by swiping.
+  gives a mouse the Copy text / Delete item a touch user reaches by swiping;
+  and a **PWA update prompt** — `App.tsx` mounts the framework `UpdateToast`
+  (and now calls `useSidebarInset` so it centres over the content band on wide
+  screens), driven by a simulated "update ready" flag the **Developer tab's new
+  "Software updates" section** toggles (the static demo has no service worker, so
+  there is no real `usePwaUpdate` driver — the section says so), and the
+  Developer "Build" block now shows the real `useStandaloneMobile()` install
+  state.
   **Not yet modelled, so the natural next homes to
   widen into:**
   multiple
