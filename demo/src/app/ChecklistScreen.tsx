@@ -11,15 +11,20 @@ import {
   PlusIcon,
   RefreshIcon,
 } from "@niclaslindstedt/oss-framework/components";
-import { usePullToRefresh } from "@niclaslindstedt/oss-framework/hooks";
+import {
+  useDesktopPointer,
+  usePullToRefresh,
+} from "@niclaslindstedt/oss-framework/hooks";
 import {
   Checklist,
   ChecklistProgress,
+  findNode,
   flattenNodes,
   setAllChecked,
 } from "@niclaslindstedt/oss-framework/checklist";
 
 import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
+import { RowContextMenu, type RowMenuTarget } from "./RowContextMenu.tsx";
 import type { ChecklistStore } from "./useChecklistStore.ts";
 
 // The list screen — the app's main view, rebuilt from the framework's
@@ -42,6 +47,12 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
   const [copied, setCopied] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Desktop pointers (mouse / trackpad) have no swipe, so they reach a row's
+  // actions through a right-click menu instead — the same Delete the touch
+  // swipe latches. Touch devices report a coarse pointer and never arm it.
+  const desktopPointer = useDesktopPointer();
+  const [rowMenu, setRowMenu] = useState<RowMenuTarget | null>(null);
 
   // Focus the composer when it opens.
   useEffect(() => {
@@ -99,6 +110,13 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
         state={pull.state}
         pullDistance={pull.pullDistance}
       />
+      {rowMenu && (
+        <RowContextMenu
+          target={rowMenu}
+          onClose={() => setRowMenu(null)}
+          onDelete={deleteItem}
+        />
+      )}
       <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
         <ListAppearancePopover
           list={activeList}
@@ -140,6 +158,21 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
           items={activeList.items}
           onChange={setActiveItems}
           onDelete={deleteItem}
+          onRowContextMenu={
+            desktopPointer
+              ? (id, e) => {
+                  const node = findNode(activeList!.items, id);
+                  if (!node) return;
+                  e.preventDefault();
+                  setRowMenu({
+                    id,
+                    label: typeof node.label === "string" ? node.label : "",
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }
+              : undefined
+          }
           sinkChecked
           showGrips
         />

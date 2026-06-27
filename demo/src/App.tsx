@@ -12,7 +12,10 @@ import {
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
 import { CogIcon } from "@niclaslindstedt/oss-framework/components";
-import { useUndoRedoShortcuts } from "@niclaslindstedt/oss-framework/hooks";
+import {
+  useMediaQuery,
+  useUndoRedoShortcuts,
+} from "@niclaslindstedt/oss-framework/hooks";
 import {
   DEFAULT_GLYPH,
   glyphDataUri,
@@ -25,7 +28,6 @@ import { APP_LOOK } from "./app/look.ts";
 import { seedLogsOnce } from "./app/log.ts";
 import { useAppSettings } from "./app/useAppSettings.ts";
 import { useChecklistStore } from "./app/useChecklistStore.ts";
-import { useMediaQuery } from "./app/useMediaQuery.ts";
 
 // The demo *is* a fully-fledged app: a local-first nested-checklist PWA built
 // entirely from the framework's shared surface, in the apps' own black/green

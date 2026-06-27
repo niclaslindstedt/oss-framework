@@ -362,19 +362,26 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   `App.tsx` with `enabled: pinned || !drawerOpen` (silence the chords while a
   phone drawer owns the screen, always live when the sidebar is docked),
   exercising the superset gate exactly as designed. See `src/hooks/README.md`.
-- **`ui/hooks/useMediaQuery.ts` (72%) — strong next candidate, NOT yet
-  extracted.** A tiny dependency-free leaf hook (subscribe to a CSS media
-  query). It is duplicated **three ways** — notes, checklist, **and the demo's
-  own `demo/src/app/useMediaQuery.ts`** (used for the sidebar `pinned` flag), so
-  extracting it de-dups the demo too (drop its local copy, import `/hooks`). The
-  72% score is comment drift only; the core function is byte-identical. Take
-  **checklist's superset**, which also exports `useDesktopPointer()`
-  (`(hover: hover) and (pointer: fine)`, gates desktop right-click context
-  menus) — but to avoid a dead export, the demo must exercise `useDesktopPointer`
-  too. Its natural use (a right-click context menu on list rows) sits inside the
-  framework `Checklist` rows, so wiring it cleanly means **widening `Checklist`**
-  with a per-row context-menu callback (the demo's side-menu rows, which it owns,
-  are an alternative home that needs no `Checklist` change).
+- **`ui/hooks/useMediaQuery.ts` — extracted (done).** Lives in the framework as
+  `@niclaslindstedt/oss-framework/hooks` (`useMediaQuery`, `useDesktopPointer`).
+  The apps were **byte-identical bar comments** (the 72% score was comment drift)
+  and it was duplicated **three ways** — notes, checklist, **and the demo's own
+  `demo/src/app/useMediaQuery.ts`** — so the lift de-duped the demo too (its local
+  copy deleted, now imports `/hooks`). The framework took **checklist's superset**
+  (the `useDesktopPointer()` named query `(hover: hover) and (pointer: fine)`).
+  The only generalisation was an SSR guard hoisted into the synchronous initial
+  read (`typeof window !== "undefined" && window.matchMedia`). To avoid a dead
+  export, `useDesktopPointer` was given its **canonical use**: the framework
+  `Checklist` was **widened** with an optional `onRowContextMenu?(id, e)` prop
+  (forwarded from both the plain `<li>` and the swipe-row foreground), and the
+  demo wires it — gated on `useDesktopPointer()` — to a cursor-positioned
+  right-click menu (`demo/src/app/RowContextMenu.tsx`, Copy text / Delete item)
+  that mirrors the touch swipe-to-delete a mouse can't reach. `Checklist` only
+  **forwards** the `contextmenu` event; the demo owns the menu chrome (reusing
+  the framework's own `DismissBackdrop` + `useEscapeKey`) and the actions.
+  Testing `useMediaQuery` in jsdom needs a fake `matchMedia` whose `matches` is a
+  **live getter** (not a snapshot) — the hook re-reads `mql.matches` on each
+  `change`, so a snapshot never reflects a flip. See `src/hooks/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -419,7 +426,11 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   sync** — the header's "In sync" glyph is live (tap to sync, spins while in
   flight) and an inward pull from the list top triggers the same `sync()`
   (`useChecklistStore.reload` behind a min-delay), surfaced by
-  `PullToRefreshIndicator`. **Not yet modelled, so the natural next homes to
+  `PullToRefreshIndicator`; and a **desktop right-click context menu** on the
+  list rows (`ListAppearancePopover`'s sibling `RowContextMenu`) — gated on
+  `useDesktopPointer()`, wired through `Checklist`'s new `onRowContextMenu`, it
+  gives a mouse the Copy text / Delete item a touch user reaches by swiping.
+  **Not yet modelled, so the natural next homes to
   widen into:**
   multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace

@@ -10,6 +10,8 @@ component decides what to render with them.
 | Export                 | What it is                                                                                   |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
 | `useEscapeKey`         | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
+| `useMediaQuery`        | Subscribe to a CSS media query; re-renders when it flips. Reads the initial value in sync.   |
+| `useDesktopPointer`    | `true` on a precise, hovering pointer (mouse/trackpad) — gate right-click affordances.       |
 | `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
 | `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
 | `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.             |
@@ -17,6 +19,52 @@ component decides what to render with them.
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
 `react` is a peer dependency.
+
+## `useMediaQuery`
+
+Subscribe a component to a CSS media query. Returns whether the query matches
+right now and re-renders when it flips. The initial value is read
+**synchronously**, so the first paint is already correct — no flash of the
+wrong layout — and it then tracks the `MediaQueryList`'s own `change` event
+(cheaper and more accurate than listening to `resize` and re-measuring). It is
+SSR-safe: with no `window`/`matchMedia` it reports `false` and never
+subscribes.
+
+```tsx
+import { useMediaQuery } from "@niclaslindstedt/oss-framework/hooks";
+
+// Derive a responsive layout flag the app owns and passes into the shell.
+const pinned = useMediaQuery("(min-width: 768px)");
+```
+
+`useDesktopPointer()` is a named query for the common case: `true` on a device
+with a precise, hovering pointer — a mouse or trackpad — and `false` on a
+coarse touch screen. Use it to gate affordances that need a real secondary
+click, chiefly right-click context menus; touch devices keep their swipe/tap
+affordances instead. A hybrid (a touch laptop) reports `hover: hover` and opts
+into both.
+
+```tsx
+import { useDesktopPointer } from "@niclaslindstedt/oss-framework/hooks";
+
+const desktopPointer = useDesktopPointer();
+// e.g. only wire `Checklist`'s `onRowContextMenu` when there's a real
+// secondary click to invoke it.
+```
+
+### Migrating an existing media-query hook
+
+A hand-rolled copy is almost always identical — delete it and import this one.
+Two things to check as you switch:
+
+- **Initial-value timing.** If your old copy initialised to `false` and only
+  corrected in an effect, you had a first-paint flash; this hook reads the
+  match in the `useState` initialiser, so that flash is gone (no action
+  needed). If you intentionally relied on the false-first behaviour, note the
+  change.
+- **A separate desktop-pointer helper.** If you kept a second hook for
+  `(hover: hover) and (pointer: fine)`, replace it with `useDesktopPointer`
+  rather than re-deriving the query string.
 
 ## `useRowSwipe`
 

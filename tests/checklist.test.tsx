@@ -232,6 +232,23 @@ describe("Checklist component", () => {
       screen.getAllByRole("button", { name: "Ta bort", hidden: true }).length,
     ).toBe(flattenForDisplay(tree(), new Set()).length);
   });
+
+  it("forwards a row right-click to onRowContextMenu with the row id", () => {
+    const onRowContextMenu = vi.fn();
+    render(
+      <Checklist
+        items={tree()}
+        onChange={() => {}}
+        onRowContextMenu={onRowContextMenu}
+      />,
+    );
+    // Right-click the "Milk" row (right-click targets its enclosing <li>).
+    fireEvent.contextMenu(
+      screen.getByRole("checkbox", { name: "Milk" }).closest("li")!,
+    );
+    expect(onRowContextMenu).toHaveBeenCalledTimes(1);
+    expect(onRowContextMenu.mock.calls[0]![0]).toBe("milk");
+  });
 });
 
 // --- ChecklistProgress --------------------------------------------------
