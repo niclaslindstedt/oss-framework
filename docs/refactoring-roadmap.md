@@ -107,7 +107,7 @@ _(none yet)_
   - **Plan:** add `gateWhileModalOpen?: boolean` (default `true`). When on, the
     listener also no-ops while a `[aria-modal="true"]` element is present in the
     DOM. The existing `enabled` prop stays the manual override. An adopter who
-    relied solely on `enabled` is unaffected (the new check only *adds* a
+    relied solely on `enabled` is unaffected (the new check only _adds_ a
     silence condition that their overlays should already want).
   - **Risk:** the default surprises a caller whose overlay is genuinely meant to
     keep undo live, or whose overlay lacks `aria-modal`. Document the contract
@@ -126,10 +126,10 @@ _(none yet)_
     but the adopter's page containers re-derive the same
     `calc(<pad> + env(safe-area-inset-*))` each time.
   - **Responsibility handed back:** the iOS safe-area calc itself is pure
-    platform plumbing, identical everywhere. Note the *screen layout* stays the
+    platform plumbing, identical everywhere. Note the _screen layout_ stays the
     adopter's — what's liftable is only the inset arithmetic, not the chrome.
   - **Plan:** ship a tiny `useSafeAreaInsets()` returning `{top,right,bottom,
-    left}` px (read from CSS env vars), or a documented utility, in `hooks`.
+left}` px (read from CSS env vars), or a documented utility, in `hooks`.
     Additive; nothing changes for existing callers. Keep it a convenience, not a
     layout component (that would drag app chrome across the seam).
   - **Risk:** marginal value — it shaves a `calc()`, not real boilerplate; rate
