@@ -18,6 +18,7 @@ import {
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
 
+import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
 import type { List } from "./types.ts";
 
@@ -50,6 +51,7 @@ type Props = {
 };
 
 export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
+  const t = useT();
   const { data, addList, addFolder, setActive, undo, redo, canUndo, canRedo } =
     store;
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
@@ -77,7 +79,8 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
       {/* Namespace section — fixed. */}
       <div className="shrink-0">
         <SectionHeader
-          label="Namespace"
+          label={t("menu.namespace")}
+          addLabel={t("menu.namespaceSettings")}
           addIcon={<CogIcon className="h-4 w-4" />}
         />
         <NavRow active icon={<FolderIcon className="h-5 w-5" />}>
@@ -85,7 +88,7 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
         </NavRow>
       </div>
 
-      <SectionHeader label="Checklists" border />
+      <SectionHeader label={t("menu.checklists")} border />
 
       {/* Scrolling list region. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -96,6 +99,7 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
             <div key={folder.id}>
               <FolderRow
                 name={folder.name}
+                addLabel={t("menu.newChecklistIn", { name: folder.name })}
                 count={lists.length}
                 expanded={expanded}
                 onToggle={() => toggleFolder(folder.id)}
@@ -139,7 +143,7 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
         <div className="divide-y divide-line overflow-hidden rounded-md border border-line">
           <div className="flex divide-x divide-line">
             <BarButton
-              label="New checklist"
+              label={t("menu.newChecklist")}
               onClick={() => {
                 addList(null);
                 onNavigate();
@@ -147,21 +151,29 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
             >
               <PlusIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label="New folder" onClick={addFolder}>
+            <BarButton label={t("menu.newFolder")} onClick={addFolder}>
               <FolderIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label="Archive" badge="13">
+            <BarButton label={t("menu.archive")} badge="13">
               <ArchiveIcon className="h-5 w-5" />
             </BarButton>
           </div>
           <div className="flex divide-x divide-line">
-            <BarButton label="Undo" disabled={!canUndo} onClick={undo}>
+            <BarButton
+              label={t("menu.undo")}
+              disabled={!canUndo}
+              onClick={undo}
+            >
               <UndoIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label="Redo" disabled={!canRedo} onClick={redo}>
+            <BarButton
+              label={t("menu.redo")}
+              disabled={!canRedo}
+              onClick={redo}
+            >
               <RedoIcon className="h-5 w-5" />
             </BarButton>
-            <BarButton label="Search">
+            <BarButton label={t("menu.search")}>
               <SearchIcon className="h-5 w-5" />
             </BarButton>
           </div>
@@ -171,16 +183,16 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
       {/* Footer — fixed. */}
       <div className="flex shrink-0 flex-col border-t border-line [padding-top:calc(1.25rem-var(--density-row-py))]">
         <FooterRow icon={<HeartIcon className="h-5 w-5 text-danger" />}>
-          Donate
+          {t("menu.donate")}
         </FooterRow>
         <FooterRow icon={<HelpCircleIcon className="h-5 w-5" />}>
-          About
+          {t("menu.about")}
         </FooterRow>
         <FooterRow
           icon={<CogIcon className="h-5 w-5" />}
           onClick={onOpenSettings}
         >
-          Settings
+          {t("menu.settings")}
         </FooterRow>
       </div>
     </div>
@@ -191,10 +203,12 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
 
 function SectionHeader({
   label,
+  addLabel,
   border,
   addIcon,
 }: {
   label: string;
+  addLabel?: string;
   border?: boolean;
   addIcon?: ReactNode;
 }) {
@@ -210,7 +224,7 @@ function SectionHeader({
       {addIcon && (
         <button
           type="button"
-          aria-label={`${label} settings`}
+          aria-label={addLabel ?? label}
           className="-mr-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg-bright"
         >
           {addIcon}
@@ -254,12 +268,14 @@ function NavRow({
 
 function FolderRow({
   name,
+  addLabel,
   count,
   expanded,
   onToggle,
   onAdd,
 }: {
   name: string;
+  addLabel: string;
   count: number;
   expanded: boolean;
   onToggle: () => void;
@@ -293,7 +309,7 @@ function FolderRow({
       <button
         type="button"
         onClick={onAdd}
-        aria-label={`New checklist in ${name}`}
+        aria-label={addLabel}
         className="mr-1 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg-bright"
       >
         <PlusIcon className="h-4 w-4" />

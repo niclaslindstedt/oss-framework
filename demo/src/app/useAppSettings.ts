@@ -2,16 +2,16 @@
 import { useCallback, useEffect, useState } from "react";
 
 // The app's own (non-theme) settings — the slice that lives beside the
-// appearance store in a real app: language, how the side menu opens,
-// achievements, developer mode, and a couple of editor preferences. The
-// framework deliberately leaves this in the app; it only owns the appearance
-// projection. Persisted to localStorage so a reload keeps your choices.
+// appearance store in a real app: how the side menu opens, achievements,
+// developer mode, and a couple of editor preferences. The framework
+// deliberately leaves this in the app; it only owns the appearance projection.
+// (The active *language* is owned by the framework i18n runtime — see
+// `i18n/index.ts` — so it lives there, not in this store.) Persisted to
+// localStorage so a reload keeps your choices.
 
-export type Language = "en" | "sv";
 export type MenuMode = "swipe" | "button";
 
 export type AppSettings = {
-  language: Language;
   menuMode: MenuMode;
   disableAchievements: boolean;
   devMode: boolean;
@@ -22,7 +22,6 @@ export type AppSettings = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  language: "en",
   // The discoverable default on phones: a floating sidebar button. Switching to
   // "swipe" hides it and opens the drawer with an inward edge swipe instead
   // (framework `useEdgeSwipeOpen`). Settings is reached from the sidebar footer.

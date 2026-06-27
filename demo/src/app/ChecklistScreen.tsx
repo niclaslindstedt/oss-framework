@@ -24,6 +24,7 @@ import {
 
 import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
 import { RowContextMenu, type RowMenuTarget } from "./RowContextMenu.tsx";
+import { useT } from "./i18n/index.ts";
 import type { ChecklistStore } from "./useChecklistStore.ts";
 
 // The list screen — the app's main view, rebuilt from the framework's
@@ -41,6 +42,7 @@ export function ChecklistScreen({
   // App owns what the button opens.
   trophy?: React.ReactNode;
 }) {
+  const t = useT();
   const {
     activeList,
     progress,
@@ -142,14 +144,17 @@ export function ChecklistScreen({
           onUncheckAll={() =>
             setActiveItems(setAllChecked(activeList.items, false))
           }
-          labels={{ progress: (c, t) => `${c}/${t}` }}
+          labels={{ progress: (c, total) => `${c}/${total}` }}
         />
         {trophy}
-        <GlyphButton label={copied ? "Copied" : "Copy list"} onClick={copyList}>
+        <GlyphButton
+          label={copied ? t("screen.copied") : t("screen.copyList")}
+          onClick={copyList}
+        >
           <CopyIcon className="h-4 w-4" />
         </GlyphButton>
         <GlyphButton
-          label={syncing ? "Syncing…" : "In sync — tap or pull to refresh"}
+          label={syncing ? t("screen.syncing") : t("screen.inSync")}
           tone="accent"
           onClick={() => void sync()}
         >
@@ -197,8 +202,8 @@ export function ChecklistScreen({
                 ref={inputRef}
                 value={draft}
                 onValueChange={setDraft}
-                placeholder="Add an item…"
-                clearLabel="Clear"
+                placeholder={t("screen.addItem")}
+                clearLabel={t("screen.clear")}
                 className="text-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") commitDraft();
@@ -215,7 +220,7 @@ export function ChecklistScreen({
 
       <div className="pointer-events-none absolute inset-x-0 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] flex justify-center">
         <Fab
-          aria-label="Add item"
+          aria-label={t("screen.addItemAria")}
           className="pointer-events-auto"
           onClick={() => (composing ? commitDraft() : setComposing(true))}
         >
