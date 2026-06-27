@@ -38,3 +38,10 @@ export {
   type EdgeSwipeOpenOptions,
 } from "./useEdgeSwipeOpen.ts";
 export { useSidebarInset } from "./useSidebarInset.ts";
+export {
+  useDragDrop,
+  type DragDrop,
+  type DragDropOptions,
+  type DragHandleProps,
+  type DropZoneProps,
+} from "./useDragDrop.ts";

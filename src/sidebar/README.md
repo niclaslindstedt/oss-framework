@@ -53,6 +53,7 @@ function AppShell() {
 | The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal                 | The **nav content** (note / checklist list, action bars, footer) — `children` |
 | The draggable floating button (`FloatingButton`) + its snap-to-edge geometry (`position.ts`) | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
 | `useDraggableMenuButton`, `useDrawerSwipeClose`, `useEdgeSwipeOpen`, `useSidebarInset`       | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
+| `useDragDrop` — the gesture + hit-testing behind dragging nav rows between targets           | What a drag _means_ (`canDrop` / `onDrop`) and the handle / highlight chrome  |
 | The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)                               | The CSS token values and the drawer keyframes (see below)                     |
 
 The **state is deliberately not part of this module.** An app's nav state is
@@ -250,3 +251,60 @@ pinned, cleared on unmount). A route-level `position: fixed` overlay rendered
 _outside_ the app's flex layout — a toast on every route, say — can then read
 `var(--app-content-left, 0px)` to centre over the content area rather than the
 whole window.
+
+## Drag nav rows between targets (`useDragDrop`)
+
+A headless, pointer-driven (touch + mouse + pen) drag-and-drop primitive for the
+rows _inside_ the drawer — "drag a checklist into a folder", "drop a folder onto
+another workspace", "flick a row onto Archive". It owns only the gesture:
+tracking the pointer, hit-testing it against the drop zones you register, and
+firing `onDrop` with the dragged payload and the target under the pointer. Every
+domain decision (what a payload is, which drops are legal, what a drop _does_)
+and every pixel of chrome (the grab handle, the drop-zone highlight, the
+cursor-following preview) stay in your app.
+
+It is deliberately **not** the HTML5 drag-and-drop API — that's mouse-only on the
+phones these PWAs target. Like the module's other gestures it rides Pointer
+Events, capturing the pointer on the handle so the move/up stream keeps flowing
+as it ranges across the panel; a press that never crosses `threshold` is left as
+a tap. Two generics keep your domain out of the framework: `TDrag` (what a source
+carries) and `TTarget` (what a zone represents).
+
+```tsx
+type Drag = { kind: "list" | "folder"; id: string };
+type Target = { kind: "folder"; id: string } | { kind: "archive" };
+
+const dnd = useDragDrop<Drag, Target>({
+  canDrop: (drag, target) => target.kind !== "folder" || drag.kind === "list",
+  onDrop: (drag, target) => {
+    if (target.kind === "archive") archive(drag.id);
+    else moveIntoFolder(drag.id, target.id);
+  },
+});
+
+// A drag source: spread the handle onto a small grip (it owns the pointer, so
+// it won't trip the row's own tap / swipe).
+<span {...dnd.dragHandle({ kind: "list", id })} className="cursor-grab">
+  ⠿
+</span>;
+
+// A drop zone: attach the ref, light it up from `isOver` / `isActive`.
+const z = dnd.dropZone(`folder:${id}`, { kind: "folder", id });
+<div ref={z.ref} className={z.isOver ? "ring-2 ring-accent" : ""}>
+  …
+</div>;
+
+// A cursor-following preview while a drag is live (portal it to the body so it
+// rides above the drawer):
+{
+  dnd.dragging && <Preview item={dnd.dragging} at={dnd.pointer} />;
+}
+```
+
+Nested zones resolve **innermost-wins** (smallest box containing the pointer), so
+a folder zone laid inside a "root" zone claims the drop when the pointer is over
+the folder. `dropZone(...).isActive` flags every zone that would accept the drag
+in flight (cue all legal targets); `.isOver` flags the one under the pointer.
+`onDraggingChange` mirrors the live drag so the host can stand competing global
+gestures down for its duration. The demo's `SideMenuContent` wires all of this
+into the checklist side menu — a working reference.
