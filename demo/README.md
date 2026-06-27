@@ -111,5 +111,16 @@ Because all three slots share one origin, each gets its own service-worker
 **scope** (`/`, `/preview/`, `/branch/`) and — via
 [`cacheIdForBase`](./src/app/pwa.ts) — its own precache id (`oss-demo`,
 `oss-demo-preview`, `oss-demo-branch`), so the slots never clobber each other's
-caches. The `manifest.webmanifest` uses relative URLs, so the one static file is
-correct at every base.
+caches. The `manifest.webmanifest` uses relative URLs (and a relative `id`), so
+the one static file is correct at every base and each slot installs as a
+distinct app.
+
+The easy-to-miss part: the **release** worker's scope is `/`, which also covers
+`/preview/` and `/branch/`. If you land on `/` first, its worker controls the
+whole origin — so without a guard, a later navigation to `/preview/` would be
+answered with the _release_ shell. Each worker therefore carries a **navigation
+denylist** of the sibling slots nested under its scope (`DEPLOY_SLOTS` in
+[`pwa-plugin.ts`](./pwa-plugin.ts)) and defers those navigations to the network,
+letting each slot boot its own shell and register its own worker. The release
+worker denies `/preview/` + `/branch/`; the nested slots need no denylist (their
+scope already excludes the others).

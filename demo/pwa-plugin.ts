@@ -24,6 +24,22 @@ import { cacheIdForBase } from "./src/app/pwa.ts";
 // The SW changes bytes every deploy (it embeds the build version and the
 // content-hashed asset list), so the browser's update check reliably discovers
 // it and the new worker reaches `waiting` → the framework raises the prompt.
+//
+// THREE SLOTS, ONE ORIGIN. The demo deploys to `/` (release), `/preview/`
+// (main), and `/branch/` (a parked branch) on a single origin. Each slot gets
+// its own worker (scoped to its base) and its own precache id, so the preview
+// and a branch update independently of the release. The pitfall — the one
+// that's "always missed" — is that the RELEASE worker's scope is `/`, which
+// also covers `/preview/` and `/branch/`: if a visitor lands on `/` first, its
+// worker becomes the controller for the whole origin, and a later navigation to
+// `/preview/` (before that slot's own worker activates) would be answered with
+// the RELEASE app shell. So each worker carries a navigation denylist of the
+// sibling slots nested under its scope and refuses to answer their navigations,
+// letting them reach the network and boot their own shell + worker.
+
+// The deploy slots `pages.yml` serves, in priority order. Mirror that file: a
+// worker ignores navigations for any of these nested under its own base.
+export const DEPLOY_SLOTS = ["/", "/preview/", "/branch/"];
 
 type DemoPwaOptions = {
   // The bundler base (`/`, `/preview/`, `/branch/`). Drives the SW scope, the
@@ -33,6 +49,10 @@ type DemoPwaOptions = {
   // build timestamp). Embedding it in the SW also guarantees the worker's bytes
   // differ between deploys even when no asset hash changed.
   version: string;
+  // All deploy-slot bases sharing this origin. The worker refuses to answer a
+  // navigation for any slot nested under its own base (see above). Defaults to
+  // `DEPLOY_SLOTS`.
+  slots?: string[];
 };
 
 // Public assets we never want in the precache: the custom-domain marker (it is
@@ -54,6 +74,7 @@ function buildServiceWorker(
   base: string,
   version: string,
   precache: string[],
+  denylist: string[],
 ): string {
   const cacheName = `${cacheId}-precache`;
   return `// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
@@ -63,11 +84,15 @@ function buildServiceWorker(
 // would discard an in-progress edit), and applies on a SKIP_WAITING message
 // from the framework's update toast. Build: ${version}
 const CACHE = ${JSON.stringify(cacheName)};
+const BASE = ${JSON.stringify(base)};
 const INDEX = ${JSON.stringify(`${base}index.html`)};
 const PRECACHE = ${JSON.stringify(precache)};
 const PRECACHE_PATHS = new Set(
   PRECACHE.map((u) => new URL(u, self.location.href).pathname),
 );
+// Sibling deploy slots nested under this worker's scope (e.g. \`/preview/\`,
+// \`/branch/\` for the \`/\` release worker). Navigations into them are NOT ours.
+const DENY = ${JSON.stringify(denylist)};
 
 self.addEventListener("install", (event) => {
   // Populate the precache one entry at a time so the window-side progress
@@ -115,6 +140,14 @@ self.addEventListener("fetch", (event) => {
   // App-shell navigations: serve the cached index for any in-scope route so the
   // installed PWA opens offline, falling back to the network then the shell.
   if (req.mode === "navigate") {
+    // A sibling slot nested under our scope (the release worker's scope "/"
+    // also covers /preview/ and /branch/): never answer it, or this slot's
+    // shell would shadow the other app. Let it reach the network so that slot
+    // boots its own shell and registers its own worker.
+    if (DENY.some((p) => url.pathname.startsWith(p))) return;
+    // Only our own routes get the shell fallback. (Belt-and-braces: the scope
+    // already bounds us, but a future broader scope shouldn't leak.)
+    if (!url.pathname.startsWith(BASE)) return;
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE);
@@ -140,8 +173,16 @@ self.addEventListener("fetch", (event) => {
 `;
 }
 
-export function demoPwa({ base, version }: DemoPwaOptions): Plugin {
+export function demoPwa({
+  base,
+  version,
+  slots = DEPLOY_SLOTS,
+}: DemoPwaOptions): Plugin {
   const cacheId = cacheIdForBase(base);
+  // Sibling slots that fall inside our scope — i.e. nested under `base` but not
+  // `base` itself. For `/` this is `/preview/` + `/branch/`; for either of
+  // those it's empty (their scope already excludes the others).
+  const denylist = slots.filter((s) => s !== base && s.startsWith(base));
   let config: ResolvedConfig;
 
   return {
@@ -242,7 +283,7 @@ export function demoPwa({ base, version }: DemoPwaOptions): Plugin {
       this.emitFile({
         type: "asset",
         fileName: "sw.js",
-        source: buildServiceWorker(cacheId, base, version, precache),
+        source: buildServiceWorker(cacheId, base, version, precache, denylist),
       });
       this.emitFile({
         type: "asset",
