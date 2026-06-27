@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import {
   ArchiveIcon,
@@ -7,6 +7,8 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CogIcon,
+  ExternalLinkIcon,
+  FloatingPanel,
   FolderIcon,
   FolderOpenIcon,
   HeartIcon,
@@ -17,9 +19,11 @@ import {
   RedoIcon,
   RowActionMenu,
   SearchIcon,
+  SparklesIcon,
   SwipeableRow,
   TrashIcon,
   UndoIcon,
+  type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
 import type { Namespace } from "@niclaslindstedt/oss-framework/namespaces";
@@ -47,6 +51,24 @@ function listIcon(list: List, active: boolean) {
   );
 }
 
+// The About dropdown opens up-and-to-the-left of its footer trigger: the
+// framework's `FloatingPanel` flips it above automatically (there's no room
+// below at the foot of the drawer) and widens it to at least the trigger.
+const ABOUT_PLACEMENT: FloatingPlacement = {
+  width: { kind: "min", minPx: 200 },
+  anchor: "left",
+  coordinateSpace: "viewport",
+};
+
+// The project links surfaced in the footer (Donate) and the About dropdown
+// (Source code). A real app reads the donate target from build-time env so a
+// blank value can hide the row; the demo hard-codes the framework's own home.
+const SOURCE_URL = "https://github.com/niclaslindstedt/oss-framework";
+const DONATE_URL = "https://github.com/sponsors/niclaslindstedt";
+// The subtitle under the Source row — a real app feeds its build / version
+// label in here (a commit hash, a tag); the demo shows a static stand-in.
+const BUILD_LABEL = "demo";
+
 // The navigation drawer's content — the rows the framework `Sidebar` shell
 // frames. This is the app's own navigation (the framework owns only the
 // docked/drawer framing around it): the namespace header, the checklist tree
@@ -61,6 +83,9 @@ type Props = {
   onOpenNamespaces: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
+  // Open the "What's new" dialog (the framework `ChangelogModal`, mounted by
+  // `App`) — reached from the About dropdown.
+  onOpenChangelog: () => void;
   // Close the drawer after a navigation (a no-op when the sidebar is docked).
   onNavigate: () => void;
   // PWA update state, threaded from `usePwaUpdate` (here, the demo's simulated
@@ -76,6 +101,7 @@ export function SideMenuContent({
   onOpenNamespaces,
   onOpenSettings,
   onOpenSearch,
+  onOpenChangelog,
   onNavigate,
   checkingUpdate,
   updateAvailable,
@@ -110,6 +136,10 @@ export function SideMenuContent({
   // The checklist being renamed in place (swipe-left pencil / right-click), or
   // `null` when none is.
   const [renamingListId, setRenamingListId] = useState<string | null>(null);
+  // The footer "About" dropdown (What's new / source), anchored to `aboutRef`
+  // and flipped upward by `FloatingPanel`.
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const aboutRef = useRef<HTMLButtonElement>(null);
 
   function toggleFolder(id: string) {
     setCollapsedFolders((prev) => {
@@ -359,14 +389,34 @@ export function SideMenuContent({
         </div>
       </div>
 
-      {/* Footer — fixed. */}
+      {/* Footer — fixed. Donate (an external link), an About dropdown that
+          folds away the project links, the framework's "check for updates"
+          row, and Settings pinned last under the thumb. */}
       <div className="flex shrink-0 flex-col border-t border-line [padding-top:calc(1.25rem-var(--density-row-py))]">
-        <FooterRow icon={<HeartIcon className="h-5 w-5 text-danger" />}>
+        <FooterLink
+          icon={<HeartIcon className="h-5 w-5 text-danger" />}
+          href={DONATE_URL}
+          external
+        >
           {t("menu.donate")}
-        </FooterRow>
-        <FooterRow icon={<HelpCircleIcon className="h-5 w-5" />}>
-          {t("menu.about")}
-        </FooterRow>
+        </FooterLink>
+        {/* About: a single row that reveals the project links in an upward-
+            flipping dropdown — there's no room below at the foot of the drawer.
+            It reads as a plain footer row (no chevron) and just toggles the
+            panel. */}
+        <button
+          ref={aboutRef}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={aboutOpen}
+          onClick={() => setAboutOpen((v) => !v)}
+          className="flex w-full cursor-pointer items-center gap-3 px-5 py-[var(--density-row-py)] text-left text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+        >
+          <span className="text-muted">
+            <HelpCircleIcon className="h-5 w-5" />
+          </span>
+          <span className="flex-1">{t("menu.about")}</span>
+        </button>
         {/* The framework owns the whole row — spinner, "up to date" / "update
             available" feedback, the aria-live wiring — so the demo only feeds
             it the update state and the translated strings. */}
@@ -389,6 +439,38 @@ export function SideMenuContent({
           {t("menu.settings")}
         </FooterRow>
       </div>
+
+      {/* The About dropdown itself — portalled and positioned by the framework
+          `FloatingPanel`, which owns the flip-up placement, the Escape /
+          outside-click dismissal, and focus restoration. "What's new" opens the
+          changelog dialog; "Source code" is an external link with the build
+          label as its subtitle. */}
+      <FloatingPanel
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        triggerRef={aboutRef}
+        placement={ABOUT_PLACEMENT}
+        className="py-1"
+      >
+        <FooterRow
+          icon={<SparklesIcon className="h-5 w-5" />}
+          onClick={() => {
+            setAboutOpen(false);
+            onOpenChangelog();
+          }}
+        >
+          {t("menu.whatsNew")}
+        </FooterRow>
+        <FooterLink
+          icon={<ExternalLinkIcon className="h-5 w-5" />}
+          href={SOURCE_URL}
+          sublabel={BUILD_LABEL}
+          external
+          onClick={() => setAboutOpen(false)}
+        >
+          {t("menu.source")}
+        </FooterLink>
+      </FloatingPanel>
     </div>
   );
 }
@@ -640,5 +722,43 @@ function FooterRow({
       <span className="text-muted">{icon}</span>
       <span className="flex-1">{children}</span>
     </button>
+  );
+}
+
+// The link sibling of `FooterRow` — an anchor instead of a button, with an
+// optional subtitle (the Source row's build label) and an external-link affordance
+// (a new tab + the trailing glyph). Shares the row look so the donate link, the
+// About toggle, and the dropdown items all read as one footer family.
+function FooterLink({
+  children,
+  icon,
+  href,
+  sublabel,
+  external,
+  onClick,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  href: string;
+  sublabel?: string;
+  external?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+      className="flex w-full cursor-pointer items-center gap-3 px-5 py-[var(--density-row-py)] text-left text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+    >
+      <span className="text-muted">{icon}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate">{children}</span>
+        {sublabel && (
+          <span className="truncate text-xs text-muted">{sublabel}</span>
+        )}
+      </span>
+      {external && <ExternalLinkIcon className="h-4 w-4 shrink-0 text-muted" />}
+    </a>
   );
 }

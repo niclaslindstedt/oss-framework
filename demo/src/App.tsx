@@ -16,6 +16,7 @@ import {
   type PwaUpdateCheckResult,
 } from "@niclaslindstedt/oss-framework/pwa";
 import { SyncDetailsModal } from "@niclaslindstedt/oss-framework/sync";
+import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 import {
   useMediaQuery,
@@ -39,6 +40,7 @@ import {
 } from "@niclaslindstedt/oss-framework/achievements";
 
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
+import { RELEASES, FEATURE_DOCS } from "./app/changelog.ts";
 import { SearchOverlay } from "./app/SearchOverlay.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
@@ -72,6 +74,8 @@ export function App() {
   const store = useChecklistStore(ns.activeSlug);
   const [namespacesOpen, setNamespacesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // The "What's new" dialog, opened from the side menu's About dropdown.
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const { settings, setSettings } = useAppSettings();
 
   // The (simulated) sync engine — the app-owned state machine the framework's
@@ -236,6 +240,10 @@ export function App() {
             setSettingsOpen(true);
           }}
           onOpenSearch={() => setSearchOpen(true)}
+          onOpenChangelog={() => {
+            setDrawerOpen(false);
+            setChangelogOpen(true);
+          }}
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
@@ -409,6 +417,24 @@ export function App() {
         store={store}
         onNavigate={() => {
           if (!pinned) setDrawerOpen(false);
+        }}
+      />
+
+      {/* The "What's new" dialog — opened from the side menu's About dropdown.
+          The framework `ChangelogModal` owns the overlay, the markdown rendering,
+          and the `[Learn more]` drill-down; the app inlines the CHANGELOG and the
+          feature docs at build time (`./app/changelog.ts`) and translates the
+          chrome through its own i18n. */}
+      <ChangelogModal
+        open={changelogOpen}
+        onClose={() => setChangelogOpen(false)}
+        releases={RELEASES}
+        featureDocs={FEATURE_DOCS}
+        labels={{
+          heading: t("changelog.heading"),
+          empty: t("changelog.empty"),
+          close: t("common.close"),
+          back: t("changelog.back"),
         }}
       />
 
