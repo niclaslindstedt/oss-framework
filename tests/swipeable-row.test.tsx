@@ -202,4 +202,34 @@ describe("SwipeableRow", () => {
     expect(container.querySelector("[data-drawer-swipe-ignore]")).toBeNull();
     expect(screen.getByText("Groceries")).toBeTruthy();
   });
+
+  it("gates the gesture off on a desktop pointer (renders plainly)", () => {
+    // Model a desktop pointer: `useDesktopPointer` reads `(hover: hover) and
+    // (pointer: fine)`, which jsdom doesn't ship — stub it to match. Swipe is a
+    // touch affordance, so on desktop the row carries no swipe DOM and a drag
+    // never latches it open (the actions are reached via a right-click menu).
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("hover: hover"),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    const onSelect = vi.fn();
+    const { container } = render(
+      <SwipeableRow
+        actions={[{ label: "Rename", onSelect }]}
+        onArchive={vi.fn()}
+      >
+        <button type="button">Groceries</button>
+      </SwipeableRow>,
+    );
+    // No swipe scaffolding: the drawer-ignore tag and the revealed strip are
+    // both absent.
+    expect(container.querySelector("[data-drawer-swipe-ignore]")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Rename", hidden: true }),
+    ).toBeNull();
+    expect(screen.getByText("Groceries")).toBeTruthy();
+    vi.unstubAllGlobals();
+  });
 });

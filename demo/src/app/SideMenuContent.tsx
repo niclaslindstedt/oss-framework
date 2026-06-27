@@ -130,6 +130,13 @@ export function SideMenuContent({
   // A new folder isn't created until it's named: the "New folder" action drops
   // an inline editor into the list, and only a non-empty name commits it.
   const [creatingFolder, setCreatingFolder] = useState(false);
+  // A new checklist follows the same pattern: the "New checklist" action (root,
+  // `folderId: null`) or a folder's "+" (its id) drops an inline editor in the
+  // spot the list will land, and only a non-empty name commits it. `null` when
+  // no list is being created.
+  const [creatingListIn, setCreatingListIn] = useState<{
+    folderId: string | null;
+  } | null>(null);
   // The folder whose name is being edited in place (via its action menu's
   // Rename), or `null` when none is.
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
@@ -152,6 +159,29 @@ export function SideMenuContent({
 
   function pick(id: string) {
     setActive(id);
+    onNavigate();
+  }
+
+  // Open the inline "name your new checklist" editor. A list created inside a
+  // folder needs that folder expanded so the editor is visible, so un-collapse
+  // it first.
+  function beginCreateList(folderId: string | null) {
+    if (folderId !== null) {
+      setCollapsedFolders((prev) => {
+        if (!prev.has(folderId)) return prev;
+        const next = new Set(prev);
+        next.delete(folderId);
+        return next;
+      });
+    }
+    setCreatingListIn({ folderId });
+  }
+
+  // Commit the inline editor: create the named list, open it, and close the
+  // editor. An empty name is handled by `InlineEditRow` (it cancels instead).
+  function commitCreateList(folderId: string | null, title: string) {
+    addList(folderId, title);
+    setCreatingListIn(null);
     onNavigate();
   }
 
@@ -326,19 +356,40 @@ export function SideMenuContent({
                     count={lists.length}
                     expanded={expanded}
                     onToggle={() => toggleFolder(folder.id)}
-                    onAdd={() => {
-                      addList(folder.id);
-                      onNavigate();
-                    }}
+                    onAdd={() => beginCreateList(folder.id)}
                   />
                 </SwipeableRow>
               </RowActionMenu>
-              {expanded && lists.map((list) => renderList(list, true))}
+              {expanded && (
+                <>
+                  {lists.map((list) => renderList(list, true))}
+                  {creatingListIn?.folderId === folder.id && (
+                    <ListEditRow
+                      indent
+                      initial=""
+                      icon={<ChecklistIcon className="h-4 w-4" />}
+                      placeholder={t("menu.checklistName")}
+                      onCommit={(title) => commitCreateList(folder.id, title)}
+                      onCancel={() => setCreatingListIn(null)}
+                    />
+                  )}
+                </>
+              )}
             </div>
           );
         })}
 
         {standalone.map((list) => renderList(list, false))}
+        {creatingListIn?.folderId === null && (
+          <ListEditRow
+            indent={false}
+            initial=""
+            icon={<ChecklistIcon className="h-4 w-4" />}
+            placeholder={t("menu.checklistName")}
+            onCommit={(title) => commitCreateList(null, title)}
+            onCancel={() => setCreatingListIn(null)}
+          />
+        )}
       </div>
 
       {/* Action grid — fixed. */}
@@ -347,10 +398,7 @@ export function SideMenuContent({
           <div className="flex divide-x divide-line">
             <BarButton
               label={t("menu.newChecklist")}
-              onClick={() => {
-                addList(null);
-                onNavigate();
-              }}
+              onClick={() => beginCreateList(null)}
             >
               <PlusIcon className="h-5 w-5" />
             </BarButton>

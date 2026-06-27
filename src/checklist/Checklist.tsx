@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   GripIcon,
 } from "../components/icons.tsx";
+import { useDesktopPointer } from "../hooks/useMediaQuery.ts";
 import { useRowSwipe } from "../hooks/useRowSwipe.ts";
 import {
   flattenForDisplay,
@@ -237,8 +238,23 @@ function SwipeRow({
   onContextMenu?: (e: React.MouseEvent) => void;
   children: React.ReactNode;
 }) {
-  const swipe = useRowSwipe(onDelete);
+  // Swipe-to-delete is a touch affordance; a desktop pointer deletes through
+  // the right-click menu the caller wires via `onRowContextMenu`. Gate the
+  // gesture off there so a mouse drag never latches the Delete strip open.
+  const desktop = useDesktopPointer();
+  const swipe = useRowSwipe(onDelete, { enabled: !desktop });
   const paddingLeft = depth ? depth * INDENT_PER_LEVEL : undefined;
+  if (desktop) {
+    return (
+      <li
+        className="flex items-center gap-3 border-b border-line py-2.5"
+        style={{ paddingLeft }}
+        onContextMenu={onContextMenu}
+      >
+        {children}
+      </li>
+    );
+  }
   return (
     <li className="relative overflow-hidden border-b border-line">
       {/* Delete strip, uncovered as the foreground slides left. Hidden while
