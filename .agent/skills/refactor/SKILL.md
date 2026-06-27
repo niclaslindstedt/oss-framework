@@ -83,9 +83,9 @@ Reject (or rate down) any candidate whose absorption would require:
 - **the store / where the user's data lives** — `useSyncExternalStore`
   wrappers, persistence keys, synced settings docs, undo history. The app
   owns where the user's choice lives.
-- **domain types / entities** — `Note`, a checklist item's `templateId` /
-  `folderId` / `archived`, namespace shapes. The component takes a generic
-  shape; the app intersects its fields back on.
+- **domain types / entities** — the app's own data shapes and the fields hung
+  off them (entity ids, status flags, per-record metadata, workspace shapes).
+  The component takes a generic shape; the app intersects its fields back on.
 - **business rules** — app-specific validation, workflow, what a feature
   _means_. Generic mechanics yes; product decisions no.
 - **side-effecting asset imports** — `@fontsource/*` CSS, `import.meta.glob`
@@ -486,9 +486,8 @@ user-visible, so it lands `no-changelog`.
 
 The two skills are complementary halves of the same goal:
 
-- **`find-refactor-candidates`** pulls **new** code _out_ of the source apps
-  (`notes` / `checklist`) into a fresh framework module, drawing the seam for
-  the first time.
+- **`find-refactor-candidates`** pulls **new** code _out_ of the donor app
+  (`budget`) into a fresh framework module, drawing the seam for the first time.
 - **`refactor`** (this skill) deepens an **existing** seam — taking a module
   that was extracted too lightly and lifting more generic responsibility _in_
   from the adopter side, using the demo as the evidence of what every app

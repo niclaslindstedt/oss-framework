@@ -3,8 +3,8 @@ name: Mirror
 # Push main to an external git mirror on every commit to main, so this
 # package can be `git clone`d with full history even from sandboxes where
 # github.com egress is blocked (403). The `find-refactor-candidates` skill
-# already reaches the sibling apps (`notes` / `checklist`) through exactly
-# such a mirror; this keeps the framework itself cloneable the same way.
+# already reaches the sibling app (`budget`) through exactly such a mirror;
+# this keeps the framework itself cloneable the same way.
 # Provider-agnostic: GitLab, Codeberg / Gitea, Bitbucket, self-hosted.
 #
 # Setup (the job is a no-op until configured):
@@ -50,6 +50,9 @@ jobs:
             echo "::error::MIRROR_URL is set but the MIRROR_TOKEN secret is missing."
             exit 1
           fi
-          git push --force \
+          # A plain (non-force) push: main is append-only, so the mirror
+          # fast-forwards. The mirror starts as a clean/empty repo, so there
+          # is nothing to overwrite — never force-push over it.
+          git push \
             "https://${MIRROR_USER:-oauth2}:${MIRROR_TOKEN}@${MIRROR_URL}" \
             HEAD:refs/heads/main

@@ -13,20 +13,22 @@
 //   MIRROR_TOKEN  a GitLab access token with read_repository scope
 //
 // Usage:
-//   node clone-apps.mjs                 # clone/refresh the default apps
-//   node clone-apps.mjs notes checklist # explicit list
-//   APPS=notes,checklist node clone-apps.mjs
+//   node clone-apps.mjs                 # clone/refresh the default app(s)
+//   node clone-apps.mjs budget          # explicit list
+//   APPS=budget node clone-apps.mjs
 //   REFERENCE_DIR=.reference node clone-apps.mjs
 //
 // The clones land in REFERENCE_DIR (default ".reference/", git-ignored). An
 // existing clone is fetched and hard-reset to its default branch rather than
-// re-cloned.
+// re-cloned. An empty mirror (no commits yet) clones cleanly and is left
+// in place — `similarity.mjs` skips a source app that has no `src/` so the
+// skill degrades gracefully until the mirror is populated.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const DEFAULT_APPS = ["notes", "checklist"];
+const DEFAULT_APPS = ["budget"];
 
 const apps =
   process.argv.slice(2).length > 0
@@ -56,6 +58,20 @@ function remoteFor(app) {
   return `https://oauth2:${token}@${cleanBase}/${app}.git`;
 }
 
+// Resolve the remote default branch, or null for an empty mirror (a freshly
+// created repo with no commits has no `origin/HEAD`, so rev-parse fails).
+function defaultBranch(dest) {
+  try {
+    return execFileSync(
+      "git",
+      ["-C", dest, "rev-parse", "--abbrev-ref", "origin/HEAD"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+  } catch {
+    return null;
+  }
+}
+
 // Run git, echoing a redacted command line so a leaked token never reaches
 // the logs. stdio inherits so progress is visible.
 function git(args, opts = {}) {
@@ -73,12 +89,12 @@ for (const app of apps) {
     // Refresh in place: fetch, then hard-reset to the remote default branch.
     git(["-C", dest, "remote", "set-url", "origin", remoteFor(app)]);
     git(["-C", dest, "fetch", "--depth", "1", "origin"]);
-    const head = execFileSync(
-      "git",
-      ["-C", dest, "rev-parse", "--abbrev-ref", "origin/HEAD"],
-      { encoding: "utf8" },
-    ).trim();
-    git(["-C", dest, "reset", "--hard", head]);
+    const head = defaultBranch(dest);
+    if (head) {
+      git(["-C", dest, "reset", "--hard", head]);
+    } else {
+      console.log("  (empty mirror — no default branch yet; nothing to reset)");
+    }
   } else {
     git(["clone", "--depth", "1", remoteFor(app), dest]);
   }
