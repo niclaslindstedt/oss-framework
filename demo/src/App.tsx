@@ -161,9 +161,11 @@ export function App() {
   });
 
   // Keyboard undo/redo over the same document history the side-menu buttons
-  // drive (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Ctrl+Y). Silenced while a phone
-  // drawer is open over the screen — the drawer owns the keyboard then — but
-  // always live when the sidebar is docked (pinned) on a wide screen.
+  // drive (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Ctrl+Y). The hook already stands down
+  // on its own while a modal (Settings, "What's new") owns the keyboard, so the
+  // only gate left for the app is the phone navigation drawer — a non-modal
+  // `<nav>` the hook can't detect — which owns the keyboard while open over the
+  // screen but never when the sidebar is docked (pinned) on a wide screen.
   useUndoRedoShortcuts({
     canUndo: store.canUndo,
     canRedo: store.canRedo,
