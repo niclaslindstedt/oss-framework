@@ -89,6 +89,7 @@ export const en = {
   screen: {
     addItem: "Add an item…",
     addItemAria: "Add item",
+    editItem: "Edit item",
     clear: "Clear",
     copyList: "Copy list",
     copied: "Copied",

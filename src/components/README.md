@@ -16,25 +16,26 @@ go where. The primitives carry **no i18n, no domain types, and no asset
 imports** — the few strings that face the user inject as props with English
 defaults.
 
-| Export                                         | Kind      | What it is                                                                                                                     |
-| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                                         |
-| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                                                   |
-| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                                                  |
-| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                    |
-| `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard. |
-| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                                        |
-| `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                      |
-| `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.     |
-| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                    |
-| `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row.                     |
-| `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.                             |
-| `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                    |
-| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                        |
-| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                             |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                                        |
-| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                              |
-| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                              |
+| Export                                         | Kind      | What it is                                                                                                                                   |
+| ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                                                       |
+| `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                                                                 |
+| `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                                                                |
+| `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                                  |
+| `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard.               |
+| `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
+| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                                                      |
+| `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
+| `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
+| `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                                  |
+| `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row.                                   |
+| `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.                                           |
+| `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                                  |
+| `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                                      |
+| `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                                           |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                                                      |
+| `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                                            |
+| `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                                            |
 
 ## The contract
 

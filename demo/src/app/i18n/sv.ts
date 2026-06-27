@@ -88,6 +88,7 @@ export const sv: Catalog = {
   screen: {
     addItem: "Lägg till en rad…",
     addItemAria: "Lägg till rad",
+    editItem: "Redigera rad",
     clear: "Rensa",
     copyList: "Kopiera lista",
     copied: "Kopierad",

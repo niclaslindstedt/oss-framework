@@ -23,6 +23,8 @@ is deliberately minimal; an app intersects it to layer its own fields on.
 | `ChecklistNode`                                                           | type      | `{ id; label; checked; checkedAt?; children? }`.                   |
 | `toggleNode` / `setNodeChecked` / `setAllChecked`                         | fn        | Check operations — **cascade** the new state down the subtree.     |
 | `removeNode`                                                              | fn        | Drop a node (and its subtree) from anywhere in the tree.           |
+| `renameNode`                                                              | fn        | Replace a node's label, leaving the rest of the tree shared.       |
+| `moveNode`                                                                | fn        | Move a node (and its subtree) before/after another, reparenting.   |
 | `countProgress` / `isComplete` / `subtreeState`                           | fn        | Tallies and the indeterminate cue.                                 |
 | `sortCheckedToBottom` / `flattenForDisplay` / `flattenNodes` / `findNode` | fn        | View ordering and tree walks.                                      |
 
@@ -110,6 +112,41 @@ so you perform the removal and stack it on your own undo history:
 `deleteLabel` is the only visible string; everything else paints through the
 theme tokens (`bg-danger` behind the foreground, `bg-page-bg` on the row). Leave
 `onDelete` unset and rows render plain — no gesture, no extra DOM.
+
+### Edit in place
+
+Pass `editable` and a row's **string** label becomes a tap-to-edit field — an
+[`InlineEditField`](../components/README.md) that mounts focused with its text
+selected, commits on Enter/blur and cancels on Escape. The commit flows through
+the same `onChange`, with the relabelled tree (`renameNode` under the hood):
+
+```tsx
+<Checklist
+  items={items}
+  onChange={setItems}
+  editable
+  editPlaceholder="Edit item" // English default; pass a translated string
+/>
+```
+
+A non-string label (a rich `ReactNode`) stays read-only.
+
+### Drag to reorder
+
+Pass `reorderable` and rows lift to drag: a **long press** (touch) or a press on
+the **grip** (`showGrips`) picks a row up, and dropping it before/after another
+row reorders the tree (`moveNode`) through `onChange`. The drop reparents the
+dragged node — subtree and all — into the target's sibling list, so a row can
+move between child checklists, not just within its own level:
+
+```tsx
+<Checklist items={items} onChange={setItems} reorderable showGrips />
+```
+
+The gesture rides Pointer Events (touch + mouse + pen) and a held drag suppresses
+the row's own tap, so dragging never toggles or opens the editor. Driving your
+own store? `moveNode(tree, dragId, targetId, "before" | "after")` and
+`renameNode(tree, id, label)` are the pure transforms behind both.
 
 Driving your **own store** instead of local state? Skip the components and use
 `tree.ts` directly — every function is a pure `(tree) => tree` transform, so it

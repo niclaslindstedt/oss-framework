@@ -175,6 +175,77 @@ export function removeNode(
   return changed ? next : (nodes as ChecklistNode[]);
 }
 
+/**
+ * Replace the label of the node with `id`, leaving its checked state, children,
+ * and every other node untouched — the commit behind editing a row's text in
+ * place. Returns the input unchanged (same ref) if `id` isn't found. Pure:
+ * structural sharing everywhere else.
+ */
+export function renameNode(
+  nodes: readonly ChecklistNode[],
+  id: string,
+  label: ReactNode,
+): ChecklistNode[] {
+  if (!findNode(nodes, id)) return nodes as ChecklistNode[];
+  return updateNode(nodes, id, (n) => ({ ...n, label }));
+}
+
+// Insert `node` immediately before / after the node with `targetId`, wherever
+// it sits in the tree, rebuilding only the path down to it (structural sharing
+// elsewhere). Assumes `targetId` is present — the caller checks.
+function insertRelative(
+  nodes: readonly ChecklistNode[],
+  targetId: string,
+  node: ChecklistNode,
+  position: "before" | "after",
+): ChecklistNode[] {
+  let changed = false;
+  const out: ChecklistNode[] = [];
+  for (const n of nodes) {
+    if (n.id === targetId) {
+      changed = true;
+      if (position === "before") out.push(node, n);
+      else out.push(n, node);
+      continue;
+    }
+    if (n.children) {
+      const children = insertRelative(n.children, targetId, node, position);
+      if (children !== n.children) {
+        changed = true;
+        out.push({ ...n, children });
+        continue;
+      }
+    }
+    out.push(n);
+  }
+  return changed ? out : (nodes as ChecklistNode[]);
+}
+
+/**
+ * Move the node with `dragId` to sit just `"before"` / `"after"` `targetId`,
+ * wherever the target lives — reparenting the dragged node (and its whole
+ * subtree) into the target's sibling list. The drop behind a drag-to-reorder
+ * gesture. A no-op (same ref) when `dragId === targetId`, when either id is
+ * missing, or when `targetId` sits inside `dragId`'s own subtree (which would
+ * orphan the branch being relocated). Pure: never mutates the input.
+ */
+export function moveNode(
+  nodes: readonly ChecklistNode[],
+  dragId: string,
+  targetId: string,
+  position: "before" | "after",
+): ChecklistNode[] {
+  if (dragId === targetId) return nodes as ChecklistNode[];
+  const dragged = findNode(nodes, dragId);
+  if (!dragged || !findNode(nodes, targetId)) return nodes as ChecklistNode[];
+  // Refuse to drop a node into its own subtree — it would vanish with the
+  // branch we lift out below.
+  if (dragged.children && findNode(dragged.children, targetId)) {
+    return nodes as ChecklistNode[];
+  }
+  return insertRelative(removeNode(nodes, dragId), targetId, dragged, position);
+}
+
 /** Checked / total counts over every node in the tree (sub-items included). */
 export function countProgress(nodes: readonly ChecklistNode[]): {
   checked: number;

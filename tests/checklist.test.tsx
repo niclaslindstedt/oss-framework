@@ -13,7 +13,9 @@ import {
   flattenForDisplay,
   flattenNodes,
   isComplete,
+  moveNode,
   removeNode,
+  renameNode,
   setAllChecked,
   setNodeChecked,
   sortCheckedToBottom,
@@ -151,6 +153,69 @@ describe("checklist tree", () => {
     expect(findNode(original, "fruit")).toBeDefined();
   });
 
+  it("renameNode replaces a node's label, leaving the rest", () => {
+    const next = renameNode(tree(), "milk", "Oat milk");
+    expect(findNode(next, "milk")!.label).toBe("Oat milk");
+    expect(findNode(next, "apple")!.label).toBe("Apple");
+    // A miss returns the same reference.
+    const t = tree();
+    expect(renameNode(t, "nope", "x")).toBe(t);
+  });
+
+  it("renameNode does not mutate the input tree", () => {
+    const original = tree();
+    renameNode(original, "milk", "Oat milk");
+    expect(findNode(original, "milk")!.label).toBe("Milk");
+  });
+
+  it("moveNode reorders siblings before / after a target", () => {
+    // "milk" before "fruit" at the top level.
+    expect(
+      moveNode(tree(), "milk", "fruit", "before").map((n) => n.id),
+    ).toEqual(["milk", "fruit"]);
+    // "apple" after "pear" within the "fruit" subtree.
+    const within = moveNode(tree(), "apple", "pear", "after");
+    expect(findNode(within, "fruit")!.children!.map((n) => n.id)).toEqual([
+      "pear",
+      "apple",
+    ]);
+  });
+
+  it("moveNode reparents into the target's sibling list", () => {
+    // Top-level "milk" dropped before "apple" (inside "fruit").
+    const next = moveNode(tree(), "milk", "apple", "before");
+    expect(next.map((n) => n.id)).toEqual(["fruit"]);
+    expect(findNode(next, "fruit")!.children!.map((n) => n.id)).toEqual([
+      "milk",
+      "apple",
+      "pear",
+    ]);
+  });
+
+  it("moveNode carries the dragged node's whole subtree", () => {
+    const next = moveNode(tree(), "fruit", "milk", "after");
+    expect(next.map((n) => n.id)).toEqual(["milk", "fruit"]);
+    expect(findNode(next, "fruit")!.children!.map((n) => n.id)).toEqual([
+      "apple",
+      "pear",
+    ]);
+  });
+
+  it("moveNode is a no-op for self, a miss, or a drop into its own subtree", () => {
+    const t = tree();
+    expect(moveNode(t, "fruit", "fruit", "before")).toBe(t);
+    expect(moveNode(t, "fruit", "nope", "before")).toBe(t);
+    expect(moveNode(t, "nope", "milk", "before")).toBe(t);
+    // "apple" lives inside "fruit" — dropping "fruit" by it would orphan it.
+    expect(moveNode(t, "fruit", "apple", "after")).toBe(t);
+  });
+
+  it("moveNode does not mutate the input tree", () => {
+    const original = tree();
+    moveNode(original, "milk", "fruit", "before");
+    expect(original.map((n) => n.id)).toEqual(["fruit", "milk"]);
+  });
+
   it("flattenForDisplay tags depth and skips a collapsed node's children", () => {
     const open = flattenForDisplay(tree(), new Set());
     expect(open.map((r) => [r.node.id, r.depth, r.hasChildren])).toEqual([
@@ -248,6 +313,56 @@ describe("Checklist component", () => {
     );
     expect(onRowContextMenu).toHaveBeenCalledTimes(1);
     expect(onRowContextMenu.mock.calls[0]![0]).toBe("milk");
+  });
+
+  it("keeps rows read-only until editable is set", () => {
+    render(<Controlled initial={tree()} />);
+    // The label is plain text, not an editable button.
+    expect(screen.queryByRole("button", { name: "Milk" })).toBeNull();
+  });
+
+  it("edits a row's label in place on click", () => {
+    function Editable() {
+      const [items, setItems] = useState(tree());
+      return <Checklist items={items} onChange={setItems} editable />;
+    }
+    render(<Editable />);
+    // The label renders as a tap-to-edit button.
+    fireEvent.click(screen.getByRole("button", { name: "Milk" }));
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "Oat milk" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByRole("button", { name: "Oat milk" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Milk" })).toBeNull();
+  });
+
+  it("cancels an edit on Escape, keeping the old label", () => {
+    function Editable() {
+      const [items, setItems] = useState(tree());
+      return <Checklist items={items} onChange={setItems} editable />;
+    }
+    render(<Editable />);
+    fireEvent.click(screen.getByRole("button", { name: "Milk" }));
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "changed" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Milk" })).toBeDefined();
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("lifts a row on a grip press and drops without committing on cancel", () => {
+    const onChange = vi.fn();
+    render(
+      <Checklist items={tree()} onChange={onChange} reorderable showGrips />,
+    );
+    const grips = screen.getAllByRole("button", { name: "Reorder" });
+    fireEvent.pointerDown(grips[0]!);
+    // The lifted row is flagged for the drag.
+    expect(document.querySelector('[data-dragging="true"]')).not.toBeNull();
+    // A cancelled drag drops nothing and commits nothing.
+    fireEvent.pointerCancel(window);
+    expect(document.querySelector('[data-dragging="true"]')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 
