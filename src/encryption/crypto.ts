@@ -1,0 +1,196 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// AES-GCM + PBKDF2 envelope for encrypting a document at rest. Pure helpers —
+// no React, no localStorage, no other framework module. The envelope is itself
+// a JSON object, so an encrypted document can share the same string-typed
+// storage slot as the plaintext one; readers tell them apart by the
+// `encrypted` discriminator.
+//
+// Defaults follow OWASP 2023 password-storage guidance: PBKDF2-SHA256 at 600k
+// iterations, AES-GCM with a 256-bit key, a fresh random salt per envelope, and
+// a fresh 12-byte IV per encryption. The KDF parameters are stored on the
+// envelope so a future iteration bump can be honored without breaking older
+// blobs.
+
+/** Discriminator + version tag stamped on every envelope this module writes. */
+const ENVELOPE_TAG = "oss.encrypted.v1" as const;
+const DEFAULT_ITERATIONS = 600_000;
+const KEY_LENGTH_BITS = 256;
+const SALT_LENGTH_BYTES = 16;
+const IV_LENGTH_BYTES = 12;
+
+/**
+ * The self-describing ciphertext container. Carries its own salt + KDF params,
+ * so it can be decrypted from the password alone with nothing else on hand.
+ * `JSON.stringify`-ed for storage and sniffed back by {@link parseEnvelope}.
+ */
+export type Envelope = {
+  encrypted: typeof ENVELOPE_TAG;
+  kdf: "PBKDF2";
+  hash: "SHA-256";
+  iterations: number;
+  /** Base64 PBKDF2 salt (per-envelope, random). */
+  salt: string;
+  /** Base64 AES-GCM IV (per-encryption, random). */
+  iv: string;
+  /** Base64 AES-GCM ciphertext (auth tag appended by the Web Crypto API). */
+  ciphertext: string;
+};
+
+/**
+ * Coarse phases an encrypt/decrypt passes through, fired so a settings UI can
+ * flash a one-line "this is what's happening" status while the (deliberately
+ * slow) 600k-iteration key derivation runs. Optional and side-effect-only — the
+ * crypto result is unchanged whether or not a callback is supplied.
+ */
+export type CryptoProgressStep = "derivingKey" | "encrypting" | "decrypting";
+export type CryptoProgress = (step: CryptoProgressStep) => void;
+
+// Parse without throwing — returns `undefined` for malformed input so the
+// envelope sniffers below can treat "not JSON" the same as "not an envelope".
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function fromBase64(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function deriveKey(
+  password: string,
+  salt: BufferSource,
+  iterations: number,
+): Promise<CryptoKey> {
+  const subtle = crypto.subtle;
+  const passwordKey = await subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password) as BufferSource,
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"],
+  );
+  return subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    passwordKey,
+    { name: "AES-GCM", length: KEY_LENGTH_BITS },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+function randomBytes(length: number): Uint8Array {
+  const buf = new Uint8Array(length);
+  crypto.getRandomValues(buf);
+  return buf;
+}
+
+/**
+ * Encrypt `plaintext` under `password` and return a JSON envelope string. The
+ * envelope carries its own salt + IV + KDF params, so it can be decrypted later
+ * from the password alone. Throws if `password` is empty.
+ */
+export async function encryptText(
+  plaintext: string,
+  password: string,
+  onProgress?: CryptoProgress,
+): Promise<string> {
+  if (!password) throw new Error("Password is required");
+  const salt = randomBytes(SALT_LENGTH_BYTES);
+  const iv = randomBytes(IV_LENGTH_BYTES);
+  onProgress?.("derivingKey");
+  const key = await deriveKey(
+    password,
+    salt as BufferSource,
+    DEFAULT_ITERATIONS,
+  );
+  onProgress?.("encrypting");
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv as BufferSource },
+    key,
+    new TextEncoder().encode(plaintext) as BufferSource,
+  );
+  const envelope: Envelope = {
+    encrypted: ENVELOPE_TAG,
+    kdf: "PBKDF2",
+    hash: "SHA-256",
+    iterations: DEFAULT_ITERATIONS,
+    salt: toBase64(salt),
+    iv: toBase64(iv),
+    ciphertext: toBase64(new Uint8Array(ciphertext)),
+  };
+  return JSON.stringify(envelope);
+}
+
+/**
+ * Decrypt an envelope string produced by {@link encryptText}. Throws
+ * `"Not an encrypted envelope"` if `envelopeText` is not one, `"Password is
+ * required"` if `password` is empty, and `"Wrong password"` if AES-GCM
+ * authentication fails (wrong password or tampered bytes).
+ */
+export async function decryptEnvelope(
+  envelopeText: string,
+  password: string,
+  onProgress?: CryptoProgress,
+): Promise<string> {
+  const envelope = parseEnvelope(envelopeText);
+  if (!envelope) throw new Error("Not an encrypted envelope");
+  if (!password) throw new Error("Password is required");
+  const salt = fromBase64(envelope.salt);
+  const iv = fromBase64(envelope.iv);
+  const ciphertext = fromBase64(envelope.ciphertext);
+  onProgress?.("derivingKey");
+  const key = await deriveKey(
+    password,
+    salt as BufferSource,
+    envelope.iterations,
+  );
+  onProgress?.("decrypting");
+  let plaintext: ArrayBuffer;
+  try {
+    plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv as BufferSource },
+      key,
+      ciphertext as BufferSource,
+    );
+  } catch {
+    // AES-GCM authentication failure — wrong password or tampered data.
+    throw new Error("Wrong password");
+  }
+  return new TextDecoder().decode(plaintext);
+}
+
+/**
+ * Parse `text` as an {@link Envelope}, or return `null` if it isn't one
+ * (not JSON, or missing the `encrypted` discriminator). Cheap — does not
+ * attempt any cryptographic work.
+ */
+export function parseEnvelope(text: string): Envelope | null {
+  const parsed = safeJsonParse(text);
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    (parsed as { encrypted?: unknown }).encrypted === ENVELOPE_TAG
+  ) {
+    return parsed as Envelope;
+  }
+  return null;
+}
+
+/** True when `text` is an envelope this module can decrypt. */
+export function isEncryptedEnvelope(text: string): boolean {
+  return parseEnvelope(text) !== null;
+}

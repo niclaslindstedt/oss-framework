@@ -487,13 +487,61 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
       is forward-going only, so a rich seed would otherwise read as all-locked), and
       `Clean Sweep` (check-all) + `Time Traveler` (undo → manual `unlock`) are earned
       live, lighting the button + firing the unlock modal.
+- **`encryption/` (at-rest crypto + adapter wrapper) — extracted (done).** Lives
+  in the framework as `@niclaslindstedt/oss-framework/encryption`: the pure
+  envelope crypto (`encryptText`/`decryptEnvelope`/`parseEnvelope`/
+  `isEncryptedEnvelope` over a self-describing AES-GCM + PBKDF2 JSON `Envelope`)
+  and `withEncryption(inner, passwordRef, { logger? })` — a higher-order
+  `StorageAdapter` that enciphers on `save` and decrypts on `load`. `crypto.ts`
+  had **drifted hard** (the storage pattern again): notes' copy (373 lines) was
+  fused with per-file/attachment **session keys** + gzip compression + a
+  deterministic-filename HMAC; checklist's (181 lines) is the clean,
+  envelope-only whole-document format — the framework took **checklist's clean
+  contract** as canonical. `withEncryption` (the `encrypting/index.ts` HOA) was
+  **byte-identical bar comments**; the framework took **checklist's superset**
+  (it forwards `probe` + `getRevision`; notes' didn't). **App glue dropped at the
+  seam:** the apps' `createLogger("encrypt")` became an injectable `Logger` from
+  the storage module (default `noopLogger`); crypto.ts's `deriveKey` timing log
+  was **dropped to keep crypto zero-dependency** (the wrapper times the round
+  trip with the injectable logger instead — the better seam); and the envelope
+  tag generalised from `checklist.encrypted.v1` to a neutral `oss.encrypted.v1`
+  (fixed, not configurable — a green-field app doesn't migrate old blobs).
+  **What stayed app-side (the store rule):** `useEncryption.ts` is a React store
+  fused with the achievements bus + `backend-preference` + the offline cache —
+  only the pure crypto + the wrapper moved. The **i18n-coupled** bits also stayed:
+  `ui/encryption-progress.ts` (maps progress steps → i18n `MessageKey`s) and
+  `ui/UnlockGate.tsx` (a full-screen prompt fused with `useT` + the storage
+  backend hook) — the demo builds its own small unlock UI over the bare module.
+  **The architecture's "encrypt/decrypt migration queue" did NOT come:** notes'
+  `encryption-migration.ts` is attachment-coupled and notes-only — the module is
+  the crypto + the wrapper. **Demo:** the Settings → Storage playground gained an
+  "Encryption at rest" section (a `ToggleRow` + passphrase) that wraps its
+  localStorage adapter with `withEncryption`; a "Bytes on disk" panel reveals the
+  raw `localStorage` value (plaintext vs the `oss.encrypted.v1` envelope JSON); a
+  "Lock (simulate reload)" button drops the in-memory passphrase and an unlock
+  prompt re-decrypts (wrong password surfaces the framework's "Wrong password"),
+  modelling the locked-after-reload lifecycle a real app has; and the wrapper's
+  diagnostics route into the demo's in-app log buffer (the `encrypt` scope the
+  Logs tab already seeded). See `src/encryption/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
 - `storage/useStorageBackend.ts` is the largest shared file (~2000 lines) and
   blows the §20.5 limit — it must be decomposed during extraction, not lifted.
 - `i18n/locales/**` similarity is low by design (translations differ); the
-  i18n _machinery_ (`i18n/index.ts`, `locale.ts`) is the real candidate.
+  i18n _machinery_ (`i18n/index.ts`, `locale.ts`, `language-preference.ts`,
+  `LanguageRoot.tsx`) is the real candidate.
+- **Extract next (recommendation, after `encryption`):** the **i18n machinery**
+  is the strongest remaining clean win — it directly unblocks the demo's
+  outstanding "i18n language switch" gap (strings are still hard-coded English),
+  and every already-extracted module that took `labels`/`MessageKey` props was
+  built anticipating it. Treat the locale _tables_ as the app's (translations
+  diverge); extract the machinery + a tiny seed catalogue. After that, the
+  **namespaces** cluster (`storage/namespaces.ts` 76%, `ui/NamespacesModal.tsx`
+  75%, `namespace-store.ts`, `useNamespaceRegistry.ts`, `namespace-favicon.ts`)
+  is the next big subsystem — but it's **store-heavy**, so expect most of it to
+  stay app-side per the store rule (extract the namespace _data/types_ + the pure
+  favicon builder, leave the registry/store).
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
@@ -527,7 +575,13 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   resting on the right edge) opening the Settings dialog; and a Settings →
   Storage playground over the `StorageAdapter` contract whose async
   `save`/`reload` now front the framework's `CipherGlyph` busy indicator (held
-  for a `BUSY_MIN_MS` anti-flicker window); and a list-screen **pull-to-refresh
+  for a `BUSY_MIN_MS` anti-flicker window) — the playground also has an
+  **"Encryption at rest"** section (a `ToggleRow` + passphrase) that wraps the
+  localStorage adapter with the `encryption` module's `withEncryption`, a "Bytes
+  on disk" panel that reveals plaintext vs the `oss.encrypted.v1` envelope JSON,
+  and a "Lock (simulate reload)" + unlock prompt modelling the
+  locked-after-reload lifecycle (wrong password → the framework's "Wrong
+  password"); and a list-screen **pull-to-refresh
   sync** — the header's "In sync" glyph is live (tap to sync, spins while in
   flight) and an inward pull from the list top triggers the same `sync()`
   (`useChecklistStore.reload` behind a min-delay), surfaced by

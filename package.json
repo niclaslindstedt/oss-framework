@@ -75,6 +75,11 @@
       "types": "./dist/achievements/index.d.ts",
       "import": "./dist/achievements/index.js",
       "require": "./dist/achievements/index.cjs"
+    },
+    "./encryption": {
+      "types": "./dist/encryption/index.d.ts",
+      "import": "./dist/encryption/index.js",
+      "require": "./dist/encryption/index.cjs"
     }
   },
   "scripts": {

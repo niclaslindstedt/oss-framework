@@ -115,6 +115,8 @@ Today:
 | `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.          |
 | `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.               |
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.     |
+| `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.              |
+| `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.          |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -294,8 +296,24 @@ import {
 } from "@niclaslindstedt/oss-framework/achievements";
 ```
 
-Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus
-the migration queue).
+The `encryption` module is **at-rest encryption** for a local-first app: a
+passphrase enciphers the document wherever its bytes live, because it sits above
+the storage transport. `withEncryption(adapter, passwordRef)` wraps any
+`StorageAdapter` so `save` enciphers and `load` decrypts; `encryptText` /
+`decryptEnvelope` are the pure AES-GCM + PBKDF2 round-trip over a self-describing
+JSON envelope, with `isEncryptedEnvelope` to tell ciphertext from plaintext. The
+framework holds the passphrase nowhere — your app collects it and threads it in
+by reference, and owns the lock/unlock UI. See
+[`src/encryption/README.md`](src/encryption/README.md) for the envelope format
+and an adoption guide.
+
+```ts
+import {
+  withEncryption,
+  encryptText,
+  decryptEnvelope,
+} from "@niclaslindstedt/oss-framework/encryption";
+```
 
 ## Demo / preview site
 
