@@ -71,6 +71,17 @@ function load(slug: string): AppData {
   return slug === DEFAULT_NAMESPACE_SLUG ? SEED : emptyDoc();
 }
 
+/** Write a namespace's document to its localStorage key, stamping the latest
+ *  version onto the bytes (the on-disk shape carries a version; the in-memory
+ *  `AppData` does not). Used to push a checklist / folder *into another
+ *  namespace's* document — the one the active store isn't holding. */
+function persistDoc(slug: string, doc: AppData): void {
+  localStorage.setItem(
+    docKey(slug),
+    JSON.stringify({ version: LATEST_VERSION, ...doc }),
+  );
+}
+
 /** Count of still-unchecked nodes in a list — the side menu's row badge. */
 export function remaining(list: List): number {
   return flattenNodes(list.items).filter((n) => !n.checked).length;
@@ -348,6 +359,90 @@ export function useChecklistStore(slug: string) {
     [commit, data],
   );
 
+  // Move a checklist into a folder (or out to the root, `null`) — the drag-and-
+  // drop-into-a-folder outcome. A pure reparent within the active document;
+  // goes through `commit`, so the move is one Undo away.
+  const moveListToFolder = useCallback(
+    (listId: string, folderId: string | null) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId ? { ...l, folderId } : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Move a checklist into *another* namespace — dropping it onto a workspace row
+  // in the side menu. The target document lives under a different localStorage
+  // key (the active store doesn't hold it), so we read it, append a fresh-id
+  // copy (reset to the root — the target has no matching folder), write it back,
+  // and only then drop the original from the active document. The remote write
+  // happens first so a storage failure aborts before anything is lost. (The
+  // local removal is undoable; the cross-namespace copy is not, so an Undo
+  // re-adds it here and leaves the copy over there — an accepted demo edge.)
+  const moveListToNamespace = useCallback(
+    (listId: string, slug: string) => {
+      if (slug === state.slug) return;
+      const list = data.lists.find((l) => l.id === listId);
+      if (!list) return;
+      try {
+        const target = load(slug);
+        const moved: List = { ...list, id: freshId("list"), folderId: null };
+        persistDoc(slug, { ...target, lists: [...target.lists, moved] });
+      } catch {
+        return; // Storage unavailable — abort rather than drop the list.
+      }
+      const lists = data.lists.filter((l) => l.id !== listId);
+      commit({
+        ...data,
+        lists,
+        activeListId: nextActiveId(lists, data.activeListId),
+      });
+    },
+    [commit, data, state.slug],
+  );
+
+  // Move a folder — and every checklist it holds — into another namespace.
+  // Same shape as the list move: append fresh-id copies (under a fresh folder id)
+  // to the target document, then drop the folder and its lists from the active
+  // one. Carries archived lists along too, so none are orphaned under a folder
+  // id that no longer exists.
+  const moveFolderToNamespace = useCallback(
+    (folderId: string, slug: string) => {
+      if (slug === state.slug) return;
+      const folder = data.folders.find((f) => f.id === folderId);
+      if (!folder) return;
+      const folderLists = data.lists.filter((l) => l.folderId === folderId);
+      try {
+        const target = load(slug);
+        const newFolderId = freshId("folder");
+        const movedFolder: Folder = { ...folder, id: newFolderId };
+        const movedLists: List[] = folderLists.map((l) => ({
+          ...l,
+          id: freshId("list"),
+          folderId: newFolderId,
+        }));
+        persistDoc(slug, {
+          ...target,
+          folders: [...target.folders, movedFolder],
+          lists: [...target.lists, ...movedLists],
+        });
+      } catch {
+        return; // Storage unavailable — abort rather than drop the folder.
+      }
+      const movedIds = new Set(folderLists.map((l) => l.id));
+      const lists = data.lists.filter((l) => !movedIds.has(l.id));
+      commit({
+        ...data,
+        folders: data.folders.filter((f) => f.id !== folderId),
+        lists,
+        activeListId: nextActiveId(lists, data.activeListId),
+      });
+    },
+    [commit, data, state.slug],
+  );
+
   // Set a list's appearance — the glyph and/or accent colour the framework's
   // `/glyphs` pickers feed. A partial patch so the colour and the icon can be
   // changed independently; goes through `commit`, so a restyle is undoable.
@@ -390,6 +485,9 @@ export function useChecklistStore(slug: string) {
     renameList,
     deleteList,
     archiveList,
+    moveListToFolder,
+    moveListToNamespace,
+    moveFolderToNamespace,
     setListAppearance,
     reload,
     simulateLegacyDoc,

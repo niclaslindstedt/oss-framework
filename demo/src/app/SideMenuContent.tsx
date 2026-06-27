@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import {
   ArchiveIcon,
@@ -11,6 +12,7 @@ import {
   FloatingPanel,
   FolderIcon,
   FolderOpenIcon,
+  GripIcon,
   HeartIcon,
   HelpCircleIcon,
   InlineEditRow,
@@ -31,10 +33,25 @@ import {
   CheckForUpdatesItem,
   type PwaUpdateCheckResult,
 } from "@niclaslindstedt/oss-framework/pwa";
+import {
+  useDragDrop,
+  type DragHandleProps,
+  type DropZoneProps,
+} from "@niclaslindstedt/oss-framework/sidebar";
 
 import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
 import type { List } from "./types.ts";
+
+// What a side-menu drag carries (a checklist or a whole folder) and where it
+// can land. The framework's `useDragDrop` owns the gesture; these app types are
+// the only domain it ever sees — kept here, never in the framework.
+type DragItem = { kind: "list" | "folder"; id: string };
+type DropTarget =
+  | { kind: "folder"; id: string }
+  | { kind: "root" }
+  | { kind: "namespace"; slug: string }
+  | { kind: "archive" };
 
 // A list's menu icon: its picked glyph tinted by its accent colour, or the
 // neutral checklist mark when it carries no custom appearance. The active row
@@ -80,6 +97,9 @@ type Props = {
   // The workspace the menu's lists belong to — its glyph + name head the menu,
   // and tapping the header (or the cog) opens the namespaces manager.
   activeNamespace: Namespace;
+  // Every workspace — the *other* ones surface as drop targets mid-drag, so a
+  // checklist or folder can be dragged across into another namespace.
+  namespaces: Namespace[];
   onOpenNamespaces: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
@@ -98,6 +118,7 @@ type Props = {
 export function SideMenuContent({
   store,
   activeNamespace,
+  namespaces,
   onOpenNamespaces,
   onOpenSettings,
   onOpenSearch,
@@ -118,12 +139,61 @@ export function SideMenuContent({
     renameList,
     deleteList,
     archiveList,
+    moveListToFolder,
+    moveListToNamespace,
+    moveFolderToNamespace,
     setActive,
     undo,
     redo,
     canUndo,
     canRedo,
   } = store;
+
+  // Drag-and-drop wiring. The framework hook tracks the gesture and hit-tests
+  // the drop zones; the app says which drops are legal (`canDrop`) and what each
+  // one means (`onDrop`) — reparent into a folder or back to the root, hand a
+  // checklist / folder to another namespace, or archive it.
+  const dnd = useDragDrop<DragItem, DropTarget>({
+    canDrop: (drag, target) => {
+      switch (target.kind) {
+        case "folder": {
+          if (drag.kind !== "list") return false; // folders don't nest
+          const list = data.lists.find((l) => l.id === drag.id);
+          return !!list && list.folderId !== target.id;
+        }
+        case "root": {
+          // Only meaningful for a list currently inside a folder.
+          if (drag.kind !== "list") return false;
+          const list = data.lists.find((l) => l.id === drag.id);
+          return !!list && list.folderId !== null;
+        }
+        case "namespace":
+          return true;
+        case "archive":
+          return true;
+      }
+    },
+    onDrop: (drag, target) => {
+      switch (target.kind) {
+        case "folder":
+          moveListToFolder(drag.id, target.id);
+          break;
+        case "root":
+          moveListToFolder(drag.id, null);
+          break;
+        case "namespace":
+          if (drag.kind === "list") moveListToNamespace(drag.id, target.slug);
+          else moveFolderToNamespace(drag.id, target.slug);
+          break;
+        case "archive":
+          if (drag.kind === "list") archiveList(drag.id);
+          else archiveFolder(drag.id);
+          break;
+      }
+    },
+  });
+  const archiveZone = dnd.dropZone("archive", { kind: "archive" });
+  const rootZone = dnd.dropZone("root", { kind: "root" });
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
     () => new Set(),
   );
@@ -220,27 +290,29 @@ export function SideMenuContent({
       },
     ];
     return (
-      <RowActionMenu
+      <DraggableRow
         key={list.id}
-        ariaLabel={t("menu.checklistActions")}
-        actions={actions}
+        handle={dnd.dragHandle({ kind: "list", id: list.id })}
+        handleLabel={t("menu.dragToMove")}
       >
-        <SwipeableRow
-          actions={actions}
-          onArchive={() => archiveList(list.id)}
-          archiveLabel={t("menu.archive")}
-        >
-          <NavRow
-            indent={indent}
-            active={list.id === data.activeListId}
-            icon={listIcon(list, list.id === data.activeListId)}
-            onClick={() => pick(list.id)}
+        <RowActionMenu ariaLabel={t("menu.checklistActions")} actions={actions}>
+          <SwipeableRow
+            actions={actions}
+            onArchive={() => archiveList(list.id)}
+            archiveLabel={t("menu.archive")}
           >
-            <span className="flex-1 truncate">{list.title}</span>
-            <RowBadge value={remaining(list)} />
-          </NavRow>
-        </SwipeableRow>
-      </RowActionMenu>
+            <NavRow
+              indent={indent}
+              active={list.id === data.activeListId}
+              icon={listIcon(list, list.id === data.activeListId)}
+              onClick={() => pick(list.id)}
+            >
+              <span className="flex-1 truncate">{list.title}</span>
+              <RowBadge value={remaining(list)} />
+            </NavRow>
+          </SwipeableRow>
+        </RowActionMenu>
+      </DraggableRow>
     );
   }
 
@@ -253,6 +325,10 @@ export function SideMenuContent({
   const archivedCount =
     data.folders.filter((f) => f.archived).length +
     data.lists.filter((l) => l.archived).length;
+  // The workspaces a drag can be moved into — every namespace but this one.
+  const otherNamespaces = namespaces.filter(
+    (n) => n.slug !== activeNamespace.slug,
+  );
 
   return (
     <div className="flex h-full flex-col select-none">
@@ -288,8 +364,14 @@ export function SideMenuContent({
 
       <SectionHeader label={t("menu.checklists")} border />
 
-      {/* Scrolling list region. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {/* Scrolling list region — also the "root" drop target: dropping a list
+          dragged out of a folder here un-groups it. */}
+      <div
+        ref={rootZone.ref}
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto transition-colors ${
+          rootZone.isOver ? "bg-accent/10" : ""
+        }`}
+      >
         {/* A fresh, unnamed folder editor — committing it creates the folder,
             defocusing it empty (or Escape) discards it. */}
         {creatingFolder && (
@@ -339,27 +421,42 @@ export function SideMenuContent({
               onSelect: () => deleteFolder(folder.id),
             },
           ];
+          const folderZone = dnd.dropZone(`folder:${folder.id}`, {
+            kind: "folder",
+            id: folder.id,
+          });
           return (
-            <div key={folder.id}>
-              <RowActionMenu
-                ariaLabel={t("menu.folderActions")}
-                actions={folderActions}
+            <div
+              key={folder.id}
+              ref={folderZone.ref}
+              className={`transition-colors ${
+                folderZone.isOver ? "bg-accent/15" : ""
+              }`}
+            >
+              <DraggableRow
+                handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
+                handleLabel={t("menu.dragToMove")}
               >
-                <SwipeableRow
+                <RowActionMenu
+                  ariaLabel={t("menu.folderActions")}
                   actions={folderActions}
-                  onArchive={() => archiveFolder(folder.id)}
-                  archiveLabel={t("menu.archive")}
                 >
-                  <FolderRow
-                    name={folder.name}
-                    addLabel={t("menu.newChecklistIn", { name: folder.name })}
-                    count={lists.length}
-                    expanded={expanded}
-                    onToggle={() => toggleFolder(folder.id)}
-                    onAdd={() => beginCreateList(folder.id)}
-                  />
-                </SwipeableRow>
-              </RowActionMenu>
+                  <SwipeableRow
+                    actions={folderActions}
+                    onArchive={() => archiveFolder(folder.id)}
+                    archiveLabel={t("menu.archive")}
+                  >
+                    <FolderRow
+                      name={folder.name}
+                      addLabel={t("menu.newChecklistIn", { name: folder.name })}
+                      count={lists.length}
+                      expanded={expanded}
+                      onToggle={() => toggleFolder(folder.id)}
+                      onAdd={() => beginCreateList(folder.id)}
+                    />
+                  </SwipeableRow>
+                </RowActionMenu>
+              </DraggableRow>
               {expanded && (
                 <>
                   {lists.map((list) => renderList(list, true))}
@@ -392,6 +489,31 @@ export function SideMenuContent({
         )}
       </div>
 
+      {/* Cross-namespace drop targets — only while a drag is live, and in a
+          fixed strip that shrinks the scroll region above rather than shoving
+          the folder targets around. Drop a checklist or folder onto a workspace
+          to move it into that namespace. */}
+      {dnd.dragging && otherNamespaces.length > 0 && (
+        <div className="shrink-0 border-t border-line px-3 pt-2 pb-1">
+          <p className="px-2 pb-1 text-xs font-semibold tracking-wide text-muted uppercase">
+            {t("menu.moveToWorkspace")}
+          </p>
+          <div className="flex flex-col gap-1">
+            {otherNamespaces.map((n) => (
+              <NamespaceDropRow
+                key={n.slug}
+                namespace={n}
+                zone={dnd.dropZone(`ns:${n.slug}`, {
+                  kind: "namespace",
+                  slug: n.slug,
+                })}
+                label={t("menu.moveToNamespace", { name: n.name })}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Action grid — fixed. */}
       <div className="shrink-0 px-3 pt-2 pb-3">
         <div className="divide-y divide-line overflow-hidden rounded-md border border-line">
@@ -409,8 +531,11 @@ export function SideMenuContent({
               <FolderIcon className="h-5 w-5" />
             </BarButton>
             <BarButton
-              label={t("menu.archive")}
+              label={dnd.dragging ? t("menu.dropToArchive") : t("menu.archive")}
               badge={archivedCount > 0 ? String(archivedCount) : undefined}
+              dropRef={archiveZone.ref}
+              over={archiveZone.isOver}
+              active={archiveZone.isActive}
             >
               <ArchiveIcon className="h-5 w-5" />
             </BarButton>
@@ -519,6 +644,17 @@ export function SideMenuContent({
           {t("menu.source")}
         </FooterLink>
       </FloatingPanel>
+
+      {/* The cursor-following label of whatever's mid-drag — portalled to the
+          body so it rides above the drawer and isn't clipped by the panel. */}
+      {dnd.dragging && (
+        <DragPreview
+          item={dnd.dragging}
+          pointer={dnd.pointer}
+          lists={data.lists}
+          folders={data.folders}
+        />
+      )}
     </div>
   );
 }
@@ -723,32 +859,147 @@ function BarButton({
   badge,
   disabled,
   onClick,
+  dropRef,
+  over,
+  active,
 }: {
   children: ReactNode;
   label: string;
   badge?: string;
   disabled?: boolean;
   onClick?: () => void;
+  // When this button doubles as a drop zone (Archive): the framework ref, and
+  // whether a droppable drag is in flight (`active`) / hovering it (`over`).
+  dropRef?: (el: HTMLElement | null) => void;
+  over?: boolean;
+  active?: boolean;
 }) {
+  const dropState = over
+    ? "bg-accent/30 text-fg-bright"
+    : active
+      ? "text-accent ring-1 ring-accent/40 ring-inset"
+      : "";
   return (
     <button
+      ref={dropRef}
       type="button"
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`relative flex flex-1 items-center justify-center py-2.5 ${
+      className={`relative flex flex-1 items-center justify-center py-2.5 transition-colors ${
         disabled
           ? "cursor-not-allowed text-muted opacity-40"
           : "cursor-pointer text-fg hover:bg-surface-2 hover:text-fg-bright"
-      }`}
+      } ${dropState}`}
     >
-      <span className="text-muted">{children}</span>
+      <span className={over ? "text-fg-bright" : "text-muted"}>{children}</span>
       {badge !== undefined && (
         <span className="absolute top-0.5 right-0.5 rounded-full bg-surface-3 px-1 py-0.5 text-[10px] leading-none text-muted tabular-nums">
           {badge}
         </span>
       )}
     </button>
+  );
+}
+
+// A draggable row: the framework grab handle laid over the row's leading edge
+// (faint at rest, brighter on hover) with the existing row content untouched
+// behind it. The handle sits *outside* the row's own button/swipe layers, so a
+// drag never trips the row's tap or its swipe gesture, and owns the pointer for
+// the duration (the framework hook captures it).
+function DraggableRow({
+  handle,
+  handleLabel,
+  children,
+}: {
+  handle: DragHandleProps;
+  handleLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="group relative">
+      <span
+        {...handle}
+        role="button"
+        aria-label={handleLabel}
+        // Opt the row out of the drawer's swipe-to-close while a finger is on
+        // the handle — the handle owns this gesture.
+        data-drawer-swipe-ignore
+        className="absolute inset-y-0 left-0 z-10 flex w-5 cursor-grab touch-none items-center justify-center text-muted opacity-30 group-hover:opacity-70"
+      >
+        <GripIcon className="h-4 w-4" />
+      </span>
+      {children}
+    </div>
+  );
+}
+
+// A workspace shown as a drop target while a drag is live. Lights up when the
+// dragged item hovers it; dropping hands the item to that namespace.
+function NamespaceDropRow({
+  namespace,
+  zone,
+  label,
+}: {
+  namespace: Namespace;
+  zone: DropZoneProps;
+  label: string;
+}) {
+  return (
+    <div
+      ref={zone.ref}
+      aria-label={label}
+      className={`flex items-center gap-3 rounded-md border border-dashed px-3 py-[var(--density-row-py)] text-sm transition-colors ${
+        zone.isOver
+          ? "border-accent bg-accent/30 text-fg-bright"
+          : "border-line/60 text-muted"
+      }`}
+    >
+      <span className="shrink-0">
+        <Glyph
+          name={namespace.glyph}
+          className="h-5 w-5"
+          style={namespace.color ? { color: namespace.color } : undefined}
+        />
+      </span>
+      <span className="flex-1 truncate">{namespace.name}</span>
+    </div>
+  );
+}
+
+// The cursor-following drag preview — the dragged checklist's / folder's icon
+// and name, portalled to the body so it floats above everything.
+function DragPreview({
+  item,
+  pointer,
+  lists,
+  folders,
+}: {
+  item: DragItem;
+  pointer: { x: number; y: number } | null;
+  lists: List[];
+  folders: { id: string; name: string }[];
+}) {
+  if (!pointer) return null;
+  const list =
+    item.kind === "list" ? lists.find((l) => l.id === item.id) : null;
+  const folder =
+    item.kind === "folder" ? folders.find((f) => f.id === item.id) : null;
+  const label = list ? list.title : (folder?.name ?? "");
+  const icon = list ? (
+    listIcon(list, false)
+  ) : (
+    <FolderIcon className="h-4 w-4" />
+  );
+  return createPortal(
+    <div
+      className="pointer-events-none fixed z-[60] flex max-w-[14rem] items-center gap-2 rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm text-fg-bright shadow-lg"
+      style={{ left: pointer.x + 14, top: pointer.y + 14 }}
+    >
+      <span className="text-muted">{icon}</span>
+      <span className="truncate">{label}</span>
+    </div>,
+    document.body,
   );
 }
 

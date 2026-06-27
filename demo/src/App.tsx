@@ -234,6 +234,7 @@ export function App() {
         <SideMenuContent
           store={{ ...store, undo: undoWithTrophy }}
           activeNamespace={ns.activeNamespace}
+          namespaces={ns.list}
           onOpenNamespaces={() => setNamespacesOpen(true)}
           onOpenSettings={() => {
             setDrawerOpen(false);
