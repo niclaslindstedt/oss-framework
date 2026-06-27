@@ -440,34 +440,53 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   migration: delete its `pwa/` copies, import from `/pwa`, pass its `BASE_URL` /
   resolved `cacheId` / `!DEV` as config, lift the hook above the toast, and pass
   translated `labels`. See `src/pwa/README.md`.
-- **`achievements/` (gamification subsystem) — analysed, not yet extracted (NEXT
-  CANDIDATE).** The full `achievements/` cluster exists in both apps with an
-  **identical file layout** (`types.ts`, `derive.ts`, `bus.ts`,
-  `useAchievementWatcher.ts`, `catalog.ts`, `glyphs.tsx`, `index.ts`) plus the
-  two modals `ui/achievements/AchievementsModal.tsx` (86% similar) and
-  `AchievementUnlockModal.tsx` (70%). The logic files are near-identical bar
-  comments and one app-domain noun. **The seam (a clean engine-over-catalog
-  split):**
-  - **Extract (generic over a `TState` type param):** the model in `types.ts`
-    (`AchievementTier`, `TIER_POINTS`, `TIER_ORDER`, and `Trigger<TState>` /
-    `Achievement<TState>` — today's concrete `AchState = { snapshot; settings }`
-    becomes the app's type argument), `deriveUnlocks<TState>` (`derive.ts`), the
-    manual `bus`, `useAchievementWatcher`, the achievement `glyphs.tsx`, and both
-    modals. Drop app glue at the seam: `useT`/i18n → injectable `labels`, the app
-    `Modal` + icons → the framework's own `/components`.
-  - **Stays app-side (the "store"/app-data equivalent):** `catalog.ts` (~620
-    lines) is the concrete list of achievements + their predicates, hard-coupled
-    to each app's domain (`ChecklistItem`/`Snapshot`, `Note`/`Appearance`). It is
-    _what the app chooses to reward_ — the framework supplies the `Achievement`
-    type its entries satisfy and the engine that runs them, not the entries
-    themselves. The concrete `AchState` shape stays app-side as the type arg.
-  - **Drift to converge:** notes names the learn-more flag `learnMore?`,
-    checklist `hasLearnMore?` — take **`hasLearnMore?`** (it accurately names a
-    boolean flag, not the body). `Appearance` vs `Settings` is just each app's
-    `AchState` slice and dissolves into the type param.
-  - **Demo home:** a profile/stats surface — a "Trophies" Settings tab or a
-    profile screen rendering `AchievementsModal` over a small demo catalog, with
-    real unlocks firing through the watcher/bus as the user checks items off.
+- **`achievements/` (gamification subsystem) — extracted (done).** Lives in the
+  framework as `@niclaslindstedt/oss-framework/achievements`: the engine generic
+  over a `TState` type param (`Trigger<TState>` / `Achievement<TState>`,
+  `TIER_POINTS`/`TIER_ORDER`, `deriveUnlocks<TState>`), the manual-unlock `bus`
+  (`unlock`/`subscribe`/`drain`/`resetBus`), `useAchievementWatcher`, and the UI
+  (`AchievementsModal`, `AchievementUnlockModal`, `TrophyButton`). The cluster was
+  **identical bar comments + one app-domain noun**; the clean engine-over-catalog
+  seam held. **What stayed app-side:** `catalog.ts` (~620 lines — the concrete
+  entries + predicates, domain-coupled) and the concrete `AchState` shape, which
+  became the `TState` type argument. **Convergence calls made during extraction
+  (the source shapes were _improved_, not preserved):**
+  - **Display copy moved onto the entry.** Both apps kept `name`/`condition`/
+    `learnMore` in a parallel i18n table keyed by id and carried a `hasLearnMore?`
+    _flag_. The framework instead carries `name`/`condition`/`learnMore?` as
+    `ReactNode` **on the `Achievement` entry** — so `hasLearnMore` is redundant
+    and was dropped (`learnMore != null` is the flag). The earlier "converge onto
+    `hasLearnMore?`" note was wrong for a green-field component; inline copy with
+    no parallel table is the better design. An i18n app fills the fields from its
+    translator when it builds the catalog.
+  - **App glue dropped at the seam:** `useT`/i18n → injectable `labels`
+    (English defaults `DEFAULT_*`); the app `Modal` + icons → the framework's own
+    `/components` (`Modal`, `CheckIcon`/`CloseIcon`/`LockIcon`). Only the trophy +
+    four tier glyphs are shipped as module chrome (`glyphs.tsx`); the
+    per-achievement glyphs are the catalog's choice (any `Glyph`).
+  - **`TrophyButton` was generalised, not lifted.** The source button was a
+    side-menu row fused to the app's `modal-bus` + `achievements-context`; the
+    framework ships a **presentational** icon button (glyph + count badge,
+    `onClick`, restyle via `className`) and lets the caller decide tour-vs-unlock.
+  - **Name collision gotcha:** the achievements `Glyph` _type_ clashes with the
+    `glyphs` module's `Glyph` _component_ under the root `export *`. The barrel
+    re-exports it as **`AchievementGlyph`** to keep `src/index.ts` unambiguous —
+    watch for this whenever two modules export the same identifier.
+  - **`useAchievementWatcher` generalised the state shape:** the apps' two-island
+    `{ snapshot, settings }` + `settings.achievements` map became `state: TState`
+    - an `unlocked` map + a `record` writer, with `enabled` defaulting to `true`.
+      The per-render `prev === state` short-circuit needs a referentially-stable
+      `state`; the per-predicate `slices` extractor still gives finer skipping.
+      See `src/achievements/README.md`. **Demo:** the previously-inert
+      `disableAchievements` setting is now real (flipped on by default) — a `/glyphs`-
+      styled `TrophyButton` sits in the list-screen header, opening the
+      `AchievementsModal` tour (quiet) or `AchievementUnlockModal` (lit). A demo
+      catalog (`demo/src/app/achievements.ts`, 8 trophies over the checklist doc) +
+      an app-side store (`useAchievements.ts`) drive it; **first run retroactively
+      awards the seed-satisfied trophies via the pure `deriveUnlocks`** (the watcher
+      is forward-going only, so a rich seed would otherwise read as all-locked), and
+      `Clean Sweep` (check-all) + `Time Traveler` (undo → manual `unlock`) are earned
+      live, lighting the button + firing the unlock modal.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -522,7 +541,14 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   "Software updates" section** toggles (the static demo has no service worker, so
   there is no real `usePwaUpdate` driver — the section says so), and the
   Developer "Build" block now shows the real `useStandaloneMobile()` install
-  state.
+  state; and an **achievements** feature (`/achievements`) — a header
+  `TrophyButton` opens the four-tier `AchievementsModal` tour or, when something
+  new is earned, the `AchievementUnlockModal`; a demo catalog
+  (`app/achievements.ts`, 8 trophies over the checklist doc) + an app-side store
+  (`app/useAchievements.ts`) drive `useAchievementWatcher`, with a first-run
+  retroactive award via `deriveUnlocks` and live earns (check-all → `Clean
+Sweep`, undo → manual `Time Traveler`); the Settings → General
+  `disableAchievements` toggle (now on by default) gates it.
   **Not yet modelled, so the natural next homes to
   widen into:**
   multiple

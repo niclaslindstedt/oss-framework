@@ -22,12 +22,21 @@ import {
   DEFAULT_GLYPH,
   glyphDataUri,
 } from "@niclaslindstedt/oss-framework/glyphs";
+import {
+  AchievementUnlockModal,
+  AchievementsModal,
+  TrophyButton,
+  unlock,
+  useAchievementWatcher,
+} from "@niclaslindstedt/oss-framework/achievements";
 
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
+import { CATALOG } from "./app/achievements.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { seedLogsOnce } from "./app/log.ts";
+import { useAchievements } from "./app/useAchievements.ts";
 import { useAppSettings } from "./app/useAppSettings.ts";
 import { useChecklistStore } from "./app/useChecklistStore.ts";
 
@@ -55,6 +64,35 @@ export function App() {
     y: 0.5,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Achievements (Settings → General toggles the feature off). The store is the
+  // app's — the framework owns the engine, the bus, and the trophy UI. Earning
+  // a trophy lights the header button; clicking it opens the unlock modal when
+  // there's something new, or the full tour when it's quiet.
+  const achievementsEnabled = !settings.disableAchievements;
+  const ach = useAchievements(store.data, achievementsEnabled);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
+
+  // Undo lives outside the document state, so its trophy fires through the
+  // manual bus rather than a derived predicate. Wrap the store's undo so both
+  // the side-menu button and the keyboard chord award it.
+  const undoWithTrophy = () => {
+    store.undo();
+    unlock("timeTraveler");
+  };
+
+  // Run the framework watcher: derive unlocks from each document transition and
+  // drain the manual bus. The demo loads synchronously, so it's `loaded` from
+  // the first render (the watcher still baselines that render, so the seed never
+  // backfills — the retroactive award in `useAchievements` handles the seed).
+  useAchievementWatcher({
+    catalog: CATALOG,
+    state: store.data,
+    unlocked: ach.unlocked,
+    loaded: true,
+    enabled: achievementsEnabled,
+    record: ach.record,
+  });
   // A simulated "a new build is ready" flag. A real installed PWA would drive
   // this from `usePwaUpdate()` (its service worker reaching the `waiting`
   // state); this static demo has no service worker, so the Developer tab lets
@@ -96,7 +134,7 @@ export function App() {
   useUndoRedoShortcuts({
     canUndo: store.canUndo,
     canRedo: store.canRedo,
-    onUndo: store.undo,
+    onUndo: undoWithTrophy,
     onRedo: store.redo,
     enabled: pinned || !drawerOpen,
   });
@@ -157,7 +195,7 @@ export function App() {
         }}
       >
         <SideMenuContent
-          store={store}
+          store={{ ...store, undo: undoWithTrophy }}
           onOpenSettings={() => {
             setDrawerOpen(false);
             setSettingsOpen(true);
@@ -169,7 +207,22 @@ export function App() {
       </Sidebar>
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <ChecklistScreen store={store} />
+        <ChecklistScreen
+          store={store}
+          trophy={
+            achievementsEnabled ? (
+              <TrophyButton
+                unseenCount={ach.unseen.length}
+                onClick={() =>
+                  ach.unseen.length > 0
+                    ? setUnlockOpen(true)
+                    : setTourOpen(true)
+                }
+                className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
+              />
+            ) : null
+          }
+        />
       </main>
 
       {/* The floating settings button — the default way to reach Settings on
@@ -214,6 +267,28 @@ export function App() {
         incomingVersion="2.0.0-demo"
         onReload={() => setUpdateReady(false)}
         onDismiss={() => setUpdateReady(false)}
+      />
+
+      {/* The achievements tour — the full four-tier catalog, every feature a
+          trophy. Reads the earned map from the app's own store. */}
+      <AchievementsModal
+        open={tourOpen}
+        onClose={() => setTourOpen(false)}
+        achievements={CATALOG}
+        unlocked={ach.unlocked}
+      />
+
+      {/* The unlock celebration — just the freshly-earned trophies. Closing it
+          clears the unseen queue, returning the trophy button to its quiet
+          state. */}
+      <AchievementUnlockModal
+        open={unlockOpen}
+        onClose={() => {
+          setUnlockOpen(false);
+          ach.clearUnseen();
+        }}
+        achievements={CATALOG}
+        unseenIds={ach.unseen}
       />
     </div>
   );

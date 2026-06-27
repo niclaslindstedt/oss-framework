@@ -31,7 +31,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // The same choice for reaching Settings — a floating button by default
   // (resting on the opposite edge from the menu), or an inward edge swipe.
   settingsMode: "button",
-  disableAchievements: true,
+  // Achievements ship on so the trophy button and its modals are discoverable
+  // out of the box; the General tab can switch them off.
+  disableAchievements: false,
   devMode: true,
   captureLogs: false,
   spellCheck: true,
