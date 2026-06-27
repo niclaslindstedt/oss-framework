@@ -10,22 +10,22 @@
 // `palettes.ts`, and the `custom` preset's runtime overrides are produced by
 // the projection in `engine.ts`.
 
-// Theme preset. `dark` / `light` lock to the One Dark / One Light palettes;
-// `dracula`, `monokai`, `githubDark`, `githubLight`, `solarizedLight`, and
-// `quietLight` are the popular editor themes adapted to the slot vocabulary;
-// `excel` mirrors Excel's light look; `system` follows `prefers-color-scheme`;
-// `custom` applies the user's colour and shape overrides. The runtime writes
-// the active value to `data-theme` on `<html>`.
+// Theme preset — a curated, deliberately *distinct* roster (each palette is a
+// different temperature / mood, not one editor scheme recoloured). The default
+// `githubDark` keeps the neutral monospaced "dev" feel; the rest fan out:
+// `nord` is cool arctic blue, `dracula` vivid purple, `gruvbox` warm retro
+// amber, `solarizedDark` teal/scholarly; `githubLight` is a crisp high-contrast
+// light and `solarizedLight` a warm paper light. `system` follows
+// `prefers-color-scheme`; `custom` applies the user's colour overrides. The
+// runtime writes the active value to `data-theme` on `<html>`.
 export type ThemePreset =
-  | "dark"
-  | "light"
-  | "dracula"
-  | "monokai"
   | "githubDark"
+  | "nord"
+  | "dracula"
+  | "gruvbox"
+  | "solarizedDark"
   | "githubLight"
   | "solarizedLight"
-  | "quietLight"
-  | "excel"
   | "system"
   | "custom";
 
@@ -33,39 +33,33 @@ export type ThemePreset =
 // Source of truth for a settings validator and the picker UI. Dark variants
 // first, then light variants, then the two non-coloured presets.
 export const THEMES = [
-  "dark",
-  "light",
-  "dracula",
-  "monokai",
   "githubDark",
+  "nord",
+  "dracula",
+  "gruvbox",
+  "solarizedDark",
   "githubLight",
   "solarizedLight",
-  "quietLight",
-  "excel",
   "system",
   "custom",
 ] as const;
 
-// Dark is the default until the user picks otherwise.
-export const DEFAULT_THEME: ThemePreset = "dark";
+// GitHub Dark — the neutral "dev" look — is the default until the user picks
+// otherwise.
+export const DEFAULT_THEME: ThemePreset = "githubDark";
 
-// Theme presets in the Dark family, in variant-row order (One Dark first).
+// Theme presets in the Dark family, in variant-row order (the default first).
 export const DARK_THEMES = [
-  "dark",
-  "dracula",
-  "monokai",
   "githubDark",
+  "nord",
+  "dracula",
+  "gruvbox",
+  "solarizedDark",
 ] as const;
 
-// Theme presets in the Light family — One Light first, then the light editor
-// variants, then the Excel-flavoured light theme.
-export const LIGHT_THEMES = [
-  "light",
-  "githubLight",
-  "solarizedLight",
-  "quietLight",
-  "excel",
-] as const;
+// Theme presets in the Light family — the crisp neutral light first, then the
+// warm paper light.
+export const LIGHT_THEMES = ["githubLight", "solarizedLight"] as const;
 
 // Broad colour-scheme family a preset belongs to. A picker's mode row selects
 // the family (Dark / Light / System / Custom); a variant row appears
@@ -83,8 +77,8 @@ export function themeFamily(preset: ThemePreset): ThemeFamily {
 // Default preset for each family — what the mode row jumps to when the user
 // picks a family they weren't already in.
 export const FAMILY_DEFAULT_THEME: Record<ThemeFamily, ThemePreset> = {
-  dark: "dark",
-  light: "light",
+  dark: "githubDark",
+  light: "githubLight",
   system: "system",
   custom: "custom",
 };
@@ -93,15 +87,13 @@ export const FAMILY_DEFAULT_THEME: Record<ThemeFamily, ThemePreset> = {
 // app that localizes its UI can ignore these and map ids through its own i18n
 // catalogue instead.
 export const THEME_LABELS: Record<ThemePreset, string> = {
-  dark: "One Dark",
-  light: "One Light",
-  dracula: "Dracula",
-  monokai: "Monokai",
   githubDark: "GitHub Dark",
+  nord: "Nord",
+  dracula: "Dracula",
+  gruvbox: "Gruvbox",
+  solarizedDark: "Solarized Dark",
   githubLight: "GitHub Light",
   solarizedLight: "Solarized Light",
-  quietLight: "Quiet Light",
-  excel: "Excel",
   system: "System",
   custom: "Custom",
 };

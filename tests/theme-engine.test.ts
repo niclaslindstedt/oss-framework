@@ -114,7 +114,7 @@ describe("ui-style overrides", () => {
 
 describe("useApplyTheme", () => {
   const base: ThemeAppearance = {
-    theme: "dark",
+    theme: "githubDark",
     fontFamily: "mono",
     fontScale: 1,
     ui: DEFAULT_UI_STYLE,
@@ -123,14 +123,14 @@ describe("useApplyTheme", () => {
 
   it("projects the appearance onto <html>", () => {
     renderHook(() => useApplyTheme(base));
-    expect(html().getAttribute("data-theme")).toBe("dark");
+    expect(html().getAttribute("data-theme")).toBe("githubDark");
     expect(html().style.getPropertyValue("--app-font-scale")).toBe("1");
   });
 
   it("applies the UI style on every theme, not just custom", () => {
     renderHook(() => useApplyTheme(base));
-    // `base` is the `dark` preset, yet the shape vars and flavour attributes
-    // are still projected — they are independent of the colour palette.
+    // `base` is the `githubDark` preset, yet the shape vars and flavour
+    // attributes are still projected — independent of the colour palette.
     expect(html().style.getPropertyValue("--radius-md")).toBe("6px");
     expect(html().getAttribute("data-button-style")).toBe("soft");
     expect(html().getAttribute("data-elevation")).toBe("raised");
@@ -147,7 +147,7 @@ describe("useApplyTheme", () => {
       DEFAULT_CUSTOM_THEME.colors.pageBg,
     );
 
-    rerender({ ...base, theme: "light" });
+    rerender({ ...base, theme: "githubLight" });
     expect(html().style.getPropertyValue("--page-bg")).toBe("");
   });
 });

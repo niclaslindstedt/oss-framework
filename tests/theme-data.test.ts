@@ -21,13 +21,15 @@ import {
 describe("preset vocabulary", () => {
   it("classifies presets into families", () => {
     expect(themeFamily("dracula")).toBe("dark");
-    expect(themeFamily("excel")).toBe("light");
+    expect(themeFamily("gruvbox")).toBe("dark");
+    expect(themeFamily("solarizedLight")).toBe("light");
     expect(themeFamily("system")).toBe("system");
     expect(themeFamily("custom")).toBe("custom");
   });
 
   it("guards stored values", () => {
-    expect(isThemePreset("monokai")).toBe(true);
+    expect(isThemePreset("nord")).toBe(true);
+    expect(isThemePreset("monokai")).toBe(false);
     expect(isThemePreset("teal")).toBe(false);
     expect(isFontFamily("serif")).toBe(true);
     expect(isFontFamily("wingdings")).toBe(false);
@@ -66,10 +68,10 @@ describe("customThemeSeed", () => {
 
   it("resolves system to the light or dark seed by preference", () => {
     expect(customThemeSeed("system", true).colors).toEqual(
-      PRESET_PALETTES.light,
+      PRESET_PALETTES.githubLight,
     );
     expect(customThemeSeed("system", false).colors).toEqual(
-      PRESET_PALETTES.dark,
+      PRESET_PALETTES.githubDark,
     );
   });
 
@@ -86,7 +88,7 @@ describe("coerceCustomTheme", () => {
   });
 
   it("fills missing or malformed colour slots from the fallback", () => {
-    const seed = customThemeSeed("light", false);
+    const seed = customThemeSeed("githubLight", false);
     const coerced = coerceCustomTheme({ colors: { pageBg: "#123456" } }, seed);
     expect(coerced.colors.pageBg).toBe("#123456");
     expect(coerced.colors.surface).toBe(seed.colors.surface);
