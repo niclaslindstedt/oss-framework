@@ -33,6 +33,11 @@ export const en = {
     search: "Search",
     donate: "Donate",
     about: "About",
+    checkUpdates: "Check for updates",
+    checkingUpdates: "Checking for updates…",
+    upToDate: "You’re up to date",
+    updateAvailable: "Update available",
+    updatesUnavailable: "Updates unavailable",
     settings: "Settings",
   },
   search: {

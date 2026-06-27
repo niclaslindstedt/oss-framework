@@ -11,7 +11,10 @@ import {
   usePersistentMenuPosition,
   useSidebarInset,
 } from "@niclaslindstedt/oss-framework/sidebar";
-import { UpdateToast } from "@niclaslindstedt/oss-framework/pwa";
+import {
+  UpdateToast,
+  type PwaUpdateCheckResult,
+} from "@niclaslindstedt/oss-framework/pwa";
 import { SyncDetailsModal } from "@niclaslindstedt/oss-framework/sync";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 import {
@@ -120,11 +123,30 @@ export function App() {
     enabled: achievementsEnabled,
     record: ach.record,
   });
-  // A simulated "a new build is ready" flag. A real installed PWA would drive
-  // this from `usePwaUpdate()` (its service worker reaching the `waiting`
-  // state); this static demo has no service worker, so the Developer tab lets
-  // you trigger the prompt to see the framework `UpdateToast` in its real spot.
+  // A simulated PWA-update lifecycle. A real installed PWA would drive these
+  // from `usePwaUpdate()` (its service worker reaching the `waiting` state);
+  // this static demo has no service worker, so the Developer tab lets you stage
+  // a waiting build. We split "a build is waiting" (`pendingBuild`) from "the
+  // prompt is visible" (`updateReady`) so dismissing the toast leaves the build
+  // pending — the footer's "Check for updates" row then reads "Update
+  // available" and re-surfaces it, exactly as the real hook behaves.
   const [updateReady, setUpdateReady] = useState(false);
+  const [pendingBuild, setPendingBuild] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  // Stand-in for `usePwaUpdate().checkForUpdate` — same contract, simulated
+  // network probe. A waiting build re-raises the prompt; otherwise the demo is
+  // "up to date" (a static deploy has nothing newer to fetch).
+  const checkForUpdate = async (): Promise<PwaUpdateCheckResult> => {
+    if (pendingBuild) {
+      setUpdateReady(true);
+      return "update-found";
+    }
+    setCheckingUpdate(true);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    setCheckingUpdate(false);
+    return "up-to-date";
+  };
 
   // "Open sidebar with" (Settings → General): on phones, the user picks between
   // the floating button and an inward edge swipe. In swipe mode the button is
@@ -215,6 +237,9 @@ export function App() {
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
+          checkingUpdate={checkingUpdate}
+          updateAvailable={pendingBuild}
+          onCheckUpdate={checkForUpdate}
         />
       </Sidebar>
 
@@ -251,6 +276,7 @@ export function App() {
         // behind the dialog — the prompt is a page-level overlay.
         onSimulateUpdate={() => {
           setSettingsOpen(false);
+          setPendingBuild(true);
           setUpdateReady(true);
         }}
         // Drop a legacy document on disk and let the store's migrator upgrade it
@@ -265,7 +291,13 @@ export function App() {
       <UpdateToast
         needRefresh={updateReady}
         incomingVersion="2.0.0-demo"
-        onReload={() => setUpdateReady(false)}
+        onReload={() => {
+          // Applying clears the waiting build (a real app reloads onto it).
+          setUpdateReady(false);
+          setPendingBuild(false);
+        }}
+        // Dismissing only hides the prompt — the build stays waiting, so the
+        // footer's "Check for updates" row keeps reading "Update available".
         onDismiss={() => setUpdateReady(false)}
       />
 

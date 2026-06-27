@@ -61,7 +61,22 @@ export type PwaUpdateState = {
   // Version label of the incoming build (from `version.json`), or null for
   // a deploy predating that file / while offline.
   incomingVersion: string | null;
+  // True while a manual `checkForUpdate()` probe is in flight — drives a
+  // "checking…" affordance on a "check for updates" control. The automatic
+  // hourly / visibility-change checks do not flip this; only an explicit call.
+  checking: boolean;
 };
+
+// Outcome of a manual `checkForUpdate()`:
+//   "update-found"  — a build is downloading or already waiting; the prompt
+//                     will appear (or was re-surfaced). The host needn't react.
+//   "up-to-date"    — the running build is the newest; show a brief reassurance.
+//   "unavailable"   — no service worker to check against (dev build, an
+//                     unsupported browser, or registration failed).
+export type PwaUpdateCheckResult =
+  | "update-found"
+  | "up-to-date"
+  | "unavailable";
 
 const HOUR_MS = 60 * 60 * 1000;
 const POLL_MS = 200;
@@ -70,9 +85,17 @@ let state: PwaUpdateState = {
   progress: null,
   needRefresh: false,
   incomingVersion: null,
+  checking: false,
 };
 const listeners = new Set<() => void>();
 let wb: Workbox | null = null;
+// The active registration, kept so a manual `checkForUpdate()` can call
+// `reg.update()` and inspect whether a new worker showed up. Null until the
+// service worker registers (and on dev / unsupported builds, never set).
+let reg: ServiceWorkerRegistration | null = null;
+// De-dupes overlapping manual checks: a second tap while one is in flight
+// joins the same probe rather than firing a second `reg.update()`.
+let checkInFlight: Promise<PwaUpdateCheckResult> | null = null;
 let started = false;
 // The first `usePwaUpdate(config)` call wins — the singleton can only register
 // one service worker, so later callers inherit the first config.
@@ -87,7 +110,8 @@ function setState(patch: Partial<PwaUpdateState>) {
   if (
     next.progress === state.progress &&
     next.needRefresh === state.needRefresh &&
-    next.incomingVersion === state.incomingVersion
+    next.incomingVersion === state.incomingVersion &&
+    next.checking === state.checking
   ) {
     return;
   }
@@ -268,21 +292,27 @@ function start() {
 
     instance
       .register()
-      .then((reg) => {
-        if (!reg) return;
-        if (reg.installing) trackInstall(reg.installing, base, cacheId);
-        reg.addEventListener("updatefound", () =>
+      .then((registration) => {
+        if (!registration) return;
+        // Keep the registration so a manual `checkForUpdate()` can drive
+        // `reg.update()` on demand and inspect the result.
+        reg = registration;
+        if (registration.installing)
+          trackInstall(registration.installing, base, cacheId);
+        registration.addEventListener("updatefound", () =>
           // A new worker may already be mid-install when we register (another
           // tab kicked it off); track it so the fill picks up.
-          trackInstall(reg.installing, base, cacheId),
+          trackInstall(registration.installing, base, cacheId),
         );
 
-        void reg.update();
+        void registration.update();
         window.setInterval(() => {
-          if (document.visibilityState === "visible") void reg.update();
+          if (document.visibilityState === "visible")
+            void registration.update();
         }, HOUR_MS);
         document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") void reg.update();
+          if (document.visibilityState === "visible")
+            void registration.update();
         });
       })
       .catch(() => {
@@ -290,6 +320,51 @@ function start() {
         // without a service worker.
       });
   });
+}
+
+// Probe the network for a newer service worker right now, rather than waiting
+// for the hourly / visibility-change check. Drives a "check for updates"
+// control; resolves with what it found.
+async function runCheck(base: string): Promise<PwaUpdateCheckResult> {
+  // A build is already installed and parked. The prompt may have been
+  // dismissed — re-surface it and report the find without touching the network.
+  if (state.needRefresh) return "update-found";
+  const registration = reg;
+  // No service worker to ask: a dev build (`enabled: false`), a browser
+  // without service-worker support, or a registration that failed.
+  if (!registration) return "unavailable";
+
+  setState({ checking: true });
+  try {
+    await registration.update();
+  } catch {
+    return "unavailable";
+  } finally {
+    setState({ checking: false });
+  }
+
+  // A worker is sitting in `waiting` — typically an earlier auto-check found it
+  // but its prompt was dismissed. Re-raise the prompt (the `waiting` event only
+  // fires on first discovery, so do it by hand) and fetch its version.
+  if (registration.waiting) {
+    setState({ needRefresh: true, progress: 100 });
+    void fetchIncomingVersion(base).then((version) =>
+      setState({ incomingVersion: version }),
+    );
+    return "update-found";
+  }
+  // A new build is downloading; `trackInstall` is already following it and the
+  // `waiting` event will raise the prompt once it is ready to apply.
+  if (registration.installing) return "update-found";
+  // The running build is the newest the server has.
+  return "up-to-date";
+}
+
+function checkForUpdate(base: string): Promise<PwaUpdateCheckResult> {
+  checkInFlight ??= runCheck(base).finally(() => {
+    checkInFlight = null;
+  });
+  return checkInFlight;
 }
 
 function subscribe(listener: () => void): () => void {
@@ -306,6 +381,7 @@ const SERVER_SNAPSHOT: PwaUpdateState = {
   progress: null,
   needRefresh: false,
   incomingVersion: null,
+  checking: false,
 };
 
 function getServerSnapshot(): PwaUpdateState {
@@ -318,6 +394,11 @@ export type PwaUpdate = PwaUpdateState & {
   reload: () => void;
   // Hide the prompt and clear the fill until a fresher build arrives.
   dismiss: () => void;
+  // Probe for a newer build now instead of waiting for the hourly check. Sets
+  // `checking` while it runs and resolves with the outcome; on a find the
+  // prompt surfaces through `needRefresh` as usual. Drives a "check for
+  // updates" control (see `CheckForUpdatesItem`).
+  checkForUpdate: () => Promise<PwaUpdateCheckResult>;
 };
 
 export function usePwaUpdate(updateConfig: PwaUpdateConfig): PwaUpdate {
@@ -333,5 +414,6 @@ export function usePwaUpdate(updateConfig: PwaUpdateConfig): PwaUpdate {
     ...snapshot,
     reload: () => wb?.messageSkipWaiting(),
     dismiss: () => setState({ needRefresh: false, progress: null }),
+    checkForUpdate: () => checkForUpdate(config?.base ?? updateConfig.base),
   };
 }
