@@ -21,12 +21,19 @@ export type List = {
   // framework's `/glyphs` kit owns the catalogue, the renderer, and the pickers.
   glyph?: string | null;
   color?: string | null;
+  // Set when the list is archived (swiped right in the side menu). Archived
+  // lists stay in the document — they drop out of the menu but the Archive
+  // counter tallies them and an Undo brings them back.
+  archived?: boolean;
 };
 
 /** A folder groups lists in the side menu under one collapsible row. */
 export type Folder = {
   id: string;
   name: string;
+  // Set when the folder is archived; archiving a folder archives its lists with
+  // it. Like a list's flag, it hides the row without dropping the data.
+  archived?: boolean;
 };
 
 /** The whole app document — one namespace's folders and lists. Which

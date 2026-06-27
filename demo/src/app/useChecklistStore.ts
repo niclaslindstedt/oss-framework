@@ -76,6 +76,14 @@ export function remaining(list: List): number {
   return flattenNodes(list.items).filter((n) => !n.checked).length;
 }
 
+/** Pick the active list after a delete/archive: keep the current one if it's
+ *  still visible, otherwise fall to the first un-archived list — so removing
+ *  the open checklist never leaves the screen pointed at a gone/hidden one. */
+function nextActiveId(lists: List[], current: string): string {
+  if (lists.some((l) => l.id === current && !l.archived)) return current;
+  return lists.find((l) => !l.archived)?.id ?? current;
+}
+
 export type ChecklistStore = ReturnType<typeof useChecklistStore>;
 
 export function useChecklistStore(slug: string) {
@@ -261,6 +269,81 @@ export function useChecklistStore(slug: string) {
     [commit, data],
   );
 
+  // Delete a folder — the swipe-left trash outcome. Its checklists aren't lost:
+  // they're reparented to the root so deleting a folder never silently takes
+  // its lists with it. Undoable.
+  const deleteFolder = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        folders: data.folders.filter((f) => f.id !== id),
+        lists: data.lists.map((l) =>
+          l.folderId === id ? { ...l, folderId: null } : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Archive a folder — the swipe-right outcome. Tucks the folder and its lists
+  // out of the menu (the Archive counter tallies them); a held flag, not a
+  // delete, so an Undo restores the lot.
+  const archiveFolder = useCallback(
+    (id: string) => {
+      const lists = data.lists.map((l) =>
+        l.folderId === id ? { ...l, archived: true } : l,
+      );
+      commit({
+        ...data,
+        folders: data.folders.map((f) =>
+          f.id === id ? { ...f, archived: true } : f,
+        ),
+        lists,
+        activeListId: nextActiveId(lists, data.activeListId),
+      });
+    },
+    [commit, data],
+  );
+
+  // Rename a checklist — the swipe-left pencil outcome. Undoable.
+  const renameList = useCallback(
+    (id: string, title: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) => (l.id === id ? { ...l, title } : l)),
+      }),
+    [commit, data],
+  );
+
+  // Delete a checklist — the swipe-left trash outcome. Drops it from the
+  // document and moves the active pointer off it if it was open. Undoable.
+  const deleteList = useCallback(
+    (id: string) => {
+      const lists = data.lists.filter((l) => l.id !== id);
+      commit({
+        ...data,
+        lists,
+        activeListId: nextActiveId(lists, data.activeListId),
+      });
+    },
+    [commit, data],
+  );
+
+  // Archive a checklist — the swipe-right outcome. Hides it without dropping it
+  // and steps the active pointer off it. Undoable.
+  const archiveList = useCallback(
+    (id: string) => {
+      const lists = data.lists.map((l) =>
+        l.id === id ? { ...l, archived: true } : l,
+      );
+      commit({
+        ...data,
+        lists,
+        activeListId: nextActiveId(lists, data.activeListId),
+      });
+    },
+    [commit, data],
+  );
+
   // Set a list's appearance — the glyph and/or accent colour the framework's
   // `/glyphs` pickers feed. A partial patch so the colour and the icon can be
   // changed independently; goes through `commit`, so a restyle is undoable.
@@ -298,6 +381,11 @@ export function useChecklistStore(slug: string) {
     addList,
     addFolder,
     renameFolder,
+    deleteFolder,
+    archiveFolder,
+    renameList,
+    deleteList,
+    archiveList,
     setListAppearance,
     reload,
     simulateLegacyDoc,

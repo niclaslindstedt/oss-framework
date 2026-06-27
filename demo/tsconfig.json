@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Match the framework's own lib set: `WebWorker` supplies the
+    // service-worker types the imported `pwa` source references.
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -10,13 +12,18 @@
     "noEmit": true,
     "skipLibCheck": true,
     "types": ["node"],
-    // Editor-only: resolve the framework against its source, matching the Vite
-    // aliases in vite.config.ts. The demo is built by Vite (esbuild), not tsc,
-    // so this file is not part of the CI type-check.
+    // Resolve the framework against its source, matching the Vite aliases in
+    // vite.config.ts. The demo is built by Vite (esbuild), but `make lint` also
+    // type-checks it so the app the framework dogfoods can't drift out of
+    // type-safety — see AGENTS.md "No errors get through".
     "paths": {
       "@niclaslindstedt/oss-framework": ["../src/index.ts"],
       "@niclaslindstedt/oss-framework/*": ["../src/*/index.ts"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  // The demo program type-checks its own source plus the framework source it
+  // pulls in through the aliases above; `../src/**/*.d.ts` brings the framework's
+  // ambient module declarations (workbox-window, @fontsource/*, the File System
+  // Access API surface) into that program so those imports resolve here too.
+  "include": ["src", "vite.config.ts", "../src/**/*.d.ts"]
 }

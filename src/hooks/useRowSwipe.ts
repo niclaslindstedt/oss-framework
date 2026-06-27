@@ -9,6 +9,9 @@ import { useCallback, useRef, useState, type PointerEvent } from "react";
 //                   destructive action is never a single flick.
 //   • swipe RIGHT → fire `onDismiss` once past the threshold; the foreground
 //                   slides off and the caller drops the row on the next render.
+//                   Passing no `onDismiss` opts the right-swipe out entirely —
+//                   the drag rubber-bands and snaps back, so a row can offer the
+//                   left-reveal alone.
 //
 // The caller spreads `handlers` onto the sliding foreground element and
 // applies `translateX(offset)`, with `animating` gating the CSS transition so
@@ -59,7 +62,7 @@ export interface RowSwipe {
 }
 
 export function useRowSwipe(
-  onDismiss: () => void,
+  onDismiss?: () => void,
   options: RowSwipeOptions = {},
 ): RowSwipe {
   const ACTION_W = options.actionWidth ?? DEFAULTS.actionWidth;
@@ -137,7 +140,10 @@ export function useRowSwipe(
       axis.current = "none";
       const traveled = dx.current;
       setAnimating(true);
-      if (traveled >= DISMISS_AT) {
+      // A right-swipe past the threshold dismisses — but only when the caller
+      // wired `onDismiss`. Without it the gesture has no right-hand outcome, so
+      // the drag simply settles back closed (handled by the fall-through).
+      if (traveled >= DISMISS_AT && onDismiss) {
         setOpen(false);
         setOffset(e.currentTarget.offsetWidth);
         window.setTimeout(onDismiss, DISMISS_MS);

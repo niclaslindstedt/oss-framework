@@ -57,7 +57,14 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
+  /* The app fills the viewport — a `100svh` flex shell whose panes own their
+     own scroll regions — so the document itself never needs to scroll. Lock it
+     down: no page scroll and no overscroll rubber-band, so a horizontal swipe
+     on a row (or a vertical drag at a list's edge) can't drag the whole page
+     around underneath it on mobile. */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {

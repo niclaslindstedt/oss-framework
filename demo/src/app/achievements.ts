@@ -32,7 +32,6 @@ export type AchState = AppData;
 // An empty baseline, used once on first run to retroactively award the trophies
 // the seeded document already satisfies (see `useAchievements`).
 export const EMPTY_STATE: AchState = {
-  namespace: "",
   folders: [],
   lists: [],
   activeListId: "",

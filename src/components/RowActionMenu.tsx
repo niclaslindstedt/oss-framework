@@ -109,7 +109,15 @@ export function RowActionMenu({
   );
 
   return (
-    <div ref={wrapRef} onContextMenu={onContextMenu} {...longPress}>
+    <div
+      ref={wrapRef}
+      onContextMenu={onContextMenu}
+      // A long press is a held touch — without this the platform also fires its
+      // own text selection / iOS callout under the finger, which fights the
+      // menu the hold is opening. Kill both so the gesture stands alone.
+      className="select-none [-webkit-touch-callout:none]"
+      {...longPress}
+    >
       {children}
       <FloatingPanel
         open={open && active}

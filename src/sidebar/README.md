@@ -89,7 +89,9 @@ edge dismisses it (past 40% of the panel width, or on a flick); a shorter drag
 snaps back open, and a vertical drag still scrolls the panel. A nav row that
 owns its _own_ horizontal swipe (reveal-to-delete, swipe-to-archive) should tag
 its swipeable element `data-drawer-swipe-ignore` so the drawer swipe stands
-down while the finger is on it.
+down while the finger is on it. The components `SwipeableRow` already carries
+this tag, so a nav row built from it composes inside a `swipeToClose` drawer
+with no extra wiring.
 
 ### Open with an edge swipe (`useEdgeSwipeOpen`)
 
