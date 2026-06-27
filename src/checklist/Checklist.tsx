@@ -32,6 +32,13 @@ import {
 // source apps grew): swipe a row left to latch a Delete button open, or right
 // to flick it away — either fires `onDelete` with the row's id. The caller owns
 // the removal (e.g. `removeNode`), so it can stack it on its own undo history.
+//
+// Pass `onRowContextMenu` to give desktop pointers a right-click handle on a
+// row — the affordance touch users reach via the swipe. It fires with the
+// row's id and the native `contextmenu` event (so the caller can position a
+// menu at the cursor and `preventDefault` the browser's own menu). Gate it on
+// a real secondary click yourself (`useDesktopPointer`) — `Checklist` only
+// forwards the event.
 
 type Props = {
   items: ChecklistNode[];
@@ -52,6 +59,10 @@ type Props = {
   // Label on the revealed Delete button (English default; pass a translated
   // string). Unused unless `onDelete` is set.
   deleteLabel?: string;
+  // Called when a row is right-clicked (`contextmenu`), with the row's id and
+  // the native event. The caller positions/opens its own menu and decides
+  // whether to `preventDefault` the browser's. Best gated on a desktop pointer.
+  onRowContextMenu?: (id: string, e: React.MouseEvent) => void;
   // Accessible-label builder for a row's checkbox; defaults to the node's
   // label when it is a string, else `"Toggle item"`.
   checkboxLabel?: (node: ChecklistNode) => string;
@@ -71,6 +82,7 @@ export function Checklist({
   onReorderStart,
   onDelete,
   deleteLabel = "Delete",
+  onRowContextMenu,
   checkboxLabel,
   collapsed,
   onCollapsedChange,
@@ -111,12 +123,16 @@ export function Checklist({
             onToggleCollapsed={() => toggleCollapsed(row.node.id)}
           />
         );
+        const onContextMenu = onRowContextMenu
+          ? (e: React.MouseEvent) => onRowContextMenu(row.node.id, e)
+          : undefined;
         return onDelete ? (
           <SwipeRow
             key={row.node.id}
             depth={row.depth}
             onDelete={() => onDelete(row.node.id)}
             deleteLabel={deleteLabel}
+            onContextMenu={onContextMenu}
           >
             {inner}
           </SwipeRow>
@@ -127,6 +143,7 @@ export function Checklist({
             style={{
               paddingLeft: row.depth ? row.depth * INDENT_PER_LEVEL : undefined,
             }}
+            onContextMenu={onContextMenu}
           >
             {inner}
           </li>
@@ -211,11 +228,13 @@ function SwipeRow({
   depth,
   onDelete,
   deleteLabel,
+  onContextMenu,
   children,
 }: {
   depth: number;
   onDelete: () => void;
   deleteLabel: string;
+  onContextMenu?: (e: React.MouseEvent) => void;
   children: React.ReactNode;
 }) {
   const swipe = useRowSwipe(onDelete);
@@ -241,6 +260,7 @@ function SwipeRow({
 
       <div
         {...swipe.handlers}
+        onContextMenu={onContextMenu}
         style={{
           transform: `translateX(${swipe.offset}px)`,
           paddingLeft,
