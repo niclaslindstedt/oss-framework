@@ -70,6 +70,11 @@
       "types": "./dist/pwa/index.d.ts",
       "import": "./dist/pwa/index.js",
       "require": "./dist/pwa/index.cjs"
+    },
+    "./achievements": {
+      "types": "./dist/achievements/index.d.ts",
+      "import": "./dist/achievements/index.js",
+      "require": "./dist/achievements/index.cjs"
     }
   },
   "scripts": {

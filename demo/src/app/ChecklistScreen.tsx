@@ -32,7 +32,16 @@ import type { ChecklistStore } from "./useChecklistStore.ts";
 // app: a header with the list's appearance button, its title checkbox, the
 // progress ring, and copy / sync glyph buttons; the nested checklist body; and
 // the centered create FAB with an inline composer for adding items.
-export function ChecklistScreen({ store }: { store: ChecklistStore }) {
+export function ChecklistScreen({
+  store,
+  trophy,
+}: {
+  store: ChecklistStore;
+  // The framework `TrophyButton`, slotted into the header by the app shell (or
+  // nothing when achievements are switched off). The screen owns the layout;
+  // App owns what the button opens.
+  trophy?: React.ReactNode;
+}) {
   const {
     activeList,
     progress,
@@ -137,6 +146,7 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
           }
           labels={{ progress: (c, t) => `${c}/${t}` }}
         />
+        {trophy}
         <GlyphButton label={copied ? "Copied" : "Copy list"} onClick={copyList}>
           <CopyIcon className="h-4 w-4" />
         </GlyphButton>

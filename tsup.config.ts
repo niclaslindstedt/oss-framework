@@ -17,6 +17,7 @@ export default defineConfig({
     "checklist/index": "src/checklist/index.ts",
     "glyphs/index": "src/glyphs/index.ts",
     "pwa/index": "src/pwa/index.ts",
+    "achievements/index": "src/achievements/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

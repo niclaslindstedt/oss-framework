@@ -81,38 +81,40 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export                   | From                   | Purpose                                                                              |
-| ------------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
-| `useEscapeKey`           | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                             |
-| `useMediaQuery`          | `.` and `./hooks`      | Subscribe to a CSS media query; `useDesktopPointer` gates right-click affordances.   |
-| `useRowSwipe`            | `.` and `./hooks`      | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
-| `usePullToRefresh`       | `.` and `./hooks`      | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.  |
-| `useUndoRedoShortcuts`   | `.` and `./hooks`      | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.           |
-| `useApplyTheme`          | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.                       |
-| theme data               | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
-| `SettingsModal`          | `.` and `./theme`      | Self-contained dialog over the appearance picker.                                    |
-| `AppearancePicker`       | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.                    |
-| `ChangelogModal`         | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                          |
-| `parseChangelog`         | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
-| `StorageAdapter`         | `.` and `./storage`    | Byte-level persistence contract for swappable backends.                              |
-| storage backends         | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
-| `createLogStore`         | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                           |
-| `LogViewer`              | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
-| `Sidebar`                | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.                       |
-| `FloatingButton`         | `.` and `./sidebar`    | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
-| `Modal`                  | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
-| `Button` / form          | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
-| `Badge` / `Fab`          | `.` and `./components` | A count pill and a floating action button.                                           |
-| settings layout          | `.` and `./components` | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
-| `CipherGlyph`            | `.` and `./components` | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
-| `PullToRefreshIndicator` | `.` and `./components` | Slide-down pill that surfaces the `usePullToRefresh` gesture.                        |
-| glyph set                | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
-| `Checklist`              | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
-| checklist tree           | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
-| glyph picker kit         | `.` and `./glyphs`     | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
-| `usePwaUpdate`           | `.` and `./pwa`        | Service-worker update lifecycle singleton: download progress + reload prompt state.  |
-| `UpdateToast`            | `.` and `./pwa`        | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.            |
-| `useStandaloneMobile`    | `.` and `./pwa`        | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.          |
+| Export                   | From                     | Purpose                                                                              |
+| ------------------------ | ------------------------ | ------------------------------------------------------------------------------------ |
+| `useEscapeKey`           | `.` and `./hooks`        | Capture-phase Escape handler gated on an `enabled` flag.                             |
+| `useMediaQuery`          | `.` and `./hooks`        | Subscribe to a CSS media query; `useDesktopPointer` gates right-click affordances.   |
+| `useRowSwipe`            | `.` and `./hooks`        | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
+| `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.  |
+| `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.           |
+| `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                       |
+| theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
+| `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                    |
+| `AppearancePicker`       | `.` and `./theme`        | Controlled theme / font / colour editor over a `ThemeAppearance`.                    |
+| `ChangelogModal`         | `.` and `./changelog`    | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                          |
+| `parseChangelog`         | `.` and `./changelog`    | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
+| `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                              |
+| storage backends         | `.` and `./storage`      | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
+| `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                           |
+| `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
+| `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                       |
+| `FloatingButton`         | `.` and `./sidebar`      | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
+| `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
+| `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
+| `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                           |
+| settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
+| `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
+| `PullToRefreshIndicator` | `.` and `./components`   | Slide-down pill that surfaces the `usePullToRefresh` gesture.                        |
+| glyph set                | `.` and `./components`   | Dependency-free inline SVG icons, each driven by `className`.                        |
+| `Checklist`              | `.` and `./checklist`    | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
+| checklist tree           | `.` and `./checklist`    | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
+| glyph picker kit         | `.` and `./glyphs`       | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
+| `usePwaUpdate`           | `.` and `./pwa`          | Service-worker update lifecycle singleton: download progress + reload prompt state.  |
+| `UpdateToast`            | `.` and `./pwa`          | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.            |
+| `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.          |
+| `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.               |
+| achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.     |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -269,6 +271,27 @@ import {
   UpdateToast,
   useStandaloneMobile,
 } from "@niclaslindstedt/oss-framework/pwa";
+```
+
+The `achievements` module turns each feature of your app into an unlockable
+trophy across four tiers. It's **generic over your state**: `useAchievementWatcher`
+runs your catalog's predicates on every state transition (and drains a manual
+`unlock(id)` bus) and records earned ids through your own `record` callback;
+`AchievementsModal`, `AchievementUnlockModal`, and `TrophyButton` render the tour,
+the unlock celebration, and the count-badged button. Your app keeps the catalog
+and the earned-ids store; the framework owns the engine and the UI. See
+[`src/achievements/README.md`](src/achievements/README.md) for the contract and
+an adoption guide.
+
+```ts
+import {
+  useAchievementWatcher,
+  unlock,
+  AchievementsModal,
+  AchievementUnlockModal,
+  TrophyButton,
+  type Achievement,
+} from "@niclaslindstedt/oss-framework/achievements";
 ```
 
 Planned modules (seeded from the source apps): `encryption` (at-rest crypto plus

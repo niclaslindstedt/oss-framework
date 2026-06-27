@@ -62,6 +62,10 @@ export default defineConfig({
         replacement: here("../src/pwa/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/achievements",
+        replacement: here("../src/achievements/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
