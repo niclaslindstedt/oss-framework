@@ -20,6 +20,7 @@ export default defineConfig({
     "achievements/index": "src/achievements/index.ts",
     "encryption/index": "src/encryption/index.ts",
     "i18n/index": "src/i18n/index.ts",
+    "namespaces/index": "src/namespaces/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

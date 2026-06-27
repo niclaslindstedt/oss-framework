@@ -107,6 +107,7 @@ Today:
 | `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                           |
 | settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
 | `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
+| `ConfirmDialog`          | `.` and `./components`   | In-app `window.confirm` replacement — title, message, confirm/cancel, danger tone.   |
 | `PullToRefreshIndicator` | `.` and `./components`   | Slide-down pill that surfaces the `usePullToRefresh` gesture.                        |
 | glyph set                | `.` and `./components`   | Dependency-free inline SVG icons, each driven by `className`.                        |
 | `Checklist`              | `.` and `./checklist`    | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
@@ -121,6 +122,8 @@ Today:
 | `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.          |
 | `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs). |
 | `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.   |
+| namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).     |
+| `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.   |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -334,6 +337,26 @@ an adoption guide.
 
 ```ts
 import { createI18n } from "@niclaslindstedt/oss-framework/i18n";
+```
+
+The `namespaces` module models **named buckets that each hold their own
+document** — profiles, workspaces, categories. It ships the `Namespace` data
+shape, a set of **pure list transforms** over it (create with a unique slug,
+rename, restyle, remove, plus a connect-time `mergeNamespaceLists` reconcile), a
+favicon resolver that re-badges the tab to the active namespace, and the
+`NamespacesModal` management dialog (presentational, labels injected). The
+registry and the active-namespace pointer stay in your app — the module is
+storage-free by design — so where the list lives and how a slug maps to a
+storage location remain yours. See
+[`src/namespaces/README.md`](src/namespaces/README.md) for the seam and an
+adoption guide.
+
+```ts
+import {
+  NamespacesModal,
+  addNamespace,
+  namespaceFaviconHref,
+} from "@niclaslindstedt/oss-framework/namespaces";
 ```
 
 ## Demo / preview site

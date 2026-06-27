@@ -14,7 +14,6 @@ export const sv: Catalog = {
   },
   menu: {
     namespace: "Namnrymd",
-    namespaceSettings: "Namnrymdsinställningar",
     checklists: "Checklistor",
     newChecklist: "Ny checklista",
     newFolder: "Ny mapp",
@@ -29,6 +28,29 @@ export const sv: Catalog = {
     donate: "Donera",
     about: "Om",
     settings: "Inställningar",
+  },
+  namespaces: {
+    open: "Hantera namnrymder",
+    heading: "Namnrymder",
+    blurb:
+      "Varje namnrymd är en egen arbetsyta med egna listor. Växla mellan dem, eller ge en av dem en ikon och färg.",
+    newAction: "Ny namnrymd",
+    namePlaceholder: "Namnrymdens namn",
+    nameLabel: "Namnrymdens namn",
+    create: "Skapa",
+    nameRequired: "Ett namn krävs",
+    colorLabel: "Färg",
+    glyphLabel: "Ikon",
+    glyphNone: "Ingen ikon",
+    save: "Spara",
+    cancel: "Avbryt",
+    renameAction: "Byt namn",
+    deleteAction: "Radera namnrymd",
+    delete: "Radera",
+    deleteConfirm:
+      "Radera ”{name}” och alla dess listor? Detta kan inte ångras.",
+    switchTo: "Växla till {name}",
+    defaultBadge: "Standard",
   },
   screen: {
     addItem: "Lägg till en rad…",

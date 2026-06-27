@@ -18,6 +18,11 @@ export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Section, Field, ToggleRow } from "./SettingsLayout.tsx";
 export { Modal } from "./Modal.tsx";
+export {
+  ConfirmDialog,
+  type ConfirmTone,
+  type ConfirmDialogLabels,
+} from "./ConfirmDialog.tsx";
 export { CipherGlyph } from "./CipherGlyph.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";

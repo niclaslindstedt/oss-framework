@@ -20,6 +20,7 @@
 //   achievements/ — gamification engine (derive/watcher/bus) + trophy UI
 //   encryption/ — at-rest crypto and the encrypt/decrypt migration queue
 //   i18n/       — typed, dependency-free `t()` runtime (the createI18n factory)
+//   namespaces/ — named buckets (profiles/workspaces) + favicon + management UI
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -34,3 +35,4 @@ export * from "./pwa/index.ts";
 export * from "./achievements/index.ts";
 export * from "./encryption/index.ts";
 export * from "./i18n/index.ts";
+export * from "./namespaces/index.ts";
