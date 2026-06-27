@@ -43,7 +43,7 @@ describe("SettingsModal", () => {
     const { onChange } = renderModal();
     fireEvent.click(screen.getByRole("radio", { name: "Light" }));
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ theme: "light" }),
+      expect.objectContaining({ theme: "githubLight" }),
     );
   });
 
@@ -79,7 +79,7 @@ describe("SettingsModal", () => {
   it("resets to the default appearance from the footer", () => {
     const custom: ThemeAppearance = {
       ...DEFAULT_THEME_APPEARANCE,
-      theme: "light",
+      theme: "githubLight",
       fontScale: 1.25,
     };
     const { onChange } = renderModal({ appearance: custom });
