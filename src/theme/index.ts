@@ -12,5 +12,6 @@ export * from "./custom-theme.ts";
 export * from "./ui-style.ts";
 export * from "./fonts.ts";
 export * from "./engine.ts";
+export * from "./ThemePreview.tsx";
 export * from "./AppearancePicker.tsx";
 export * from "./SettingsModal.tsx";

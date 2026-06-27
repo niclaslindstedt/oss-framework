@@ -13,18 +13,25 @@
 // Theme preset — a curated, deliberately *distinct* roster (each palette is a
 // different temperature / mood, not one editor scheme recoloured). The default
 // `githubDark` keeps the neutral monospaced "dev" feel; the rest fan out:
-// `nord` is cool arctic blue, `dracula` vivid purple, `gruvbox` warm retro
-// amber, `solarizedDark` teal/scholarly; `githubLight` is a crisp high-contrast
-// light and `solarizedLight` a warm paper light. `system` follows
-// `prefers-color-scheme`; `custom` applies the user's colour overrides. The
-// runtime writes the active value to `data-theme` on `<html>`.
+// `tokyoNight` deep indigo, `nord` cool arctic blue, `dracula` vivid purple,
+// `catppuccin` soft pastel lavender, `rosePine` muted rose/plum, `gruvbox` warm
+// retro amber, `solarizedDark` teal/scholarly. Lights: `githubLight` crisp
+// high-contrast, `catppuccinLatte` cool pastel, `rosePineDawn` warm rosy,
+// `solarizedLight` warm paper. `system` follows `prefers-color-scheme`;
+// `custom` applies the user's colour overrides. The runtime writes the active
+// value to `data-theme` on `<html>`.
 export type ThemePreset =
   | "githubDark"
+  | "tokyoNight"
   | "nord"
   | "dracula"
+  | "catppuccin"
+  | "rosePine"
   | "gruvbox"
   | "solarizedDark"
   | "githubLight"
+  | "catppuccinLatte"
+  | "rosePineDawn"
   | "solarizedLight"
   | "system"
   | "custom";
@@ -34,11 +41,16 @@ export type ThemePreset =
 // first, then light variants, then the two non-coloured presets.
 export const THEMES = [
   "githubDark",
+  "tokyoNight",
   "nord",
   "dracula",
+  "catppuccin",
+  "rosePine",
   "gruvbox",
   "solarizedDark",
   "githubLight",
+  "catppuccinLatte",
+  "rosePineDawn",
   "solarizedLight",
   "system",
   "custom",
@@ -51,15 +63,23 @@ export const DEFAULT_THEME: ThemePreset = "githubDark";
 // Theme presets in the Dark family, in variant-row order (the default first).
 export const DARK_THEMES = [
   "githubDark",
+  "tokyoNight",
   "nord",
   "dracula",
+  "catppuccin",
+  "rosePine",
   "gruvbox",
   "solarizedDark",
 ] as const;
 
 // Theme presets in the Light family — the crisp neutral light first, then the
-// warm paper light.
-export const LIGHT_THEMES = ["githubLight", "solarizedLight"] as const;
+// two pastel lights, then the warm paper light.
+export const LIGHT_THEMES = [
+  "githubLight",
+  "catppuccinLatte",
+  "rosePineDawn",
+  "solarizedLight",
+] as const;
 
 // Broad colour-scheme family a preset belongs to. A picker's mode row selects
 // the family (Dark / Light / System / Custom); a variant row appears
@@ -88,11 +108,16 @@ export const FAMILY_DEFAULT_THEME: Record<ThemeFamily, ThemePreset> = {
 // catalogue instead.
 export const THEME_LABELS: Record<ThemePreset, string> = {
   githubDark: "GitHub Dark",
+  tokyoNight: "Tokyo Night",
   nord: "Nord",
   dracula: "Dracula",
+  catppuccin: "Catppuccin Mocha",
+  rosePine: "Rosé Pine",
   gruvbox: "Gruvbox",
   solarizedDark: "Solarized Dark",
   githubLight: "GitHub Light",
+  catppuccinLatte: "Catppuccin Latte",
+  rosePineDawn: "Rosé Pine Dawn",
   solarizedLight: "Solarized Light",
   system: "System",
   custom: "Custom",

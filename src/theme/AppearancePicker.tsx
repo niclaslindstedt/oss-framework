@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { Field, Section, ToggleRow } from "../components/index.ts";
 import { customThemeSeed } from "./custom-theme.ts";
 import type { ThemeAppearance } from "./engine.ts";
+import { ThemePreview } from "./ThemePreview.tsx";
 import { loadAllFontFamilies } from "./fonts.ts";
 import {
   COLOR_GROUPS,
@@ -97,6 +98,8 @@ export type AppearanceLabels = {
   elevation: string;
   // "Colours" section heading (Custom only).
   colours: string;
+  // "Preview" field label (the live Custom preview).
+  preview: string;
 };
 
 export const DEFAULT_APPEARANCE_LABELS: AppearanceLabels = {
@@ -118,6 +121,7 @@ export const DEFAULT_APPEARANCE_LABELS: AppearanceLabels = {
   controlStyle: "Checkboxes",
   elevation: "Elevation",
   colours: "Colours",
+  preview: "Preview",
 };
 
 // Friendly labels for the shape presets — nicer than capitalising the ids
@@ -335,6 +339,12 @@ export function AppearancePicker({
 
       {isCustom && (
         <Section title={text.colours}>
+          <Field label={text.preview}>
+            <ThemePreview
+              colors={appearance.customTheme.colors}
+              className="w-44"
+            />
+          </Field>
           {COLOR_GROUPS.map((group) => (
             <Field key={group.id} label={group.label}>
               <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-x-2 gap-y-2.5">
@@ -501,8 +511,10 @@ function ThemeModeRow({
   );
 }
 
-// Variant row — appears only for the Dark / Light families. Lists every preset
-// in that family with the same swatch + label pattern.
+// Variant row — appears only for the Dark / Light families. A gallery of live
+// preview cards (one per preset in the family), so the themes are told apart by
+// how they actually look, not by name. Each card renders the real palette
+// through `ThemePreview`; the active one is ringed.
 function ThemeVariantRow({
   value,
   onChange,
@@ -515,14 +527,12 @@ function ThemeVariantRow({
     family === "dark" ? DARK_THEMES : family === "light" ? LIGHT_THEMES : null;
   if (!variants) return null;
   return (
-    <div role="radiogroup" className="flex flex-wrap gap-2">
+    <div
+      role="radiogroup"
+      className="grid w-full grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2.5"
+    >
       {variants.map((theme) => {
         const active = value === theme;
-        const base =
-          "flex cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-sm transition-opacity focus-visible:outline-none";
-        const cls = active
-          ? "border-accent bg-surface-2 text-fg-bright"
-          : "border-line bg-transparent text-muted opacity-60 hover:border-accent hover:opacity-100";
         return (
           <button
             key={theme}
@@ -531,10 +541,18 @@ function ThemeVariantRow({
             aria-checked={active}
             aria-label={THEME_LABELS[theme]}
             onClick={() => onChange(theme)}
-            className={`${base} ${cls}`}
+            className={`flex cursor-pointer flex-col gap-1.5 rounded-md border p-1.5 text-left transition-colors focus-visible:outline-none ${
+              active
+                ? "border-accent bg-surface-2"
+                : "border-line bg-transparent hover:border-accent"
+            }`}
           >
-            <ThemeSwatches theme={theme} />
-            <span>{THEME_LABELS[theme]}</span>
+            <ThemePreview colors={PRESET_PALETTES[theme]} />
+            <span
+              className={`px-0.5 text-xs ${active ? "font-medium text-fg-bright" : "text-muted"}`}
+            >
+              {THEME_LABELS[theme]}
+            </span>
           </button>
         );
       })}

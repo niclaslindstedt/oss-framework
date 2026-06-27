@@ -101,13 +101,20 @@ The module ships a ready-made editor so you don't have to build one. Both pieces
 are **controlled** — they never persist; edits flow through `onChange`, so you
 own the store and feed the same value to `useApplyTheme` for a live preview.
 
-- **`AppearancePicker`** — the editor body: theme mode/variant, font, text size,
-  and (in Custom mode) the per-slot colours and the shape/motion controls. Embed
-  it in your own settings dialog or tab.
+- **`AppearancePicker`** — the editor body: theme mode, a **variant gallery** of
+  live preview cards (one per preset, so themes are told apart by how they look),
+  font, text size, the shape/flavour controls, and (in Custom mode) the per-slot
+  colours with a live preview that tracks your edits. Embed it in your own
+  settings dialog or tab.
 - **`SettingsModal`** — wraps the picker in a self-contained accessible overlay
   (portal, Escape-to-close, backdrop click, body-scroll lock, focus trap) plus a
   reset-to-`DEFAULT_THEME_APPEARANCE` footer. A drop-in for an app with no modal
   system of its own.
+- **`ThemePreview`** — the building block behind both: a compact, inline-styled
+  miniature of the chrome rendered straight from a `CustomThemeColors` palette,
+  with **no** dependency on the host's Tailwind tokens or the applied theme — so
+  it previews any palette (a preset, or the live custom colours) anywhere. Reuse
+  it to build your own theme gallery.
 
 ```tsx
 import {
@@ -200,6 +207,9 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
   `applyFontFamily`, `applyFontScale`, `applyUiStyle`, `clearUiStyle`,
   `applyCustomTheme`, `clearCustomTheme`, plus the shape maps `RADIUS_PX`,
   `DENSITY`, `BORDER_WIDTH_PX`, `CONTROL_RADIUS` for previewing concrete values.
+- **`ThemePreview.tsx`** — `ThemePreview`: a self-contained, inline-styled
+  miniature of the chrome rendered from a palette, for theme galleries / live
+  previews.
 - **`AppearancePicker.tsx`** — `AppearancePicker`, `AppearanceLabels`,
   `DEFAULT_APPEARANCE_LABELS`: the controlled appearance editor body.
 - **`SettingsModal.tsx`** — `SettingsModal`, `SettingsLabels`,
