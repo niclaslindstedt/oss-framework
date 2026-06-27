@@ -24,14 +24,15 @@ import {
 
 ## What the framework owns vs. what stays in your app
 
-| Owned here (shared)                                                     | Stays in your app (app-specific)                                           |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Preset ids, families, labels, `themeFamily` (`presets.ts`)              | The **appearance / settings store** that persists the user's choice        |
-| Font families + stacks, font-scale steps, radius/density/border presets | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough |
-| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)            | Where values are persisted/synced (localStorage, a settings file, …)       |
-| `CustomTheme` shape, defaults, `customThemeSeed`, `coerceCustomTheme`   | Any app-only settings that happen to live beside the theme code            |
-| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*`   | The CSS rules for the non-`custom` presets (`[data-theme="…"] { … }`)      |
-| The webfont loaders (`fonts.ts`)                                        | The static import of the default `mono` font in your entry module          |
+| Owned here (shared)                                                   | Stays in your app (app-specific)                                           |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Preset ids, families, labels, `themeFamily` (`presets.ts`)            | The **appearance / settings store** that persists the user's choice        |
+| Font families + stacks, font-scale steps, shape/flavour presets       | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough |
+| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)          | Where values are persisted/synced (localStorage, a settings file, …)       |
+| `UiStyle` (global shape/flavour axes) + `CustomTheme` colour palette  | Any app-only settings that happen to live beside the theme code            |
+| `customThemeSeed`, `coerceUiStyle`, `coerceCustomTheme`               | The `[data-button-style]` / `[data-elevation]` flavour CSS (host paint)    |
+| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*` | The CSS rules for the non-`custom` presets (`[data-theme="…"] { … }`)      |
+| The webfont loaders (`fonts.ts`)                                      | The static import of the default `mono` font in your entry module          |
 
 The **store is deliberately not part of this module.** An app's appearance
 state is usually fused with concerns the framework knows nothing about (editor
@@ -50,17 +51,33 @@ against.
 | Active preset       | `data-theme="<preset>"`                                                                                                                                                                                               | always                          |
 | Font family         | `--app-font-family`                                                                                                                                                                                                   | always                          |
 | Font scale          | `--app-font-scale`                                                                                                                                                                                                    | always                          |
+| Radius              | `--radius-sm`, `--radius-md`, `--radius-lg`                                                                                                                                                                           | always                          |
+| Density row padding | `--density-row-py`, `--density-row-px`                                                                                                                                                                                | always                          |
+| Border width        | `--border-width`                                                                                                                                                                                                      | always                          |
+| Control radius      | `--control-radius` (checkbox / radio corner)                                                                                                                                                                          | always                          |
+| Button flavour      | `data-button-style="soft \| solid \| outline \| ghost"`                                                                                                                                                               | always                          |
+| Control flavour     | `data-control-style="square \| rounded \| circle"`                                                                                                                                                                    | always                          |
+| Elevation           | `data-elevation="flat \| raised \| floating"`                                                                                                                                                                         | always                          |
+| Reduced motion      | `data-reduce-motion="true \| false"`                                                                                                                                                                                  | always                          |
 | Colour slots (×18)  | `--page-bg`, `--surface`, `--surface-2`, `--surface-3`, `--fg`, `--fg-bright`, `--muted`, `--line`, `--accent`, `--meta`, `--link`, `--path`, `--flag`, `--pipe`, `--danger`, `--success`, `--positive`, `--negative` | only while `theme === "custom"` |
-| Radius              | `--radius-sm`, `--radius-md`, `--radius-lg`                                                                                                                                                                           | only while `theme === "custom"` |
-| Density row padding | `--density-row-py`, `--density-row-px`                                                                                                                                                                                | only while `theme === "custom"` |
-| Border width        | `--border-width`                                                                                                                                                                                                      | only while `theme === "custom"` |
-| Reduced motion      | `data-reduce-motion="true" \| "false"`                                                                                                                                                                                | only while `theme === "custom"` |
 
-For every non-`custom` preset, **CSS owns the palette** (your
-`[data-theme="dracula"] { … }` rules). The engine only sets `data-theme`; the
-inline colour vars are written exclusively for the `custom` preset and removed
-again the moment the user switches back to a preset (the engine tracks exactly
-what it wrote, so there is no stale-variable list to maintain).
+The **shape / "flavour" axes are global** — they shape the chrome (corners,
+density, borders, button/control treatment, shadow depth, motion) independently
+of the colour palette, so they project on _every_ theme, not just `custom`. They
+live in a separate `ui: UiStyle` slice of the appearance. Colour palettes are
+the per-`theme` choice: for every non-`custom` preset, **CSS owns the palette**
+(your `[data-theme="dracula"] { … }` rules); the engine only sets `data-theme`.
+The inline colour vars are written exclusively for the `custom` preset and
+removed again the moment the user switches back to a preset.
+
+`--control-radius` is the one flavour the framework's own `Checkbox` reads
+directly. The `data-button-style` / `data-control-style` / `data-elevation`
+attributes are **host-owned paint hooks**, exactly like `[data-theme]`: the
+engine sets the attribute, your stylesheet keys off it (the demo's
+[`styles.css`](../../demo/src/styles.css) carries a reference set — button
+flavours off `data-button-style [data-ui="button"]`, shadow depth off
+`data-elevation`). The engine tracks exactly what it wrote, so there is no
+stale-variable list to maintain.
 
 ## Quick start
 
@@ -72,8 +89,8 @@ import { useApplyTheme } from "@niclaslindstedt/oss-framework/theme";
 import { useAppearance } from "./store/appearance"; // your store
 
 export function ThemeRoot({ children }: { children: React.ReactNode }) {
-  const { theme, fontFamily, fontScale, customTheme } = useAppearance();
-  useApplyTheme({ theme, fontFamily, fontScale, customTheme });
+  const { theme, fontFamily, fontScale, ui, customTheme } = useAppearance();
+  useApplyTheme({ theme, fontFamily, fontScale, ui, customTheme });
   return <>{children}</>;
 }
 ```
@@ -168,18 +185,21 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
   `THEME_LABELS`, `FAMILY_LABELS`, `isThemePreset`; `FontFamilyId`,
   `FONT_FAMILIES`, `DEFAULT_FONT_FAMILY`, `isFontFamily`; `FONT_SCALE_PRESETS`,
   `FONT_SCALES`, `MIN/MAX/DEFAULT_FONT_SCALE`, `isFontScale`; `RadiusPreset`,
-  `DensityPreset`, `BorderWidthPreset` + their `*_PRESETS` lists and guards.
+  `DensityPreset`, `BorderWidthPreset`, `ElevationPreset`, `ButtonStylePreset`,
+  `ControlStylePreset` + their `*_PRESETS` lists and guards.
 - **`palettes.ts`** — `CustomThemeColors`, `COLOR_KEYS`,
   `COLOR_KEY_TO_CSS_VAR`, `COLOR_LABELS`, `COLOR_GROUPS`, `PRESET_PALETTES`,
   `DEFAULT_CUSTOM_THEME_COLORS_DARK/LIGHT`.
-- **`custom-theme.ts`** — `CustomTheme`, `DEFAULT_CUSTOM_THEME`,
-  `customThemeSeed`, `coerceCustomTheme`.
+- **`ui-style.ts`** — `UiStyle` (the global shape / flavour axes),
+  `DEFAULT_UI_STYLE`, `coerceUiStyle`.
+- **`custom-theme.ts`** — `CustomTheme` (now just the colour palette),
+  `DEFAULT_CUSTOM_THEME`, `customThemeSeed`, `coerceCustomTheme`.
 - **`fonts.ts`** — `loadFontFamily`, `loadAllFontFamilies`.
 - **`engine.ts`** — `useApplyTheme` (+ `ThemeAppearance`,
   `DEFAULT_THEME_APPEARANCE`), and the pure primitives `applyThemePreset`,
-  `applyFontFamily`, `applyFontScale`, `applyCustomTheme`, `clearCustomTheme`,
-  plus the shape pixel maps `RADIUS_PX`, `DENSITY`, `BORDER_WIDTH_PX` for
-  previewing concrete values.
+  `applyFontFamily`, `applyFontScale`, `applyUiStyle`, `clearUiStyle`,
+  `applyCustomTheme`, `clearCustomTheme`, plus the shape maps `RADIUS_PX`,
+  `DENSITY`, `BORDER_WIDTH_PX`, `CONTROL_RADIUS` for previewing concrete values.
 - **`AppearancePicker.tsx`** — `AppearancePicker`, `AppearanceLabels`,
   `DEFAULT_APPEARANCE_LABELS`: the controlled appearance editor body.
 - **`SettingsModal.tsx`** — `SettingsModal`, `SettingsLabels`,
@@ -213,17 +233,21 @@ the Appearance UI.
        theme: appearance.theme,
        fontFamily: appearance.fontFamily,
        fontScale: appearance.fontScale,
+       ui: appearance.ui,
        customTheme: appearance.customTheme,
      });
    }
    ```
 
-   Delete your local radius/density/border maps and your per-property
+   Delete your local radius/density/border/shadow maps and your per-property
    `useEffect`s — the engine owns them now.
 
 3. **Point your settings types at the framework** (`ThemePreset`,
-   `FontFamilyId`, `CustomTheme`) and fold `coerceCustomTheme` into your
-   settings validator for the `customTheme` slice.
+   `FontFamilyId`, `UiStyle`, `CustomTheme`) and fold `coerceUiStyle` /
+   `coerceCustomTheme` into your settings validator for the `ui` / `customTheme`
+   slices. A document that stored the shape axes inside `customTheme` (the old
+   layout) migrates forward for free — pass it straight to `coerceUiStyle`, whose
+   field names line up.
 
 4. **Align your CSS** to the variable contract above, and your Appearance UI to
    `COLOR_GROUPS` / `COLOR_LABELS` / the `*_PRESETS` lists.
@@ -273,20 +297,22 @@ breaks after adoption.
   converging), or override the specific `--*` vars in your own CSS after the
   engine sets them. Don't re-implement the maps.
 
-- **Your stored shape differs** (missing `borderWidth`, an old flat colour
-  object, a renamed field). Reading it straight into `useApplyTheme` risks
-  `undefined` vars or a thrown read.
-  _Reconcile:_ run every stored/synced value through `coerceCustomTheme(raw,
-fallback)` on load — it fills missing or malformed slots from the fallback so
-  a partial or legacy document never crashes the boot or paints a broken look.
-  Seed the `fallback` from `customThemeSeed(currentPreset, prefersLight)` when
-  you want missing colours to match the active look rather than the dark
-  default.
+- **Your stored shape differs** (missing `borderWidth`, the old layout that
+  kept the shape axes inside `customTheme`, a renamed field). Reading it straight
+  into `useApplyTheme` risks `undefined` vars or a thrown read.
+  _Reconcile:_ run the colour slice through `coerceCustomTheme(raw, fallback)`
+  and the shape/flavour slice through `coerceUiStyle(raw, fallback)` on load —
+  each fills missing or malformed fields from the fallback so a partial or legacy
+  document never crashes the boot or paints a broken look. A document that stored
+  the shape axes inside `customTheme` migrates forward by passing that same
+  object to `coerceUiStyle` (the field names line up). Seed the colour `fallback`
+  from `customThemeSeed(currentPreset, prefersLight)` when you want missing
+  colours to match the active look rather than the dark default.
 
-- **You don't use a feature at all** (e.g. no border-width control, no reduced
-  motion). Harmless — the engine still writes the var in custom mode, but if no
-  rule reads it, it has no effect. Wire it up when you add the control; until
-  then, ignore it.
+- **You don't use a feature at all** (e.g. no border-width control, no button
+  flavours, no reduced motion). Harmless — the engine still writes the var /
+  attribute, but if no rule reads it, it has no effect. Wire it up when you add
+  the control; until then, ignore it.
 
 ## Verification
 
@@ -294,9 +320,11 @@ After wiring an app to the framework:
 
 - Toggle through every preset — `data-theme` updates and the CSS palette
   paints; no inline colour vars linger on `<html>` (inspect the element).
-- Switch to **Custom**, edit a colour / radius / density / border / motion —
-  the matching `--*` var (or `data-reduce-motion`) appears; switch back to a
-  preset and confirm it is removed.
+- Edit a radius / density / border / button flavour / control shape / elevation
+  / motion on _any_ theme — the matching `--*` var or `data-*` attribute updates
+  and the chrome reshapes (these are global, independent of the palette).
+- Switch to **Custom**, edit a colour — the matching `--*` colour var appears;
+  switch back to a preset and confirm it is removed.
 - Change the font family to a non-`mono` option and confirm the webfont loads
   and `--app-font-family` updates.
 - Reload with a partial/garbage stored appearance and confirm

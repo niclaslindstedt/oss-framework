@@ -9,6 +9,7 @@
 export * from "./presets.ts";
 export * from "./palettes.ts";
 export * from "./custom-theme.ts";
+export * from "./ui-style.ts";
 export * from "./fonts.ts";
 export * from "./engine.ts";
 export * from "./AppearancePicker.tsx";

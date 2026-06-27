@@ -73,10 +73,9 @@ describe("customThemeSeed", () => {
     );
   });
 
-  it("defaults the shape presets", () => {
+  it("carries only the colour palette", () => {
     const seed = customThemeSeed(DARK_THEMES[0], false);
-    expect(seed.radius).toBe(DEFAULT_CUSTOM_THEME.radius);
-    expect(seed.borderWidth).toBe(DEFAULT_CUSTOM_THEME.borderWidth);
+    expect(Object.keys(seed)).toEqual(["colors"]);
   });
 });
 
@@ -86,28 +85,10 @@ describe("coerceCustomTheme", () => {
     expect(coerceCustomTheme("nope")).toEqual(DEFAULT_CUSTOM_THEME);
   });
 
-  it("fills missing or malformed slots from the fallback", () => {
+  it("fills missing or malformed colour slots from the fallback", () => {
     const seed = customThemeSeed("light", false);
-    const coerced = coerceCustomTheme(
-      { colors: { pageBg: "#123456" }, radius: "bogus", reduceMotion: 1 },
-      seed,
-    );
+    const coerced = coerceCustomTheme({ colors: { pageBg: "#123456" } }, seed);
     expect(coerced.colors.pageBg).toBe("#123456");
     expect(coerced.colors.surface).toBe(seed.colors.surface);
-    expect(coerced.radius).toBe(seed.radius);
-    expect(coerced.reduceMotion).toBe(seed.reduceMotion);
-  });
-
-  it("keeps valid stored shape presets", () => {
-    const coerced = coerceCustomTheme({
-      radius: "lg",
-      density: "compact",
-      borderWidth: "bold",
-      reduceMotion: true,
-    });
-    expect(coerced.radius).toBe("lg");
-    expect(coerced.density).toBe("compact");
-    expect(coerced.borderWidth).toBe("bold");
-    expect(coerced.reduceMotion).toBe(true);
   });
 });

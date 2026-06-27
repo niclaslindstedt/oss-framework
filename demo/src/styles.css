@@ -87,6 +87,85 @@ body {
   transition-duration: 0.001ms !important;
 }
 
+/* ── Component flavours ────────────────────────────────────────────────────
+   The theme engine projects three "flavour" axes onto <html> that shape the
+   chrome itself, not its colours: `data-button-style`, `data-control-style`
+   (handled entirely by the `--control-radius` var the framework `Checkbox`
+   reads), and `data-elevation`. CSS owns the actual paint for them — exactly
+   as it owns the `[data-theme]` palettes — so an app can tune the flavours
+   without the framework hard-coding one look. */
+
+/* Button flavours. The framework `Button` tags itself `data-ui="button"` with
+   its `data-variant`, so a single rule re-skins every button at once. The
+   per-variant accent rides on `--btn-color`; the default Tailwind classes are
+   the `soft` flavour, so only solid / outline / ghost are defined here. */
+[data-ui="button"] {
+  --btn-color: var(--accent);
+}
+[data-ui="button"][data-variant="secondary"] {
+  --btn-color: var(--fg);
+}
+[data-ui="button"][data-variant="ghost"] {
+  --btn-color: var(--muted);
+}
+[data-ui="button"][data-variant="danger"] {
+  --btn-color: var(--danger);
+}
+
+:root[data-button-style="solid"] [data-ui="button"] {
+  background: var(--btn-color);
+  border-color: var(--btn-color);
+  color: var(--page-bg);
+  font-weight: 500;
+}
+:root[data-button-style="solid"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 85%, #fff);
+}
+
+:root[data-button-style="outline"] [data-ui="button"] {
+  background: transparent;
+  border-color: var(--btn-color);
+  color: var(--btn-color);
+}
+:root[data-button-style="outline"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 14%, transparent);
+}
+
+:root[data-button-style="ghost"] [data-ui="button"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--btn-color);
+}
+:root[data-button-style="ghost"] [data-ui="button"]:hover {
+  background: color-mix(in srgb, var(--btn-color) 12%, transparent);
+}
+
+/* Elevation. `raised` (the default) keeps the components' own Tailwind shadow
+   utilities; `flat` strips them for the editor-like border-only look; `floating`
+   lifts surfaces well off the page. The selectors out-specify the single-class
+   utilities (`.shadow-md` …) so they win without `!important`. */
+:root[data-elevation="flat"] .shadow-sm,
+:root[data-elevation="flat"] .shadow-md,
+:root[data-elevation="flat"] .shadow-lg,
+:root[data-elevation="flat"] .shadow-xl {
+  box-shadow: none;
+}
+:root[data-elevation="floating"] .shadow-md {
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.5),
+    0 2px 6px -2px rgba(0, 0, 0, 0.35);
+}
+:root[data-elevation="floating"] .shadow-lg {
+  box-shadow:
+    0 16px 40px -8px rgba(0, 0, 0, 0.6),
+    0 4px 10px -4px rgba(0, 0, 0, 0.4);
+}
+:root[data-elevation="floating"] .shadow-xl {
+  box-shadow:
+    0 28px 60px -12px rgba(0, 0, 0, 0.7),
+    0 8px 18px -6px rgba(0, 0, 0, 0.45);
+}
+
 /* Drawer slide-in / backdrop-fade keyframes the framework's `Sidebar` shell
    references by class name — the animation is the app's to define so it can
    tune timing and honour reduce-motion. The shell only adds the classes. */

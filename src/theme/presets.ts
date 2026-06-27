@@ -185,12 +185,29 @@ export function isFontScale(v: unknown): v is number {
   return typeof v === "number" && FONT_SCALE_SET.has(v);
 }
 
-// Shape presets the Custom-theme controls offer. The numeric pixel/rem
-// mapping for each one lives in the projection engine (`engine.ts`); this
-// module fixes only the vocabulary.
+// Shape & "flavour" presets the UI-style controls offer. These are global
+// look knobs that apply to *every* theme (preset or custom) — they shape the
+// chrome (corner rounding, row density, border weight, shadow depth, button
+// treatment, control shape, motion) independently of the colour palette, so
+// "One Dark with sharp corners and pill buttons" is a thing you can pick. The
+// numeric pixel/rem/shadow mapping for each one lives in the projection engine
+// (`engine.ts`); this module fixes only the vocabulary. The `UiStyle` bundle
+// that carries a chosen value per axis lives in `ui-style.ts`.
 export type RadiusPreset = "none" | "sm" | "md" | "lg";
 export type DensityPreset = "compact" | "comfortable" | "spacious";
 export type BorderWidthPreset = "thin" | "normal" | "bold";
+// Shadow depth of raised chrome — modals, popovers, cards, raised buttons.
+// `flat` drops every shadow (the editor-like, border-only look); `floating`
+// lifts them well off the page.
+export type ElevationPreset = "flat" | "raised" | "floating";
+// How buttons are filled. `soft` is the tinted default; `solid` paints a full
+// accent fill; `outline` is a transparent, bordered button; `ghost` is text
+// only until hovered. Projected as `data-button-style` for CSS to key off.
+export type ButtonStylePreset = "soft" | "solid" | "outline" | "ghost";
+// The shape of small toggles — checkboxes, radios. `square` is sharp,
+// `rounded` softens the corners, `circle` makes them fully round. Projected
+// both as a `--control-radius` var and as `data-control-style`.
+export type ControlStylePreset = "square" | "rounded" | "circle";
 
 export const RADIUS_PRESETS: readonly RadiusPreset[] = [
   "none",
@@ -208,6 +225,22 @@ export const BORDER_WIDTH_PRESETS: readonly BorderWidthPreset[] = [
   "normal",
   "bold",
 ];
+export const ELEVATION_PRESETS: readonly ElevationPreset[] = [
+  "flat",
+  "raised",
+  "floating",
+];
+export const BUTTON_STYLE_PRESETS: readonly ButtonStylePreset[] = [
+  "soft",
+  "solid",
+  "outline",
+  "ghost",
+];
+export const CONTROL_STYLE_PRESETS: readonly ControlStylePreset[] = [
+  "square",
+  "rounded",
+  "circle",
+];
 
 export function isRadiusPreset(v: unknown): v is RadiusPreset {
   return (RADIUS_PRESETS as readonly string[]).includes(v as string);
@@ -217,4 +250,13 @@ export function isDensityPreset(v: unknown): v is DensityPreset {
 }
 export function isBorderWidthPreset(v: unknown): v is BorderWidthPreset {
   return (BORDER_WIDTH_PRESETS as readonly string[]).includes(v as string);
+}
+export function isElevationPreset(v: unknown): v is ElevationPreset {
+  return (ELEVATION_PRESETS as readonly string[]).includes(v as string);
+}
+export function isButtonStylePreset(v: unknown): v is ButtonStylePreset {
+  return (BUTTON_STYLE_PRESETS as readonly string[]).includes(v as string);
+}
+export function isControlStylePreset(v: unknown): v is ControlStylePreset {
+  return (CONTROL_STYLE_PRESETS as readonly string[]).includes(v as string);
 }

@@ -13,6 +13,13 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 //   secondary  — a filled neutral button (a bordered surface fill).
 //   ghost      — a borderless/quiet button: text only until hovered.
 //   danger     — a destructive action (delete, disconnect, reset).
+//
+// The button advertises itself with `data-ui="button"` and its `data-variant`,
+// so a host stylesheet can re-flavour every button at once off the theme's
+// `data-button-style` (soft / solid / outline / ghost) — the "button flavour"
+// the theme engine projects — without touching each call site. The default
+// Tailwind classes below are the `soft` flavour; other flavours are layered on
+// by the host (see the demo stylesheet).
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -38,7 +45,14 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
 ) {
   const merged = `${BASE_CLASS} ${VARIANT_CLASS[variant]} ${className}`.trim();
   return (
-    <button ref={ref} type={type} className={merged} {...rest}>
+    <button
+      ref={ref}
+      type={type}
+      data-ui="button"
+      data-variant={variant}
+      className={merged}
+      {...rest}
+    >
       {children}
     </button>
   );

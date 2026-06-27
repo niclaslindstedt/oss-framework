@@ -20,7 +20,7 @@
 import { useEffect } from "react";
 
 import { Field, Section, ToggleRow } from "../components/index.ts";
-import { customThemeSeed, type CustomTheme } from "./custom-theme.ts";
+import { customThemeSeed } from "./custom-theme.ts";
 import type { ThemeAppearance } from "./engine.ts";
 import { loadAllFontFamilies } from "./fonts.ts";
 import {
@@ -30,9 +30,14 @@ import {
   PRESET_PALETTES,
   type CustomThemeColors,
 } from "./palettes.ts";
+import type { UiStyle } from "./ui-style.ts";
 import {
+  BORDER_WIDTH_PRESETS,
+  BUTTON_STYLE_PRESETS,
+  CONTROL_STYLE_PRESETS,
   DARK_THEMES,
   DENSITY_PRESETS,
+  ELEVATION_PRESETS,
   FAMILY_DEFAULT_THEME,
   FAMILY_LABELS,
   FONT_FAMILIES,
@@ -41,7 +46,11 @@ import {
   RADIUS_PRESETS,
   THEME_LABELS,
   themeFamily,
+  type BorderWidthPreset,
+  type ButtonStylePreset,
+  type ControlStylePreset,
   type DensityPreset,
+  type ElevationPreset,
   type FontFamilyId,
   type RadiusPreset,
   type ThemeFamily,
@@ -66,18 +75,28 @@ export type AppearanceLabels = {
   fontFamily: string;
   // "Text size" field label (the scale row).
   textSize: string;
-  // "Colours" section heading (Custom only).
-  colours: string;
-  // "Shape & motion" section heading (Custom only).
+  // "Shape & motion" section heading.
   shapeMotion: string;
-  // "Corner radius" field label (Custom only).
+  // "Corner radius" field label.
   cornerRadius: string;
-  // "Density" field label (Custom only).
+  // "Density" field label.
   density: string;
-  // "Reduce motion" toggle label (Custom only).
+  // "Border width" field label.
+  borderWidth: string;
+  // "Reduce motion" toggle label.
   reduceMotion: string;
   // Hint under the reduce-motion toggle.
   reduceMotionHint: string;
+  // "Components" section heading.
+  components: string;
+  // "Buttons" field label (the button-style row).
+  buttonStyle: string;
+  // "Checkboxes" field label (the control-style row).
+  controlStyle: string;
+  // "Elevation" field label (the shadow-depth row).
+  elevation: string;
+  // "Colours" section heading (Custom only).
+  colours: string;
 };
 
 export const DEFAULT_APPEARANCE_LABELS: AppearanceLabels = {
@@ -88,12 +107,17 @@ export const DEFAULT_APPEARANCE_LABELS: AppearanceLabels = {
   font: "Font",
   fontFamily: "Font",
   textSize: "Text size",
-  colours: "Colours",
   shapeMotion: "Shape & motion",
   cornerRadius: "Corner radius",
   density: "Density",
+  borderWidth: "Border width",
   reduceMotion: "Reduce motion",
   reduceMotionHint: "Minimise animations and transitions.",
+  components: "Components",
+  buttonStyle: "Buttons",
+  controlStyle: "Checkboxes",
+  elevation: "Elevation",
+  colours: "Colours",
 };
 
 // Friendly labels for the shape presets — nicer than capitalising the ids
@@ -109,6 +133,27 @@ const DENSITY_LABELS: Record<DensityPreset, string> = {
   compact: "Compact",
   comfortable: "Comfortable",
   spacious: "Spacious",
+};
+const BORDER_WIDTH_LABELS: Record<BorderWidthPreset, string> = {
+  thin: "Thin",
+  normal: "Normal",
+  bold: "Bold",
+};
+const ELEVATION_LABELS: Record<ElevationPreset, string> = {
+  flat: "Flat",
+  raised: "Raised",
+  floating: "Floating",
+};
+const BUTTON_STYLE_LABELS: Record<ButtonStylePreset, string> = {
+  soft: "Soft",
+  solid: "Solid",
+  outline: "Outline",
+  ghost: "Ghost",
+};
+const CONTROL_STYLE_LABELS: Record<ControlStylePreset, string> = {
+  square: "Square",
+  rounded: "Rounded",
+  circle: "Circle",
 };
 
 export function AppearancePicker({
@@ -156,11 +201,8 @@ export function AppearancePicker({
     update("theme", next);
   }
 
-  function updateCustom<K extends keyof CustomTheme>(
-    key: K,
-    value: CustomTheme[K],
-  ): void {
-    update("customTheme", { ...appearance.customTheme, [key]: value });
+  function updateUi<K extends keyof UiStyle>(key: K, value: UiStyle[K]): void {
+    update("ui", { ...appearance.ui, [key]: value });
   }
 
   function updateColor(key: keyof CustomThemeColors, value: string): void {
@@ -213,56 +255,101 @@ export function AppearancePicker({
         </Field>
       </Section>
 
-      {isCustom && (
-        <>
-          <Section title={text.colours}>
-            {COLOR_GROUPS.map((group) => (
-              <Field key={group.id} label={group.label}>
-                <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-x-2 gap-y-2.5">
-                  {group.keys.map((k) => (
-                    <ColorSwatchInput
-                      key={k}
-                      label={COLOR_LABELS[k]}
-                      value={appearance.customTheme.colors[k]}
-                      onChange={(c) => updateColor(k, c)}
-                    />
-                  ))}
-                </div>
-              </Field>
-            ))}
-          </Section>
+      <Section title={text.shapeMotion}>
+        <Field label={text.cornerRadius}>
+          <SegmentedRow<RadiusPreset>
+            ariaLabel={text.cornerRadius}
+            value={appearance.ui.radius}
+            options={RADIUS_PRESETS.map((p) => ({
+              value: p,
+              label: RADIUS_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("radius", v)}
+          />
+        </Field>
+        <Field label={text.density}>
+          <SegmentedRow<DensityPreset>
+            ariaLabel={text.density}
+            value={appearance.ui.density}
+            options={DENSITY_PRESETS.map((p) => ({
+              value: p,
+              label: DENSITY_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("density", v)}
+          />
+        </Field>
+        <Field label={text.borderWidth}>
+          <SegmentedRow<BorderWidthPreset>
+            ariaLabel={text.borderWidth}
+            value={appearance.ui.borderWidth}
+            options={BORDER_WIDTH_PRESETS.map((p) => ({
+              value: p,
+              label: BORDER_WIDTH_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("borderWidth", v)}
+          />
+        </Field>
+        <ToggleRow
+          label={text.reduceMotion}
+          hint={text.reduceMotionHint}
+          checked={appearance.ui.reduceMotion}
+          onChange={(v) => updateUi("reduceMotion", v)}
+        />
+      </Section>
 
-          <Section title={text.shapeMotion}>
-            <Field label={text.cornerRadius}>
-              <SegmentedRow<RadiusPreset>
-                ariaLabel={text.cornerRadius}
-                value={appearance.customTheme.radius}
-                options={RADIUS_PRESETS.map((p) => ({
-                  value: p,
-                  label: RADIUS_LABELS[p],
-                }))}
-                onChange={(v) => updateCustom("radius", v)}
-              />
+      <Section title={text.components}>
+        <Field label={text.buttonStyle}>
+          <SegmentedRow<ButtonStylePreset>
+            ariaLabel={text.buttonStyle}
+            value={appearance.ui.buttonStyle}
+            options={BUTTON_STYLE_PRESETS.map((p) => ({
+              value: p,
+              label: BUTTON_STYLE_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("buttonStyle", v)}
+          />
+        </Field>
+        <Field label={text.controlStyle}>
+          <SegmentedRow<ControlStylePreset>
+            ariaLabel={text.controlStyle}
+            value={appearance.ui.controlStyle}
+            options={CONTROL_STYLE_PRESETS.map((p) => ({
+              value: p,
+              label: CONTROL_STYLE_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("controlStyle", v)}
+          />
+        </Field>
+        <Field label={text.elevation}>
+          <SegmentedRow<ElevationPreset>
+            ariaLabel={text.elevation}
+            value={appearance.ui.elevation}
+            options={ELEVATION_PRESETS.map((p) => ({
+              value: p,
+              label: ELEVATION_LABELS[p],
+            }))}
+            onChange={(v) => updateUi("elevation", v)}
+          />
+        </Field>
+      </Section>
+
+      {isCustom && (
+        <Section title={text.colours}>
+          {COLOR_GROUPS.map((group) => (
+            <Field key={group.id} label={group.label}>
+              <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-x-2 gap-y-2.5">
+                {group.keys.map((k) => (
+                  <ColorSwatchInput
+                    key={k}
+                    label={COLOR_LABELS[k]}
+                    value={appearance.customTheme.colors[k]}
+                    onChange={(c) => updateColor(k, c)}
+                  />
+                ))}
+              </div>
             </Field>
-            <Field label={text.density}>
-              <SegmentedRow<DensityPreset>
-                ariaLabel={text.density}
-                value={appearance.customTheme.density}
-                options={DENSITY_PRESETS.map((p) => ({
-                  value: p,
-                  label: DENSITY_LABELS[p],
-                }))}
-                onChange={(v) => updateCustom("density", v)}
-              />
-            </Field>
-            <ToggleRow
-              label={text.reduceMotion}
-              hint={text.reduceMotionHint}
-              checked={appearance.customTheme.reduceMotion}
-              onChange={(v) => updateCustom("reduceMotion", v)}
-            />
-          </Section>
-        </>
+          ))}
+        </Section>
       )}
     </>
   );

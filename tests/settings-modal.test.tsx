@@ -56,14 +56,19 @@ describe("SettingsModal", () => {
     expect(typeof next.customTheme.colors.accent).toBe("string");
   });
 
-  it("reveals the colour and shape sections only in Custom mode", () => {
+  it("shows the shape and component sections on every theme", () => {
+    renderModal();
+    expect(screen.getByText("Shape & motion")).toBeTruthy();
+    expect(screen.getByText("Components")).toBeTruthy();
+  });
+
+  it("reveals the colour section only in Custom mode", () => {
     const custom: ThemeAppearance = {
       ...DEFAULT_THEME_APPEARANCE,
       theme: "custom",
     };
     renderModal({ appearance: custom });
     expect(screen.getByText("Colours")).toBeTruthy();
-    expect(screen.getByText("Shape & motion")).toBeTruthy();
   });
 
   it("hides the colour section outside Custom mode", () => {

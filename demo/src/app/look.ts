@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import {
-  DEFAULT_CUSTOM_THEME,
   DEFAULT_CUSTOM_THEME_COLORS_DARK,
   DEFAULT_THEME_APPEARANCE,
   type ThemeAppearance,
@@ -10,11 +9,12 @@ import {
 // the dark palette with the page/surface slots pushed to black and the accent
 // to the apps' signature green. The demo app boots in this look (the same one
 // the screenshots show); the Appearance settings tab still swaps to any preset.
+// The global UI style (radius / density / buttons / controls / elevation) keeps
+// the framework defaults — those axes are independent of the colour palette now.
 export const APP_LOOK: ThemeAppearance = {
   ...DEFAULT_THEME_APPEARANCE,
   theme: "custom",
   customTheme: {
-    ...DEFAULT_CUSTOM_THEME,
     colors: {
       ...DEFAULT_CUSTOM_THEME_COLORS_DARK,
       pageBg: "#000000",
