@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   Badge,
   Button,
   Checkbox,
+  CipherGlyph,
   ClearableInput,
   Fab,
   Field,
@@ -387,6 +388,40 @@ describe("ToggleRow", () => {
     expect(screen.getByText("Calms animations")).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox", { name: "Reduce motion" }));
     expect(onChange).toHaveBeenCalledWith(true);
+  });
+});
+
+// --- CipherGlyph --------------------------------------------------------
+
+describe("CipherGlyph", () => {
+  it("renders a decorative run of monospace cipher cells", () => {
+    const { container } = render(<CipherGlyph className="text-accent" />);
+    const el = container.firstChild as HTMLElement;
+    // aria-hidden (decorative), monospace, and the caller's className merged in.
+    expect(el.getAttribute("aria-hidden")).toBe("true");
+    expect(el.className).toContain("font-mono");
+    expect(el.className).toContain("text-accent");
+    // A fixed-width run of cells, every character drawn from the cipher set.
+    expect(el.textContent).toMatch(/^[0-9A-F#$%&]{5}$/);
+  });
+
+  it("re-scrambles its cells over time", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<CipherGlyph />);
+      const el = container.firstChild as HTMLElement;
+      const frames = new Set<string>();
+      for (let i = 0; i < 40; i++) {
+        frames.add(el.textContent ?? "");
+        act(() => {
+          vi.advanceTimersByTime(110);
+        });
+      }
+      // The animation mutates the frame, so more than one distinct frame shows.
+      expect(frames.size).toBeGreaterThan(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
