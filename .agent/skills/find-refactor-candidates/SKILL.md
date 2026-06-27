@@ -599,17 +599,45 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   modal (checklist used `ClearableInput` + `ConfirmDialog` + a `noneGlyph`; notes
   raw `<input>` + inline confirm) converged on checklist's superset. See
   `src/namespaces/README.md`.
-- **Extract next (recommendation, after `namespaces`):** the cheap shared wins
-  are mostly mined; what's left in the ≥ 50% band is **store-heavy or
-  app-domain** (the per-file ranking below `settings/shared.tsx` is
-  `storage/backend-preference.ts`, `dev/useDevMode.ts`, `ui/SyncStatus.tsx`,
-  `ui/modal-bus.ts`, `domain/search.ts` — all fused to a store or a domain). Two
-  realistic next pulls: (a) **the sync-status surface** (`ui/SyncStatus.tsx` 68%
-  - `ui/SyncDetailsModal.tsx` 48% + `storage/save-retry.ts` 37%) — a
-    presentational "where your data lives / last synced / retry" panel over the
-    already-extracted `storage` adapters, dropping the store at the seam like every
-    modal before it; or (b) **`storage/migrations.ts`** (49%) — a generic
-    versioned-document migration runner (pure, no store), small and self-contained.
+- **`storage/migrations.ts` (versioned-document migration runner) — extracted
+  (done).** Lives in the framework **inside the `storage` module** (not a new
+  subpath) as `createMigrator` (`@niclaslindstedt/oss-framework/storage`). The
+  **runner was byte-identical bar comments** across the apps (the ~49% score was
+  comment + table drift) — a clean engine-over-catalog lift, exactly like
+  achievements: the loop, the v0 coercion (`numericVersion`, non-object →
+  `{version:0}`), the newer-than-build guard, and the missing-step guard all came
+  verbatim. **What stayed app-side (the store/catalog rule):** the migration
+  **table** (the concrete `0:`/`1:` steps — `notes`'s `liftTitle`, checklist's
+  `templates`/`checklists` bootstrap) and `LATEST_VERSION` are the app's data
+  model, injected through `createMigrator({ migrations, latestVersion, logger })`;
+  the apps' module-level `migrate(raw)` (table as a module global) inverted into
+  the factory so a green-field app holds its own chain. **App glue dropped at the
+  seam:** the apps' `createLogger("migrate")` became the storage `Logger` seam
+  (default `noopLogger`) — the one "migrated vX → vY" line routes wherever the app
+  points it. The returned `Migrator` also re-exposes `latestVersion` so an app's
+  serialize step stamps the same constant it migrates against (one source of
+  truth). Versioning stays a property of the bytes at rest — the in-memory model
+  is version-free. **Demo:** the previously-unversioned document is now versioned
+  — `useChecklistStore` runs `migrator.migrate` on load and stamps
+  `LATEST_VERSION` on write (a demo chain in `demo/src/app/migrations.ts`: v0→v1
+  bootstrap, v1→v2 lifting legacy `string[]` items into `ChecklistNode`s), and the
+  Developer tab gained a **"Document migrations"** section whose "Load a legacy
+  document" button drops a real pre-versioning file on disk and re-reads it, so
+  the runner climbs it v0→v2 live (the upgrade logs "migrated v0 → v2" into the
+  Logs tab). See `src/storage/README.md` (the "Versioning the bytes" section).
+- **Extract next (recommendation, after `migrations`):** the cheap shared wins
+  are mined; what's left in the ≥ 50% band is **store-heavy or app-domain** (the
+  per-file ranking below `settings/shared.tsx` is `storage/backend-preference.ts`,
+  `dev/useDevMode.ts`, `ui/SyncStatus.tsx`, `ui/modal-bus.ts`, `domain/search.ts`
+  — all fused to a store or a domain). The standout realistic pull is **the
+  sync-status surface** (`ui/SyncStatus.tsx` 68% + `ui/SyncDetailsModal.tsx` 48%
+  - `storage/save-retry.ts` 37%) — a presentational "where your data lives / last
+    synced / retry" panel over the already-extracted `storage` adapters, dropping
+    the store at the seam like every modal before it. It is **larger and
+    store-heavy**, and its honest demo integration needs a real backend/sync model
+    the demo doesn't have yet (today's namespaces are local-only) — so budget for
+    widening the demo with a "where your data lives" picker first, or scope the pull
+    to just `save-retry.ts` (the pure retry/back-off helper) as a cheap precursor.
     The locale _tables_ are **not** candidates (translations diverge by design).
     When weighing "extract next", remember the store rule will shave most of a
     store-heavy cluster down to its pure core — scope to that core up front.
@@ -699,7 +727,17 @@ Sweep`, undo → manual `Time Traveler`); the Settings → General
   render** (React's blessed input-changed pattern) rather than in an effect. The
   tab favicon now follows the active **namespace** via `namespaceFaviconHref`
   (falling back to the active list's glyph). `AppData` lost its `namespace`
-  field — the registry owns namespace identity now.
+  field — the registry owns namespace identity now. And a **versioned persisted
+  document** (`storage`'s `createMigrator`) — `useChecklistStore` runs the
+  migrator on load and stamps `LATEST_VERSION` on write (chain in
+  `app/migrations.ts`: v0→v1 bootstrap, v1→v2 lifting legacy `string[]` items into
+  `ChecklistNode`s); the in-memory `AppData` stays version-free (the version lives
+  only on the bytes at rest). The Settings → Developer tab gained a **"Document
+  migrations"** section: it shows the current `LATEST_VERSION` and a "Load a
+  legacy document" button (`store.simulateLegacyDoc()`) that writes a real
+  pre-versioning file to the active doc key and re-reads it, so the runner climbs
+  it v0→v2 live and logs "migrated v0 → v2" into the Logs tab (the `migrate`
+  scope routes into the demo's `logStore`).
   **Not yet modelled, so the natural next homes to widen into:** real
   **sync/backends** (the menu's namespaces are local-only — a "where your data
   lives" picker + a sync-status surface would seat the `storage` adapters and a

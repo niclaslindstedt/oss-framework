@@ -74,6 +74,9 @@ type Props = {
   commitSettings: (next: AppSettings) => void;
   // Trigger the page-level PWA update prompt (Developer tab → Software updates).
   onSimulateUpdate: () => void;
+  // Replace the active document with a legacy file so the migrator upgrades it
+  // live (Developer tab → Document migrations).
+  onLoadLegacy: () => void;
 };
 
 export function SettingsModal({
@@ -84,6 +87,7 @@ export function SettingsModal({
   settings,
   commitSettings,
   onSimulateUpdate,
+  onLoadLegacy,
 }: Props) {
   const t = useT();
   const [tab, setTab] = useState<TabId>("general");
@@ -226,6 +230,7 @@ export function SettingsModal({
             settings={draft}
             update={update}
             onSimulateUpdate={onSimulateUpdate}
+            onLoadLegacy={onLoadLegacy}
           />
         )}
         {activeTab === "logs" && <LogsTab />}

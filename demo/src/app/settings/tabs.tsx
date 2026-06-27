@@ -22,6 +22,7 @@ import { useStandaloneMobile } from "@niclaslindstedt/oss-framework/pwa";
 
 import { log, logStore } from "../log.ts";
 import { useT } from "../i18n/index.ts";
+import { LATEST_VERSION } from "../migrations.ts";
 import type { AppSettings } from "../useAppSettings.ts";
 import { LanguagePicker } from "./shared.tsx";
 
@@ -419,10 +420,14 @@ export function DeveloperTab({
   settings,
   update,
   onSimulateUpdate,
+  onLoadLegacy,
 }: {
   settings: AppSettings;
   update: Update;
   onSimulateUpdate: () => void;
+  // Replace the active document with a genuine pre-versioning file, so the
+  // migration runner upgrades it live (Developer tab → Document migrations).
+  onLoadLegacy: () => void;
 }) {
   const t = useT();
   // Real install context, read from the framework's PWA detection. `true` only
@@ -460,6 +465,24 @@ export function DeveloperTab({
           onClick={onSimulateUpdate}
         >
           {t("settings.developer.simulateUpdate")}
+        </Button>
+      </Section>
+      <Section title={t("settings.developer.migrationsTitle")}>
+        <p className="text-xs text-muted">
+          {t("settings.developer.migrationsIntro")}
+        </p>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+          <dt className="text-muted">
+            {t("settings.developer.latestVersionLabel")}
+          </dt>
+          <dd className="text-fg tabular-nums">v{LATEST_VERSION}</dd>
+        </dl>
+        <Button
+          variant="secondary"
+          className="self-start"
+          onClick={onLoadLegacy}
+        >
+          {t("settings.developer.loadLegacy")}
         </Button>
       </Section>
       <Section title={t("settings.developer.buildTitle")}>

@@ -9,6 +9,12 @@ import {
 } from "@niclaslindstedt/oss-framework/checklist";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
+import {
+  LATEST_VERSION,
+  legacyDocument,
+  migrator,
+  toAppData,
+} from "./migrations.ts";
 import { SEED } from "./seed.ts";
 import type { AppData, Folder, List } from "./types.ts";
 
@@ -54,7 +60,11 @@ function emptyDoc(): AppData {
 function load(slug: string): AppData {
   try {
     const raw = localStorage.getItem(docKey(slug));
-    if (raw) return JSON.parse(raw) as AppData;
+    // Run the persisted bytes forward to the latest version before the app sees
+    // them: a document written by an older build (or with no `version` at all)
+    // upgrades through the migration chain. The version lives only on disk, so
+    // the result is narrowed back to the version-free `AppData` model.
+    if (raw) return toAppData(migrator.migrate(JSON.parse(raw)).data);
   } catch {
     // Corrupt or unavailable storage — fall back to the seed / a blank doc.
   }
@@ -93,7 +103,13 @@ export function useChecklistStore(slug: string) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(docKey(state.slug), JSON.stringify(state.data));
+      // Stamp the latest version onto the bytes at rest so the migration chain
+      // stays honest — the in-memory `AppData` is version-free; the version is
+      // a property of the persisted JSON only.
+      localStorage.setItem(
+        docKey(state.slug),
+        JSON.stringify({ version: LATEST_VERSION, ...state.data }),
+      );
     } catch {
       // Storage full / unavailable — the in-memory state still works.
     }
@@ -134,6 +150,28 @@ export function useChecklistStore(slug: string) {
   // touching the undo history (a sync isn't an edit you'd undo).
   const reload = useCallback(() => {
     setState((cur) => ({ ...cur, data: load(cur.slug) }));
+    setVersion((v) => v + 1);
+  }, []);
+
+  // Drop a genuine pre-versioning (v0) document onto disk and re-read it, so the
+  // migration runner climbs it to today's shape live — the Developer tab's
+  // "load a legacy document" affordance. The upgrade logs a "migrated v0 → v2"
+  // line into the in-app buffer the Logs tab shows. Replaces the present without
+  // pushing history (it's a debug reset, not an edit you'd undo).
+  const simulateLegacyDoc = useCallback(() => {
+    setState((cur) => {
+      try {
+        localStorage.setItem(
+          docKey(cur.slug),
+          JSON.stringify(legacyDocument()),
+        );
+      } catch {
+        // Unavailable storage — `load` falls back to the seed below.
+      }
+      past.current = [];
+      future.current = [];
+      return { ...cur, data: load(cur.slug) };
+    });
     setVersion((v) => v + 1);
   }, []);
 
@@ -262,6 +300,7 @@ export function useChecklistStore(slug: string) {
     renameFolder,
     setListAppearance,
     reload,
+    simulateLegacyDoc,
     undo,
     redo,
   };
