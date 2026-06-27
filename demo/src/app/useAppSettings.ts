@@ -13,7 +13,6 @@ export type MenuMode = "swipe" | "button";
 export type AppSettings = {
   language: Language;
   menuMode: MenuMode;
-  settingsMode: MenuMode;
   disableAchievements: boolean;
   devMode: boolean;
   captureLogs: boolean;
@@ -24,13 +23,10 @@ export type AppSettings = {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: "en",
-  // The discoverable default on phones: a floating menu button. Switching to
+  // The discoverable default on phones: a floating sidebar button. Switching to
   // "swipe" hides it and opens the drawer with an inward edge swipe instead
-  // (framework `useEdgeSwipeOpen`).
+  // (framework `useEdgeSwipeOpen`). Settings is reached from the sidebar footer.
   menuMode: "button",
-  // The same choice for reaching Settings — a floating button by default
-  // (resting on the opposite edge from the menu), or an inward edge swipe.
-  settingsMode: "button",
   // Achievements ship on so the trophy button and its modals are discoverable
   // out of the box; the General tab can switch them off.
   disableAchievements: false,
