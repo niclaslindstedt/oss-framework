@@ -62,30 +62,7 @@ _(none yet)_
 
 ### Severity 7–8
 
-- **`hooks/usePullToRefresh`: own the min-display anti-flicker window.**
-  - **Files:** `src/hooks/usePullToRefresh.ts` (fires `onRefresh` then
-    `resetIdle()` the instant the promise settles — `:180`); demo proof at
-    `demo/src/app/ChecklistScreen.tsx:83-88` — `doPull` wraps its real work in
-    `await new Promise((r) => setTimeout(r, 900))`, with the comment "behind a
-    short min-delay so the gesture's spinner reads" (`:80`).
-  - **Responsibility handed back:** anti-flicker timing. When `onRefresh`
-    resolves fast (a local-first read off IndexedDB/localStorage is near
-    instant), the indicator snaps from "refreshing" back to idle before the
-    user perceives it, so every adopter pads the handler with a hand-rolled
-    `setTimeout` floor. Pure timing choreography, not domain.
-  - **Plan:** add `minDisplayMs?: number` to the hook's options (default a tuned
-    value, e.g. `600`). The hook holds the `"refreshing"` state at least that
-    long from gesture-release before calling `resetIdle()`, even if `onRefresh`
-    already settled. Callers passing nothing get the floor for free; the demo
-    deletes its `setTimeout(r, 900)` pad. Existing callers see the spinner stay
-    up marginally longer — acceptable for an anti-flicker default, but pick the
-    default conservatively so it never feels laggy.
-  - **Risk:** a default that's too long reads as sluggish; too short doesn't
-    fix the flicker. Choose ~600ms and make it overridable. The hook is
-    touch-gesture driven, so jsdom tests cover the timing math, not the gesture
-    — fake timers + a fast-resolving `onRefresh` asserting the state stays
-    `"refreshing"` until the floor elapses.
-  - **Severity: 7.**
+_(none yet)_
 
 ### Severity 5–6
 
@@ -139,7 +116,11 @@ left}` px (read from CSS env vars), or a documented utility, in `hooks`.
 
 ## Landed
 
-_(none yet)_
+- **`hooks/usePullToRefresh`: own the min-display anti-flicker window.** Added a
+  `minDisplayMs` option (default `600`) that holds `"refreshing"` for at least
+  that long from gesture-release, even when `onRefresh` settles sooner; a
+  refresh that outlasts the floor resets immediately. The demo dropped its
+  `setTimeout(r, 900)` pad and the vestigial `syncing` gate. (2026-06, _Severity 7_)
 
 ## Investigated and skipped
 

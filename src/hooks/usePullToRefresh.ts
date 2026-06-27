@@ -34,6 +34,14 @@ const MAX_PULL = 110;
 // as far as the finger, matching the iOS-native pull-to-refresh feel closely
 // enough.
 const RESISTANCE = 0.5;
+// Minimum time (ms) the `"refreshing"` state is held from gesture-release
+// before returning to idle, even when `onRefresh` settles sooner. A
+// local-first read off IndexedDB/localStorage often resolves near-instantly,
+// which would otherwise snap the spinner away before the user perceives it;
+// this floor keeps the indicator on screen long enough to read as a refresh.
+// Tuned to feel deliberate without reading as laggy. Overridable via
+// `minDisplayMs`; set 0 to opt out.
+const DEFAULT_MIN_DISPLAY_MS = 600;
 
 export type PullToRefreshState =
   // No drag in progress and not refreshing.
@@ -53,6 +61,12 @@ type Options = {
   // When false, the listener is mounted but no-ops. Useful for gating by
   // status — e.g. don't allow a pull while a modal owns the screen.
   enabled?: boolean;
+  // Anti-flicker floor: the smallest time (ms) the indicator stays in
+  // `"refreshing"` from gesture-release, even if `onRefresh` resolves first.
+  // Defaults to `DEFAULT_MIN_DISPLAY_MS`. This delays only the *visual* reset,
+  // never `onRefresh` itself — a slow refresh that outlasts the floor resets
+  // the instant it settles. Set 0 to disable the floor entirely.
+  minDisplayMs?: number;
 };
 
 type Result = {
@@ -93,7 +107,7 @@ export function usePullToRefresh(
   onRefresh: () => Promise<void> | void,
   options: Options = {},
 ): Result {
-  const { enabled = true } = options;
+  const { enabled = true, minDisplayMs = DEFAULT_MIN_DISPLAY_MS } = options;
   const [state, setState] = useState<PullToRefreshState>("idle");
   const [pullDistance, setPullDistance] = useState(0);
 
@@ -105,6 +119,13 @@ export function usePullToRefresh(
   const startYRef = useRef<number | null>(null);
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
+  // Read through a ref so changing the floor never re-subscribes the document
+  // listeners (mirrors the `onRefresh` ref pattern above).
+  const minDisplayRef = useRef(minDisplayMs);
+  minDisplayRef.current = minDisplayMs;
+  // Pending anti-flicker timer, so an in-flight floor can be cleared on unmount
+  // (or a disable) without leaking a `setState` after teardown.
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setStateBoth = useCallback((next: PullToRefreshState) => {
     if (stateRef.current === next) return;
@@ -173,12 +194,25 @@ export function usePullToRefresh(
       const distance = pullRef.current;
       startYRef.current = null;
       if (distance >= TRIGGER_DISTANCE) {
+        const releasedAt = Date.now();
         setStateBoth("refreshing");
         // Pin the indicator at the trigger position while the refresh is in
         // flight so it doesn't snap back before the user sees the spinner.
         setPullBoth(TRIGGER_DISTANCE);
         void Promise.resolve(onRefreshRef.current()).finally(() => {
-          resetIdle();
+          // Anti-flicker floor: hold `"refreshing"` for at least
+          // `minDisplayMs` from release. A near-instant local-first read would
+          // otherwise reset before the spinner registers; a refresh that
+          // already outlasts the floor resets immediately.
+          const remaining = minDisplayRef.current - (Date.now() - releasedAt);
+          if (remaining > 0) {
+            settleTimerRef.current = setTimeout(() => {
+              settleTimerRef.current = null;
+              resetIdle();
+            }, remaining);
+          } else {
+            resetIdle();
+          }
         });
       } else {
         resetIdle();
@@ -204,6 +238,15 @@ export function usePullToRefresh(
       document.removeEventListener("touchcancel", onTouchCancel);
     };
   }, [enabled, resetIdle, setPullBoth, setStateBoth]);
+
+  // Clear a pending anti-flicker timer on unmount so the floor never fires
+  // `resetIdle` (a `setState`) after the component is gone.
+  useEffect(
+    () => () => {
+      if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
+    },
+    [],
+  );
 
   return { state, pullDistance };
 }

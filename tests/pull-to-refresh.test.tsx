@@ -11,9 +11,17 @@ afterEach(() => {
 });
 
 // Mirror the hook's live state onto data-attributes so the test can read what
-// the gesture produced. The hook listens at the document level.
-function Harness({ onRefresh }: { onRefresh: () => Promise<void> | void }) {
-  const { state, pullDistance } = usePullToRefresh(onRefresh);
+// the gesture produced. The hook listens at the document level. The
+// gesture-mechanics tests pass `minDisplayMs: 0` to opt out of the anti-flicker
+// floor so the refresh resets synchronously; the floor has its own tests below.
+function Harness({
+  onRefresh,
+  minDisplayMs = 0,
+}: {
+  onRefresh: () => Promise<void> | void;
+  minDisplayMs?: number;
+}) {
+  const { state, pullDistance } = usePullToRefresh(onRefresh, { minDisplayMs });
   return (
     <div data-testid="probe" data-state={state} data-pull={pullDistance}>
       probe
@@ -112,6 +120,79 @@ describe("usePullToRefresh", () => {
     expect(onRefresh).not.toHaveBeenCalled();
 
     document.body.removeChild(modal);
+  });
+
+  it("holds 'refreshing' for the min-display floor when onRefresh resolves instantly", async () => {
+    vi.useFakeTimers();
+    try {
+      const onRefresh = vi.fn(() => Promise.resolve());
+      render(<Harness onRefresh={onRefresh} minDisplayMs={600} />);
+      const probe = screen.getByTestId("probe");
+
+      dispatchTouch("touchstart", 10);
+      dispatchTouch("touchmove", 210);
+      dispatchTouch("touchend", null);
+      expect(probe.getAttribute("data-state")).toBe("refreshing");
+
+      // The promise has already settled (microtasks flushed), yet the floor
+      // keeps the indicator up — it has not snapped back to idle.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(probe.getAttribute("data-state")).toBe("refreshing");
+      expect(Number(probe.getAttribute("data-pull"))).toBe(70);
+
+      // Just before the floor elapses it is still refreshing…
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(599);
+      });
+      expect(probe.getAttribute("data-state")).toBe("refreshing");
+
+      // …and once it does, the indicator resets.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(probe.getAttribute("data-state")).toBe("idle");
+      expect(Number(probe.getAttribute("data-pull"))).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not extend a refresh that already outlasts the floor", async () => {
+    vi.useFakeTimers();
+    try {
+      let resolve!: () => void;
+      const onRefresh = vi.fn(
+        () =>
+          new Promise<void>((r) => {
+            resolve = r;
+          }),
+      );
+      render(<Harness onRefresh={onRefresh} minDisplayMs={300} />);
+      const probe = screen.getByTestId("probe");
+
+      dispatchTouch("touchstart", 10);
+      dispatchTouch("touchmove", 210);
+      dispatchTouch("touchend", null);
+
+      // The refresh is still in flight well past the floor — no early reset.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(probe.getAttribute("data-state")).toBe("refreshing");
+
+      // Settling now resets immediately; the floor has long since passed, so no
+      // extra timer is scheduled.
+      await act(async () => {
+        resolve();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(probe.getAttribute("data-state")).toBe("idle");
+      expect(Number(probe.getAttribute("data-pull"))).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -61,7 +61,6 @@ export function ChecklistScreen({
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Desktop pointers (mouse / trackpad) have no swipe, so they reach a row's
@@ -76,21 +75,21 @@ export function ChecklistScreen({
   }, [composing]);
 
   // The pull-to-refresh "sync": a local-first app re-checks where its data
-  // lives. Here that means re-reading the persisted document (picking up edits
-  // from another tab) behind a short min-delay so the gesture's spinner reads.
-  // The header `SyncStatus` glyph reflects the *save* lifecycle separately; this
-  // is the read side, and tapping the glyph opens the command centre instead.
-  const doPull = useCallback(async () => {
-    setSyncing(true);
-    await new Promise((r) => setTimeout(r, 900));
+  // lives — here, re-reading the persisted document to pick up edits from
+  // another tab. The read is synchronous and near-instant; the hook holds its
+  // spinner up for its own anti-flicker floor, so the adopter no longer pads
+  // the handler with a hand-rolled min-delay. The header `SyncStatus` glyph
+  // reflects the *save* lifecycle separately; this is the read side, and
+  // tapping the glyph opens the command centre instead.
+  const doPull = useCallback(() => {
     reload();
-    setSyncing(false);
   }, [reload]);
 
-  // Pull down from the top of the list to sync. The hook owns the gesture and
-  // gates itself (touch-only, stands down inside a modal, only at scroll-top);
-  // the indicator below renders its three states.
-  const pull = usePullToRefresh(doPull, { enabled: !syncing });
+  // Pull down from the top of the list to sync. The hook owns the gesture, its
+  // own in-flight guard, and the anti-flicker floor, and gates itself
+  // (touch-only, stands down inside a modal, only at scroll-top); the indicator
+  // below renders its three states.
+  const pull = usePullToRefresh(doPull);
 
   if (!activeList) return null;
 
