@@ -197,8 +197,13 @@ export function SettingsModal({
         />
       </div>
 
+      {/* The full-screen mobile sheet reaches the bottom of the viewport, so
+          add the home-indicator / curved-corner safe-area inset *on top of*
+          the normal 0.75rem footer padding — keeping the buttons' breathing
+          room and lifting them clear of the obscured strip on iOS PWAs.
+          Collapses to plain 0.75rem where there is no inset. */}
       {showReset && (
-        <footer className="flex shrink-0 items-center justify-start gap-2 border-t border-line bg-surface-3 px-4 py-3">
+        <footer className="flex shrink-0 items-center justify-start gap-2 border-t border-line bg-surface-3 px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={handleReset}

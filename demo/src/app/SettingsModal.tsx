@@ -236,8 +236,11 @@ export function SettingsModal({
         {activeTab === "logs" && <LogsTab />}
       </div>
 
-      {/* Footer: Reset (left) | Cancel + Save (right). */}
-      <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-surface-3 px-4 py-3">
+      {/* Footer: Reset (left) | Cancel + Save (right). Add the bottom
+          safe-area inset on top of the normal 0.75rem padding so the buttons
+          keep their breathing room and clear the iOS PWA home-indicator /
+          curved corners; collapses to 0.75rem with no inset. */}
+      <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-surface-3 px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
         <Button variant="secondary" onClick={reset}>
           {t("common.resetToDefaults")}
         </Button>
