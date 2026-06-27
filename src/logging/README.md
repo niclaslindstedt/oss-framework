@@ -54,6 +54,8 @@ backend's `logger` option.
 | `formatLogLine(entry)`     | `HH:MM:SS [scope] LEVEL message` — one plain line for "Copy logs".                 |
 | `useLogs(store)`           | Subscribe a component to a store's buffer with a cached, stable snapshot.          |
 | `LogViewer`                | A ready Logs panel over a store: level filter, copy, clear, coloured entries.      |
+| `LogModal`                 | A modal showing one **operation's** step log — passed entries, opened on demand.   |
+| `LogModalEntry`            | A modal line: `{ ts, level, text }` — `text` is your already-rendered string.      |
 
 `useLogs` is the React binding for the buffer: `store.getLogs()` returns a fresh
 array each call, which `useSyncExternalStore` cannot consume directly (a new
@@ -64,6 +66,51 @@ injects via `labels`, English by default); its level → colour mapping rides th
 theme's `meta`/`flag`/`negative` slots (info/warn/error) and `link` (the scope).
 Keep rendering your own panel from `useLogs` + `formatLogLine` if you need a
 different layout.
+
+### `LogModal` — one operation's trace
+
+`LogViewer` renders the **whole** buffer, live, with filters. `LogModal` is its
+focused counterpart: a modal showing the step-by-step log of a **single**
+operation — the sequence of lines one async, multi-step job emitted while it
+ran. Open it on demand, typically from a status line that went red, so the user
+can read exactly what that one operation did and what stopped it without
+scrolling the global Logs panel.
+
+It owns no state. Collect the operation's entries as it runs — each a
+`LogModalEntry` (`{ ts, level, text }`, where `text` is the string you'd show
+the user, already translated if your app has i18n) — and pass them in with an
+`open` / `onClose` control:
+
+```tsx
+import {
+  LogModal,
+  type LogModalEntry,
+} from "@niclaslindstedt/oss-framework/logging";
+import { ShieldIcon } from "@niclaslindstedt/oss-framework/components";
+
+const [log, setLog] = useState<LogModalEntry[]>([]);
+const [open, setOpen] = useState(false);
+
+// while the operation runs, push lines:
+setLog((l) => [...l, { ts: Date.now(), level: "warn", text: "retrying…" }]);
+
+<LogModal
+  open={open}
+  entries={log}
+  onClose={() => setOpen(false)}
+  icon={<ShieldIcon className="h-4 w-4" />} // optional — theme it to the op
+  labels={{ title: "Encryption log", close: "Close" }}
+/>;
+```
+
+Unlike a `LogEntry`, a `LogModalEntry` carries **no `scope`** — the modal is
+already scoped to one operation, so `text` is the whole line. To feed it from a
+`LogStore` instead (e.g. show the last sync's lines), map the slice you want:
+`store.getLogs().filter(byThisOp).map((e) => ({ ts: e.ts, level: e.level, text: e.message }))`.
+The header glyph is a prop (defaults to a neutral scroll icon) and every visible
+string injects via `labels`, so the modal carries no i18n. Its level → colour
+mapping rides the theme's `accent`/`flag`/`danger` rails (info/warn/error),
+following the active theme.
 
 `ScopedLogger.time(label, fn)` brackets an async op: it logs `label …`, runs
 `fn`, then logs `label ok (<ms>ms)` — or `label failed (<ms>ms)` at error level

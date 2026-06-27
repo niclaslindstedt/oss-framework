@@ -124,6 +124,7 @@ extractions teach you more.
 | Near-identical **repo tooling** (build/release scripts, CI workflows) duplicated across apps                                                  | Shared process, not shared library code                           | Copy it into the framework's own `scripts/` + workflows and **dogfood** it — don't ship it as an npm export (CLI scripts aren't importable surface). Generalise the app-specific bits (skip-lists, doc-slug examples, deploy env). A component whose data this tooling generates (e.g. `changelog` ← changeset fragments) should land _with_ its tooling so the framework uses the same pipeline it ships.                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | **App glue** wrapping an otherwise-shareable component (a `Modal`, `useT`/i18n, an icon set)                                                  | UI chrome fused to a portable core                                | **Drop the glue at the seam, don't parameterise it.** Replace the app `Modal` with a self-contained portal (reuse the framework's own primitives, e.g. `useEscapeKey`), i18n with injectable `labels` props (English defaults), and the icon import with inline glyphs. Keep build-tool inlining (`?raw` / `import.meta.glob`) the app's job — take the glob _result_, not the glob.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | A **pure engine fused with a domain index** in one file (a matcher + `buildIndex`; a parser + an app-typed AST) scoring **mid-band** (50–60%) | The generic half is verbatim; the whole-file score understates it | **Diff the halves, not the file.** The engine (text matcher, parser, projector) is often byte-identical across apps while the index/result-type half is domain-shaped — comment drift + the domain half drag the score to mid-band, hiding a clean shared-verbatim lift. Extract the engine under a **new name** (`search/matcher.ts`, not `domain/search.ts`), draw the seam at the **corpus** (the engine ranks/parses one input; `buildIndex` + result shapes + navigation stay app-side), and expose the engine as a compile-once / run-many primitive. The original file keeps **ranking** afterward (renamed basename has no twin) but is **done**.                                                                                                                                                                                                              |
+| A **presentational component fused with `useT`** (a modal/panel whose only app coupling is the translator)                                    | i18n is glue, not a reason to skip                                | **`useT` coupling ≠ leave app-side.** A component whose only app dependency is `useT` (+ the app `Modal`/icons) is a clean lift: drop the glue at the seam (inject `labels`, swap to the framework's own `/components`). Distinguish this from a **translation table** that maps to specific `MessageKey`s (e.g. a `*-progress.ts` step→key map) — _that_ is app data and stays. Don't let "it imports i18n" disqualify a presentational candidate (the `LogModal` lift was overlooked one full cycle for exactly this mistake).                                                                                                                                                                                                                                                                                                                                       |
 
 Known structural notes about the source apps (keep current):
 
@@ -740,16 +741,53 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   (`Highlighted` title + indented item rows) — picking a result `setActive`s that
   list and closes. A 9th **"Seeker"** achievement (manual, fired from
   `onQueryChange`) was added to the demo catalog. See `src/search/README.md`.
-- **Extract next (recommendation, after `search`):** the cheap shared wins, the
-  whole sync surface, and now search are mined; what's left in the ≥ 50% band is
-  **store-heavy or app-domain** and shrinks to little once the store rule is
-  applied. The per-file ranking below the already-done entries is
+- **`ui/settings/EncryptionLogModal.tsx` → `LogModal` — extracted (done).** Lives
+  in the framework **inside the `logging` module** (not a new subpath) as
+  `LogModal` (`@niclaslindstedt/oss-framework/logging`). This was an **overlooked
+  candidate**: at 73% it outranked everything in the "remaining band" below, but
+  earlier runs skipped it as "i18n-coupled" alongside `ui/encryption-progress.ts`.
+  **Lesson (folded into the mapping table):** _i18n-coupled ≠ leave app-side._ A
+  presentational component fused with `useT` is app **glue to drop at the seam**
+  (inject `labels`); only a **translation table** that maps to specific
+  `MessageKey`s (like `encryption-progress.ts`) is app data that stays. The two
+  copies had **drifted** (notes carried a 3-level `info|warn|error`; checklist
+  only `info|error`) — the framework took **notes' superset**, which happens to
+  match the `logging` module's existing `LogLevel`, so `LogModal` reuses it
+  rather than inventing a union. It's the **focused sibling of `LogViewer`**: the
+  viewer renders a whole live `LogStore` with filters, `LogModal` shows one
+  **operation's** trace from a passed `LogModalEntry[]` (`{ ts, level, text }` —
+  no `scope`, since it's already scoped to one op). **App glue dropped at the
+  seam:** `useT` → injectable `labels` (English defaults), the app `Modal`/
+  `Button`/`CloseIcon`/`ShieldIcon` → the framework's own `/components`, the
+  hard-coded `ShieldIcon` header → an optional `icon` prop (default
+  `ScrollTextIcon`), and the local `formatLogTime` re-implementation → the
+  module's existing export (a de-dup win). The `EncryptionConversionState` shape
+  notes' copy also defined is **app domain** (the conversion queue's busy/
+  direction/done/total) and did **not** come — only the modal + entry type. **Demo:**
+  the Storage tab's flaky-backend save now collects each attempt as a
+  `LogModalEntry` (info start, warn per retry, info/error outcome) and, when a
+  save took retries or failed, surfaces a "View save log" button that opens the
+  `LogModal` scoped to that one operation — the focused counterpart to the global
+  Logs tab. Note the basename `EncryptionLogModal.tsx` has **no framework twin**
+  (extracted under the new name `LogModal.tsx`), so it will keep **ranking** in
+  future reports — it is **done** (see the renamed-false-positives list). See
+  `src/logging/README.md`.
+- **Extract next (recommendation, after `LogModal`):** the cheap shared wins, the
+  whole sync surface, search, and now the operation-log modal are mined; what's
+  left in the ≥ 50% band is **store-heavy or app-domain** and shrinks to little
+  once the store rule is applied. The per-file ranking below the already-done
+  entries is
   `storage/backend-preference.ts` (65% — the backend-id enum + the persisted
   preference; the _enum_ + the pure default-resolution could come, but it's
   mostly a tiny store), `dev/useDevMode.ts` (67% — a React store fused with the
   cross-tab `storage` event + achievements, **store rule says leave it**), and
   `ui/modal-bus.ts` (64% — a global event bus for opening modals; app glue, not
-  reusable surface). `domain/search.ts` (55%) still **ranks** — its basename has
+  reusable surface). Two more sit in the band but stay app-side:
+  `ui/encryption-progress.ts` (70% — a **translation table** mapping conversion
+  steps to i18n `MessageKey`s; app data, _not_ glue — contrast `LogModal`, where
+  the `useT` coupling _was_ just glue) and `dev/useDevSeed.ts` (59% — a React dev
+  store flipping an in-memory fake-data flag, fused with the seed adapter; store
+  rule says leave it). `domain/search.ts` (55%) still **ranks** — its basename has
   no framework twin (the matcher landed as `search/matcher.ts`) — but it is
   **done**: the shared matcher was lifted out of it and the rest (`buildSearchIndex`
   - the `Note`/`Checklist` result types) is app-domain. The realistic remaining
@@ -767,9 +805,10 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   (→ `GlyphPicker`), `ui/glyphs.ts` (→ the glyph catalogue), `ui/namespace-colors.ts`
   (→ `GLYPH_COLORS`), `ui/sideMenuPosition.ts` (→ `sidebar/position.ts`),
   `ui/namespace-favicon.ts` (→ `namespaces/favicon.ts` — basename differs, so it
-  still ranks; done), `ui/hooks/useSwipeReveal.ts` (the side-menu-row sibling of
-  the extracted `useRowSwipe` — left app-side, the framework's `Checklist`
-  consumes `useRowSwipe` directly). Note `storage/namespaces.ts`,
+  still ranks; done), `ui/settings/EncryptionLogModal.tsx` (→ `logging/LogModal` —
+  basename differs, so it still ranks; done), `ui/hooks/useSwipeReveal.ts` (the
+  side-menu-row sibling of the extracted `useRowSwipe` — left app-side, the
+  framework's `Checklist` consumes `useRowSwipe` directly). Note `storage/namespaces.ts`,
   `ui/NamespacesModal.tsx`, `ui/SyncStatus.tsx`, `ui/SyncDetailsModal.tsx`, and
   `ui/SearchModal.tsx` now **dedupe out** (their basenames exist in the
   framework's `src/namespaces/`, `src/sync/`, and `src/search/`), but the app
@@ -812,7 +851,11 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   save failures so the framework's `save-retry` policy (`backoffDelayMs` +
   `isRetryableSaveError` + `MAX_TRANSIENT_SAVE_RETRIES`) rides its backoff curve
   to recover ("saved after N retries"), logging each attempt under a `save`
-  scope; and a list-screen **pull-to-refresh
+  scope — and the save now also collects each attempt as a `LogModalEntry` (info
+  start, warn per retry, info/error outcome) so that, when a save took retries or
+  failed, a **"View save log"** button opens the framework `LogModal` scoped to
+  that one operation (the focused counterpart to the global Logs tab); and a
+  list-screen **pull-to-refresh
   sync** — an inward pull from the list top re-reads the persisted document
   (`useChecklistStore.reload` behind a min-delay), surfaced by
   `PullToRefreshIndicator` (the header's write-side status now lives in the

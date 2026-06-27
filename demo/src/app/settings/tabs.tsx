@@ -20,7 +20,11 @@ import {
   type PasswordRef,
   withEncryption,
 } from "@niclaslindstedt/oss-framework/encryption";
-import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
+import {
+  LogModal,
+  type LogModalEntry,
+  LogViewer,
+} from "@niclaslindstedt/oss-framework/logging";
 import { useStandaloneMobile } from "@niclaslindstedt/oss-framework/pwa";
 
 import { log, logStore } from "../log.ts";
@@ -203,6 +207,14 @@ export function StorageTab({ sync }: { sync: MockSync }) {
   const [flaky, setFlaky] = useState(false);
   const pendingFailures = useRef(0);
 
+  // The step-by-step trace of the *last* save operation, scoped to that one
+  // run. The global Logs tab mixes every scope together; this is the focused
+  // view the framework's `LogModal` renders — opened from the status line when a
+  // save took retries or failed, so the user can read exactly what that one
+  // operation did without scrolling the whole buffer.
+  const [opLog, setOpLog] = useState<LogModalEntry[]>([]);
+  const [opLogOpen, setOpLogOpen] = useState(false);
+
   // The app-owned save engine: thread the document through the encrypting
   // adapter, but first drain any injected transient failures. This is the seam
   // the framework deliberately leaves in the app — the policy is shared, the
@@ -257,6 +269,16 @@ export function StorageTab({ sync }: { sync: MockSync }) {
 
   async function save() {
     if (flaky) pendingFailures.current = FLAKY_FAILURES;
+    // Build the operation's own trace as it runs. Each line goes to both the
+    // global buffer (the `save` scope, via saveLog) and this scoped array, so
+    // the LogModal shows exactly this one save's steps. setOpLog runs on every
+    // push so a modal opened mid-flight stays live.
+    const op: LogModalEntry[] = [];
+    const note = (level: LogModalEntry["level"], text: string) => {
+      op.push({ ts: Date.now(), level, text });
+      setOpLog([...op]);
+    };
+    note("info", "save started");
     await withBusy("writing", async () => {
       // The retry loop a real save queue runs: try the write, and on a
       // retryable failure within budget, wait out the framework's backoff curve
@@ -266,17 +288,20 @@ export function StorageTab({ sync }: { sync: MockSync }) {
         try {
           const saved = await saveViaBackend(text, baseRevision.current);
           baseRevision.current = saved.revision;
-          setStatus(
+          const msg =
             attempt > 0
               ? `saved after ${attempt} ${attempt === 1 ? "retry" : "retries"} — it persists`
-              : "saved — reload the page, it persists",
-          );
+              : "saved — reload the page, it persists";
+          note("info", msg);
+          setStatus(msg);
           return;
         } catch (err) {
           if (err instanceof ConflictError) {
             setText(err.remote.text);
             baseRevision.current = err.remote.revision;
-            setStatus("ConflictError — adopted the other tab's bytes");
+            const msg = "ConflictError — adopted the other tab's bytes";
+            note("warn", msg);
+            setStatus(msg);
             return;
           }
           if (
@@ -285,9 +310,9 @@ export function StorageTab({ sync }: { sync: MockSync }) {
           ) {
             const delay = backoffDelayMs(attempt, DEMO_BACKOFF);
             const next = attempt + 1;
-            saveLog.warn(
-              `save failed (${err instanceof Error ? err.message : String(err)}) — retry ${next}/${MAX_TRANSIENT_SAVE_RETRIES} in ${delay}ms`,
-            );
+            const line = `save failed (${err instanceof Error ? err.message : String(err)}) — retry ${next}/${MAX_TRANSIENT_SAVE_RETRIES} in ${delay}ms`;
+            saveLog.warn(line);
+            note("warn", line);
             setStatus(
               `transient failure — retrying in ${delay}ms (${next}/${MAX_TRANSIENT_SAVE_RETRIES})`,
             );
@@ -295,7 +320,9 @@ export function StorageTab({ sync }: { sync: MockSync }) {
             attempt = next;
             continue;
           }
-          setStatus(err instanceof Error ? err.message : String(err));
+          const msg = err instanceof Error ? err.message : String(err);
+          note("error", msg);
+          setStatus(msg);
           return;
         }
       }
@@ -397,6 +424,15 @@ export function StorageTab({ sync }: { sync: MockSync }) {
             </span>
           ) : (
             status && <span className="text-sm text-success">{status}</span>
+          )}
+          {/* The status line above only shows the final outcome. When the save
+              took retries or failed, surface its full per-step trace through the
+              framework's LogModal — the focused, one-operation counterpart to
+              the global Logs tab. */}
+          {!busy && opLog.some((e) => e.level !== "info") && (
+            <Button variant="ghost" onClick={() => setOpLogOpen(true)}>
+              {t("settings.storage.viewSaveLog")}
+            </Button>
           )}
         </div>
         <ToggleRow
@@ -512,6 +548,17 @@ export function StorageTab({ sync }: { sync: MockSync }) {
           onChange={sync.setEncrypted}
         />
       </Section>
+
+      <LogModal
+        open={opLogOpen}
+        entries={opLog}
+        onClose={() => setOpLogOpen(false)}
+        labels={{
+          title: t("settings.storage.saveLogTitle"),
+          empty: t("settings.storage.saveLogEmpty"),
+          close: t("common.close"),
+        }}
+      />
     </div>
   );
 }
