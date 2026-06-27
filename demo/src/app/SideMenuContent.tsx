@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import {
   ArchiveIcon,
@@ -11,6 +11,7 @@ import {
   FolderOpenIcon,
   HeartIcon,
   HelpCircleIcon,
+  InlineEditRow,
   PencilIcon,
   PlusIcon,
   RedoIcon,
@@ -515,10 +516,12 @@ function FolderRow({
 }
 
 // The inline folder name editor, used both for creating a folder (empty) and
-// renaming one (seeded with its name). Committing on Enter or blur with a
-// non-empty trimmed name; an empty name (or Escape) cancels — which is what
-// makes a freshly-added, never-named folder simply vanish on defocus. The
-// `committed` latch stops the blur that follows an Enter from firing twice.
+// renaming one (seeded with its name). The framework's `InlineEditRow` owns the
+// focus-on-mount, the Enter/blur-commits-Escape-cancels semantics, and the
+// double-fire guard; this wrapper supplies only the folder chrome — a
+// chevron-sized leading spacer (no chevron — a brand-new folder can't be
+// expanded) that keeps the folder glyph aligned with the existing folders'
+// glyphs, plus the folder icon and the row's padding.
 function FolderEditRow({
   initial = "",
   placeholder,
@@ -530,63 +533,24 @@ function FolderEditRow({
   onCommit: (name: string) => void;
   onCancel: () => void;
 }) {
-  const [value, setValue] = useState(initial);
-  const [committed, setCommitted] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-  // Focus (and select) on mount without the a11y-flagged `autoFocus` prop —
-  // the row only appears on an explicit "new folder" / "rename" action, so it
-  // takes focus the moment it shows.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.focus();
-    el.select();
-  }, []);
-  function finish() {
-    if (committed) return;
-    setCommitted(true);
-    const name = value.trim();
-    if (name) onCommit(name);
-    else onCancel();
-  }
   return (
-    <div className="flex items-center gap-2 py-[var(--density-row-py)] pr-2 pl-3">
-      {/* A chevron-sized spacer (no chevron — a brand-new folder can't be
-          expanded) keeps the folder glyph aligned with the existing folders'
-          glyphs, which sit one notch right of their chevron. */}
-      <span className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="text-muted">
-        <FolderIcon className="h-5 w-5" />
-      </span>
-      <input
-        ref={ref}
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={finish}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            finish();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            setCommitted(true);
-            onCancel();
-          }
-        }}
-        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-bright outline-none placeholder:text-muted/60"
-      />
-    </div>
+    <InlineEditRow
+      initial={initial}
+      placeholder={placeholder}
+      onCommit={onCommit}
+      onCancel={onCancel}
+      className="gap-2 pr-2 pl-3"
+      leading={<span className="h-4 w-4 shrink-0" aria-hidden="true" />}
+      icon={<FolderIcon className="h-5 w-5" />}
+      iconClassName="text-muted"
+    />
   );
 }
 
 // The inline checklist-name editor — the swipe-left / right-click Rename drops
 // it in place of the nav row, seeded with the list's title and wearing its own
-// icon. Same commit rules as `FolderEditRow`: Enter or blur with a non-empty
-// trimmed name commits, Escape (or an emptied name) cancels and keeps the old
-// title; the `committed` latch stops a post-Enter blur from firing twice.
+// icon. Same commit rules as `FolderEditRow` (all owned by `InlineEditRow`);
+// this wrapper supplies the list icon and the indent-aware row padding.
 function ListEditRow({
   initial,
   indent,
@@ -602,50 +566,15 @@ function ListEditRow({
   onCommit: (name: string) => void;
   onCancel: () => void;
 }) {
-  const [value, setValue] = useState(initial);
-  const [committed, setCommitted] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.focus();
-    el.select();
-  }, []);
-  function finish() {
-    if (committed) return;
-    setCommitted(true);
-    const name = value.trim();
-    if (name) onCommit(name);
-    else onCancel();
-  }
   return (
-    <div
-      className={`flex items-center gap-3 py-[var(--density-row-py)] ${
-        indent ? "pr-5 pl-10" : "px-5"
-      }`}
-    >
-      <span className="shrink-0 text-muted">{icon}</span>
-      <input
-        ref={ref}
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={finish}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            finish();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            setCommitted(true);
-            onCancel();
-          }
-        }}
-        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-bright outline-none placeholder:text-muted/60"
-      />
-    </div>
+    <InlineEditRow
+      initial={initial}
+      placeholder={placeholder}
+      onCommit={onCommit}
+      onCancel={onCancel}
+      className={`gap-3 ${indent ? "pr-5 pl-10" : "px-5"}`}
+      icon={icon}
+    />
   );
 }
 

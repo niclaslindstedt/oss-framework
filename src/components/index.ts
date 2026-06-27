@@ -13,6 +13,7 @@ export { Badge, type BadgeTone } from "./Badge.tsx";
 export { Fab } from "./Fab.tsx";
 export { Checkbox } from "./Checkbox.tsx";
 export { ClearableInput } from "./ClearableInput.tsx";
+export { InlineEditRow } from "./InlineEditRow.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export {
