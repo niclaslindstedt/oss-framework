@@ -236,6 +236,53 @@ pick the sink. Pass a `logger` (`noopLogger` by default, `consoleLogger(scope)`
 for devtools, or your own) to any adapter. Pass a `fetchImpl` to stub the
 network in tests.
 
+## Retrying the save path
+
+A flaky mobile link drops 5xx and bare network errors that a single retry would
+sail past. `save-retry.ts` is the **policy** for that — pure, so you can
+unit-test the schedule without a fake timer or a live adapter. The framework
+ships the policy; the **engine that applies it (the save queue, the
+`setTimeout`, the dirty flag) stays in your app** — it's fused with your
+document store and not reusable.
+
+- **`backoffDelayMs(attempt, options?, rand?)`** — equal-jitter exponential
+  backoff. The deterministic cap for an attempt is
+  `min(maxMs, baseMs * factor^attempt)` and the returned delay lands in
+  `[cap/2, cap)`. Equal jitter (vs. full jitter) guarantees each wait is at
+  least half the cap, so the curve always makes forward progress while still
+  de-correlating concurrent clients. `options` defaults to
+  `{ baseMs: 500, factor: 2, maxMs: 30_000 }`; `rand` is injectable so a test
+  can pin the jitter.
+- **`isRetryableSaveError(err)`** — `false` for the three typed adapter signals
+  (`ConflictError` / `AuthError` / `RateLimitError`), each of which has dedicated
+  upstream handling (resolution modal / reconnect prompt / throttle cooldown);
+  `true` for everything else, which is treated as a momentary backend hiccup
+  worth a bounded retry.
+- **`MAX_TRANSIENT_SAVE_RETRIES`** — how many automatic retries to spend on a
+  transient failure before surfacing a hard `error`. The first attempt isn't a
+  retry, so the worst case is `1 + MAX_TRANSIENT_SAVE_RETRIES` calls to
+  `adapter.save`.
+- **`OFFLINE_RESUME_MS`** — the gentle, **unbudgeted** interval for resuming a
+  save that failed because the backend was unreachable (vs. a transient 5xx). An
+  offline mirror (`withLocalCache`) has already persisted the bytes, so an
+  offline failure is never a hard error and never spends the transient budget —
+  it just retries slowly until the link recovers.
+
+```ts
+let attempt = 0;
+async function trySave(snapshot) {
+  try {
+    await adapter.save(snapshot);
+    attempt = 0;
+  } catch (err) {
+    if (!isRetryableSaveError(err) || attempt >= MAX_TRANSIENT_SAVE_RETRIES) {
+      throw err; // give up → surface a hard error, or let typed handling fire
+    }
+    setTimeout(() => trySave(snapshot), backoffDelayMs(attempt++));
+  }
+}
+```
+
 ## API surface
 
 - **`adapter.ts`** — `StorageAdapter`, `StoredSnapshot`, `AdapterCapability`,
@@ -251,6 +298,8 @@ network in tests.
   `refreshDropboxAccessToken`, `deleteDropboxPath`, `dropboxApiArg`.
 - **`gdrive/`** — `createGdriveAdapter`, `createGdriveFileStore`,
   `startGdriveAuth`, `preloadGdriveAuth`, `gdriveWebUrl`, `GDRIVE_SCOPE`.
+- **`save-retry.ts`** — `backoffDelayMs` (+ `BackoffOptions`),
+  `isRetryableSaveError`, `MAX_TRANSIENT_SAVE_RETRIES`, `OFFLINE_RESUME_MS`.
 - **shared** — `withLocalCache`, `localCacheKey`, `isOfflineError`,
   `describeStorageError`, `OfflineUnavailableError`; the OAuth PKCE helpers
   (`startAuth`, `completeAuth`, `refreshAccessToken`, `pickOauthProvider`,

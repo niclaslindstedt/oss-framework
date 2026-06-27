@@ -105,6 +105,9 @@ export const sv: Catalog = {
       reload: "Ladda om",
       enciphering: "krypterar…",
       reading: "läser…",
+      flakyBackend: "Simulera en ostadig backend",
+      flakyBackendHint:
+        "Injicera tillfälliga sparfel så att ramverkets omförsökspolicy rider sin backoff-kurva tills skrivningen går igenom.",
       encryptionTitle: "Kryptering i vila",
       encryptDocument: "Kryptera det här dokumentet",
       encryptDocumentHint:

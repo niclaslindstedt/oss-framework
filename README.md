@@ -98,6 +98,7 @@ Today:
 | `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                              |
 | storage backends         | `.` and `./storage`      | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
 | `createMigrator`         | `.` and `./storage`      | Forward-only document-migration runner (the engine; the chain is yours).             |
+| `backoffDelayMs`         | `.` and `./storage`      | Pure save-path retry policy: equal-jitter backoff + retryable-error predicate.       |
 | `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                           |
 | `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
 | `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                       |
