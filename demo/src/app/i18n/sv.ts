@@ -130,6 +130,11 @@ export const sv: Catalog = {
       writeTestLine: "Skriv en testloggrad",
       updatesTitle: "Programuppdateringar",
       simulateUpdate: "Simulera en tillgänglig uppdatering",
+      migrationsTitle: "Dokumentmigreringar",
+      migrationsIntro:
+        "Ditt sparade dokument bär en version; ramverkets migrerare kör äldre dokument framåt vid inläsning. Lägg ett äldre dokument (utan version) på disk för att se det klättra till den aktuella versionen — uppgraderingen loggas på fliken Loggar.",
+      latestVersionLabel: "senaste version",
+      loadLegacy: "Ladda ett äldre dokument",
       buildTitle: "Bygge",
       modeLabel: "läge",
       displayLabel: "visning",

@@ -97,6 +97,7 @@ Today:
 | `parseChangelog`         | `.` and `./changelog`    | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
 | `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                              |
 | storage backends         | `.` and `./storage`      | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
+| `createMigrator`         | `.` and `./storage`      | Forward-only document-migration runner (the engine; the chain is yours).             |
 | `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                           |
 | `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
 | `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                       |
@@ -162,8 +163,9 @@ The `storage` module is the shared persistence layer: one `StorageAdapter` byte
 contract and four backends — the browser's `localStorage`, a picked local
 folder, Dropbox, and Google Drive — behind a single interface, with their OAuth,
 offline-cache, and HTTP plumbing. Adapters move serialized text, not your data
-model, so your serialize / migrate pipeline stays app-side. See
-[`src/storage/README.md`](src/storage/README.md) for the full API and
+model, so your serialize / parse pipeline stays app-side — and `createMigrator`
+runs that text forward through your versioned-document migration chain on load.
+See [`src/storage/README.md`](src/storage/README.md) for the full API and
 per-backend quick-starts.
 
 ```ts

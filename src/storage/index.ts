@@ -32,6 +32,17 @@ export {
   type FileStoreAdapterOptions,
 } from "./file-store-adapter.ts";
 
+// The forward-only document-migration runner (the engine; the chain is yours).
+export {
+  createMigrator,
+  type MigrationResult,
+  type MigrationStep,
+  type MigrationTable,
+  type Migrator,
+  type MigratorConfig,
+  type Versioned,
+} from "./migrations.ts";
+
 // The logger seam.
 export { consoleLogger, noopLogger, type Logger } from "./logger.ts";
 

@@ -131,6 +131,11 @@ export const en = {
       writeTestLine: "Write a test log line",
       updatesTitle: "Software updates",
       simulateUpdate: "Simulate an available update",
+      migrationsTitle: "Document migrations",
+      migrationsIntro:
+        "Your saved document carries a version; the framework's migrator runs older documents forward on load. Drop a legacy (pre-versioning) document on disk to watch it climb to the current version — the upgrade is logged on the Logs tab.",
+      latestVersionLabel: "latest version",
+      loadLegacy: "Load a legacy document",
       buildTitle: "Build",
       modeLabel: "mode",
       displayLabel: "display",

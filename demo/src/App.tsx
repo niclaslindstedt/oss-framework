@@ -236,6 +236,9 @@ export function App() {
           setSettingsOpen(false);
           setUpdateReady(true);
         }}
+        // Drop a legacy document on disk and let the store's migrator upgrade it
+        // live — the upgrade lands in the Logs tab as "migrated v0 → v2".
+        onLoadLegacy={() => store.simulateLegacyDoc()}
       />
 
       {/* The framework's PWA "a new version is ready" prompt. An installed app
