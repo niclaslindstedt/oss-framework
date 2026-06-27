@@ -36,6 +36,7 @@ import {
 } from "@niclaslindstedt/oss-framework/achievements";
 
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
+import { SearchOverlay } from "./app/SearchOverlay.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { CATALOG } from "./app/achievements.ts";
@@ -67,6 +68,7 @@ export function App() {
   const ns = useNamespaces();
   const store = useChecklistStore(ns.activeSlug);
   const [namespacesOpen, setNamespacesOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { settings, setSettings } = useAppSettings();
 
   // The (simulated) sync engine — the app-owned state machine the framework's
@@ -209,6 +211,7 @@ export function App() {
             setDrawerOpen(false);
             setSettingsOpen(true);
           }}
+          onOpenSearch={() => setSearchOpen(true)}
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
@@ -359,6 +362,19 @@ export function App() {
           switchTo: (name) => t("namespaces.switchTo", { name }),
           defaultBadge: t("namespaces.defaultBadge"),
           close: t("common.close"),
+        }}
+      />
+
+      {/* Full-text search over the document — the framework `SearchModal` +
+          matcher, with the corpus (grouped per list) and the result rows owned
+          by the app (`SearchOverlay` / `search.ts`). Opened from the side menu's
+          search button; picking a result selects that list. */}
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        store={store}
+        onNavigate={() => {
+          if (!pinned) setDrawerOpen(false);
         }}
       />
 

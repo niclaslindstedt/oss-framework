@@ -34,6 +34,18 @@ export const sv: Catalog = {
     about: "Om",
     settings: "Inställningar",
   },
+  search: {
+    title: "Sök",
+    placeholder: "Sök listor och poster…",
+    clear: "Rensa sökning",
+    prompt: "Sök bland dina listor och poster.",
+    hint: "Använd * och ? för jokertecken, eller /regex/ för ett mönster.",
+    invalidRegex: "Ogiltigt reguljärt uttryck.",
+    noResults: "Inga resultat för ”{query}”.",
+    matchesOne: "1 lista",
+    matchesOther: "{n} listor",
+    inList: "i den här listan",
+  },
   namespaces: {
     open: "Hantera namnrymder",
     heading: "Namnrymder",

@@ -129,6 +129,8 @@ Today:
 | `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.                                         |
 | `SyncStatus`             | `.` and `./sync`         | Header glyph that morphs over a `SaveStatus` + `dirty`/`offline`; opens the details.                                       |
 | `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.                                          |
+| search matcher           | `.` and `./search`       | `compileQuery` / `searchItems` / `segmentMatches` / `clipAround` — progressive query + ranges.                             |
+| `SearchModal`            | `.` and `./search`       | Generic search overlay (field + empty states); your rows via a render prop. `Highlighted` too.                             |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -383,6 +385,25 @@ import {
   SyncDetailsModal,
   type SaveStatus,
 } from "@niclaslindstedt/oss-framework/sync";
+```
+
+The `search` module is the reusable part of a "find" feature, in three layers:
+a **pure matcher** (`compileQuery` / `searchItems`) whose progressive query
+language (substring → fuzzy → wildcard → `/regex/`) ranks any string and reports
+the character ranges that matched; a **`Highlighted`** renderer that wraps those
+ranges in `<mark>`; and a generic **`SearchModal`** overlay that owns the field
+and the empty / no-results / invalid-regex states while you supply the corpus
+search and render the rows. The matcher is domain-agnostic — what you index and
+how you group the hits stay yours. See
+[`src/search/README.md`](src/search/README.md) for the query language and an
+adoption guide.
+
+```ts
+import {
+  compileQuery,
+  Highlighted,
+  SearchModal,
+} from "@niclaslindstedt/oss-framework/search";
 ```
 
 ## Demo / preview site

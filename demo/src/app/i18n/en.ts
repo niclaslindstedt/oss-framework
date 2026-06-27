@@ -35,6 +35,18 @@ export const en = {
     about: "About",
     settings: "Settings",
   },
+  search: {
+    title: "Search",
+    placeholder: "Search lists and items…",
+    clear: "Clear search",
+    prompt: "Search your lists and items.",
+    hint: "Use * and ? for wildcards, or /regex/ for a pattern.",
+    invalidRegex: "Invalid regular expression.",
+    noResults: "No results for “{query}”.",
+    matchesOne: "1 list",
+    matchesOther: "{n} lists",
+    inList: "in this list",
+  },
   namespaces: {
     open: "Manage namespaces",
     heading: "Namespaces",
