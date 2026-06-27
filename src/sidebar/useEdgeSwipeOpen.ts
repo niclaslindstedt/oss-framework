@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useRef } from "react";
 
+import { isModalOpen } from "../hooks/isModalOpen.ts";
 import type { MenuButtonSide } from "./position.ts";
 
 // Touch-driven "swipe in from the screen edge to open the drawer" gesture —
@@ -38,10 +39,6 @@ export type EdgeSwipeOpenOptions = {
   openDistance?: number;
 };
 
-function hasOpenModal(): boolean {
-  return document.querySelector('[aria-modal="true"]') !== null;
-}
-
 export function useEdgeSwipeOpen({
   side,
   enabled,
@@ -63,7 +60,7 @@ export function useEdgeSwipeOpen({
       start.fired = false;
       if (!cfg.current.enabled) return;
       if (e.touches.length !== 1) return;
-      if (hasOpenModal()) return;
+      if (isModalOpen()) return;
       const touch = e.touches[0];
       if (!touch) return;
       const zone = cfg.current.edgeZone;

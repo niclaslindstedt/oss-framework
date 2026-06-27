@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { isModalOpen } from "./isModalOpen.ts";
+
 // Touch-driven pull-to-refresh. Listens at the document level for a downward
 // drag that starts while the scroll region is at the top, applies rubber-band
 // damping, and fires `onRefresh` once the user crosses `TRIGGER_DISTANCE` and
@@ -83,10 +85,6 @@ function isFormInteractive(target: EventTarget | null): boolean {
   );
 }
 
-function hasOpenModal(): boolean {
-  return document.querySelector('[aria-modal="true"]') !== null;
-}
-
 // True only if every scrollable ancestor of `target` is scrolled to its top. A
 // non-scrolled list lets the pull arm; a mid-scrolled one hands the gesture
 // back to normal scrolling.
@@ -159,7 +157,7 @@ export function usePullToRefresh(
     const onTouchStart = (e: TouchEvent) => {
       if (stateRef.current === "refreshing") return;
       if (e.touches.length !== 1) return;
-      if (hasOpenModal()) return;
+      if (isModalOpen()) return;
       if (isFormInteractive(e.target)) return;
       if (!atScrollTop(e.target)) return;
       const touch = e.touches[0];
