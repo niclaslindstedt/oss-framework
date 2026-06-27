@@ -29,9 +29,10 @@ export type Folder = {
   name: string;
 };
 
-/** The whole app document — one namespace's folders and lists. */
+/** The whole app document — one namespace's folders and lists. Which
+ *  namespace this document belongs to is the registry's concern (see
+ *  `useNamespaces`), so the document itself carries no namespace identity. */
 export type AppData = {
-  namespace: string;
   folders: Folder[];
   lists: List[];
   activeListId: string;

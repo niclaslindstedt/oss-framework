@@ -21,6 +21,11 @@ import {
   glyphDataUri,
 } from "@niclaslindstedt/oss-framework/glyphs";
 import {
+  NamespacesModal,
+  applyFaviconHref,
+  namespaceFaviconHref,
+} from "@niclaslindstedt/oss-framework/namespaces";
+import {
   AchievementUnlockModal,
   AchievementsModal,
   TrophyButton,
@@ -32,11 +37,13 @@ import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { CATALOG } from "./app/achievements.ts";
+import { useT } from "./app/i18n/index.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { seedLogsOnce } from "./app/log.ts";
 import { useAchievements } from "./app/useAchievements.ts";
 import { useAppSettings } from "./app/useAppSettings.ts";
 import { useChecklistStore } from "./app/useChecklistStore.ts";
+import { useNamespaces } from "./app/useNamespaces.ts";
 
 // The demo *is* a fully-fledged app: a local-first nested-checklist PWA built
 // entirely from the framework's shared surface, in the apps' own black/green
@@ -46,10 +53,17 @@ import { useChecklistStore } from "./app/useChecklistStore.ts";
 // lift this folder as a starting point — it is the template the framework is
 // meant to seed.
 export function App() {
+  const t = useT();
   const [appearance, setAppearance] = useState<ThemeAppearance>(APP_LOOK);
   useApplyTheme(appearance);
 
-  const store = useChecklistStore();
+  // Namespaces (workspaces). The registry + active pointer live in the app
+  // (`useNamespaces`, the framework's "store stays in the app" seam); the
+  // document store keys off the active slug, so switching a namespace swaps the
+  // whole checklist document and its undo history.
+  const ns = useNamespaces();
+  const store = useChecklistStore(ns.activeSlug);
+  const [namespacesOpen, setNamespacesOpen] = useState(false);
   const { settings, setSettings } = useAppSettings();
 
   // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
@@ -133,29 +147,27 @@ export function App() {
     seedLogsOnce();
   }, []);
 
-  // Re-badge the browser tab to the active list's glyph + accent — the same
-  // `/glyphs` catalogue the side menu and the appearance picker draw from,
-  // serialised to a favicon data URI. Picking a new icon or colour updates the
-  // tab live. The badge sits on the app's surface colour so it reads on a light
-  // tab bar.
+  // Re-badge the browser tab. The active *namespace*'s glyph wins when it has
+  // one (the framework's `namespaceFaviconHref` resolves it), so a glance at
+  // the tab tells you which workspace you're in; otherwise it falls back to the
+  // active list's glyph + accent — the same `/glyphs` catalogue the side menu
+  // and the appearance picker draw from. The badge sits on the app's surface
+  // colour so it reads on a light tab bar.
   const active = store.activeList;
+  const activeNamespace = ns.activeNamespace;
   useEffect(() => {
-    if (!active) return;
-    const href = glyphDataUri(
-      active.glyph ?? DEFAULT_GLYPH,
-      active.color ?? "#86efac",
-      {
-        background: "#0b0d10",
-      },
+    const listHref = glyphDataUri(
+      active?.glyph ?? DEFAULT_GLYPH,
+      active?.color ?? "#86efac",
+      { background: "#0b0d10" },
     );
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
-    link.href = href;
-  }, [active]);
+    applyFaviconHref(
+      namespaceFaviconHref(activeNamespace, listHref, {
+        defaultColor: "#86efac",
+        badge: { background: "#0b0d10" },
+      }),
+    );
+  }, [active, activeNamespace]);
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-page-bg text-fg">
@@ -180,6 +192,8 @@ export function App() {
       >
         <SideMenuContent
           store={{ ...store, undo: undoWithTrophy }}
+          activeNamespace={ns.activeNamespace}
+          onOpenNamespaces={() => setNamespacesOpen(true)}
           onOpenSettings={() => {
             setDrawerOpen(false);
             setSettingsOpen(true);
@@ -233,6 +247,44 @@ export function App() {
         incomingVersion="2.0.0-demo"
         onReload={() => setUpdateReady(false)}
         onDismiss={() => setUpdateReady(false)}
+      />
+
+      {/* The namespaces manager — create / switch / rename / restyle / delete
+          workspaces. Presentational: the app owns the registry (`useNamespaces`)
+          and passes the list + operations in; the framework owns the dialog and
+          the pure list logic behind these handlers. Labels come from the demo's
+          own i18n, so the dialog speaks whatever language the app is in. */}
+      <NamespacesModal
+        open={namespacesOpen}
+        onClose={() => setNamespacesOpen(false)}
+        namespaces={ns.list}
+        activeNamespace={ns.activeSlug}
+        onSwitch={ns.switchTo}
+        onCreate={ns.create}
+        onRename={ns.rename}
+        onSetAppearance={ns.setAppearance}
+        onRemove={ns.remove}
+        labels={{
+          heading: t("namespaces.heading"),
+          blurb: t("namespaces.blurb"),
+          newAction: t("namespaces.newAction"),
+          namePlaceholder: t("namespaces.namePlaceholder"),
+          nameLabel: t("namespaces.nameLabel"),
+          create: t("namespaces.create"),
+          nameRequired: t("namespaces.nameRequired"),
+          colorLabel: t("namespaces.colorLabel"),
+          glyphLabel: t("namespaces.glyphLabel"),
+          glyphNone: t("namespaces.glyphNone"),
+          save: t("namespaces.save"),
+          cancel: t("namespaces.cancel"),
+          renameAction: t("namespaces.renameAction"),
+          deleteAction: t("namespaces.deleteAction"),
+          delete: t("namespaces.delete"),
+          deleteConfirm: (name) => t("namespaces.deleteConfirm", { name }),
+          switchTo: (name) => t("namespaces.switchTo", { name }),
+          defaultBadge: t("namespaces.defaultBadge"),
+          close: t("common.close"),
+        }}
       />
 
       {/* The achievements tour — the full four-tier catalog, every feature a

@@ -15,7 +15,6 @@ export const en = {
   },
   menu: {
     namespace: "Namespace",
-    namespaceSettings: "Namespace settings",
     checklists: "Checklists",
     newChecklist: "New checklist",
     newFolder: "New folder",
@@ -27,6 +26,29 @@ export const en = {
     donate: "Donate",
     about: "About",
     settings: "Settings",
+  },
+  namespaces: {
+    open: "Manage namespaces",
+    heading: "Namespaces",
+    blurb:
+      "Each namespace is its own workspace with its own lists. Switch between them, or give one an icon and colour.",
+    newAction: "New namespace",
+    namePlaceholder: "Namespace name",
+    nameLabel: "Namespace name",
+    create: "Create",
+    nameRequired: "A name is required",
+    colorLabel: "Colour",
+    glyphLabel: "Icon",
+    glyphNone: "No icon",
+    save: "Save",
+    cancel: "Cancel",
+    renameAction: "Rename",
+    deleteAction: "Delete namespace",
+    delete: "Delete",
+    deleteConfirm:
+      "Delete “{name}” and all of its lists? This can't be undone.",
+    switchTo: "Switch to {name}",
+    defaultBadge: "Default",
   },
   screen: {
     addItem: "Add an item…",

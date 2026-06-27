@@ -85,6 +85,11 @@
       "types": "./dist/i18n/index.d.ts",
       "import": "./dist/i18n/index.js",
       "require": "./dist/i18n/index.cjs"
+    },
+    "./namespaces": {
+      "types": "./dist/namespaces/index.d.ts",
+      "import": "./dist/namespaces/index.js",
+      "require": "./dist/namespaces/index.cjs"
     }
   },
   "scripts": {

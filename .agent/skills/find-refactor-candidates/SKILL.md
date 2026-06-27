@@ -559,24 +559,67 @@ language` localStorage keys and `notes:language` / `checklist:language` events
   `useLang()`/`setLanguage()` so picking Svenska re-renders the entire UI live
   (language moved **out of** `AppSettings` — the i18n runtime owns the preference,
   like a real app). See `src/i18n/README.md`.
-- **Extract next (recommendation, after `i18n`):** the **namespaces** cluster
-  (`storage/namespaces.ts` 76%, `ui/NamespacesModal.tsx` 75%, `namespace-store.ts`,
-  `useNamespaceRegistry.ts`, `namespace-favicon.ts`) is the next big subsystem —
-  but it's **store-heavy**, so expect most of it to stay app-side per the store
-  rule (extract the namespace _data/types_ + the pure favicon builder, leave the
-  registry/store). It also pairs naturally with the demo's biggest remaining gap
-  (multiple profiles/namespaces — the menu still shows a single hard-coded
-  "Default"). The locale _tables_ themselves are **not** candidates (translations
-  diverge by design); the i18n machinery they sit on is now extracted.
+- **`namespaces/` (named buckets / workspaces) — extracted (done).** Lives in
+  the framework as `@niclaslindstedt/oss-framework/namespaces`: the `Namespace`
+  data shape + `NamespaceAppearance`, the **pure list transforms** over an
+  immutable `Namespace[]` (`normalizeNamespaces` default-first/dedup,
+  `parse`/`serializeNamespaces`, `slugify`, `addNamespace` → `{ list, created }`,
+  `renameNamespace`, `setNamespaceAppearance`, `removeNamespace`, the connect-time
+  `mergeNamespaceLists` / `hasLocalOnlyNamespaces` reconcile), the favicon
+  resolver (`namespaceFaviconHref` + `applyFaviconHref`), and the presentational
+  `NamespacesModal`. The cluster was **store-heavy** as predicted, so the seam
+  was drawn exactly at the store rule: **the registry and the active-namespace
+  pointer stay app-side**, and so does **the slug→storage-location mapping**
+  (`namespaceLocalKey` / `namespaceCloudFolder` / `namespaceNotesFolder` —
+  app/backend-coupled and **drifted** between the apps anyway: notes' default
+  owns the app-folder root + a `notes/` subfolder, checklist's default gets a
+  `default/` folder) and the `fileNamespaceStore` / `useNamespaceRegistry`
+  registry glue. checklist's `getActiveChecklistId` cursor + notes'
+  attachment-folder helpers were domain-coupled extras left behind. The module
+  ships **only the pure transforms + favicon + UI** — every localStorage
+  read/write became a pure list transform the app feeds its own store. **App glue
+  dropped at the seam:** the modal's `useT` → injectable `labels` (English
+  defaults; two `(name) => string` entries interpolate), the app `Modal` /
+  `GlyphGrid` / `ColorPalette` / `NamespaceGlyph` / `ConfirmDialog` → the
+  framework's own `/components` + `/glyphs`, and the favicon's
+  `import.meta.env.BASE_URL` fallback → a passed-in `fallbackHref` (the storage
+  precedent — push the bundler-specific bit to the app, keeps it CJS-safe). The
+  catalogues default to `GLYPH_NAMES` / `GLYPH_COLORS` (the apps' `NAMESPACE_*`
+  copies, already extracted to `/glyphs`). A new **`ConfirmDialog`** primitive (+
+  `AlertTriangleIcon`) landed in `/components` to back the modal's delete confirm
+  (checklist had it; notes used an inline two-tap confirm — the framework took
+  checklist's cleaner separate-dialog design). The two apps had **drifted**: the
+  modal (checklist used `ClearableInput` + `ConfirmDialog` + a `noneGlyph`; notes
+  raw `<input>` + inline confirm) converged on checklist's superset. See
+  `src/namespaces/README.md`.
+- **Extract next (recommendation, after `namespaces`):** the cheap shared wins
+  are mostly mined; what's left in the ≥ 50% band is **store-heavy or
+  app-domain** (the per-file ranking below `settings/shared.tsx` is
+  `storage/backend-preference.ts`, `dev/useDevMode.ts`, `ui/SyncStatus.tsx`,
+  `ui/modal-bus.ts`, `domain/search.ts` — all fused to a store or a domain). Two
+  realistic next pulls: (a) **the sync-status surface** (`ui/SyncStatus.tsx` 68%
+  - `ui/SyncDetailsModal.tsx` 48% + `storage/save-retry.ts` 37%) — a
+    presentational "where your data lives / last synced / retry" panel over the
+    already-extracted `storage` adapters, dropping the store at the seam like every
+    modal before it; or (b) **`storage/migrations.ts`** (49%) — a generic
+    versioned-document migration runner (pure, no store), small and self-contained.
+    The locale _tables_ are **not** candidates (translations diverge by design).
+    When weighing "extract next", remember the store rule will shave most of a
+    store-heavy cluster down to its pure core — scope to that core up front.
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
   done: `ui/NamespaceGlyph.tsx` (→ `glyphs/Glyph`), `ui/GlyphGrid.tsx`
   (→ `GlyphPicker`), `ui/glyphs.ts` (→ the glyph catalogue), `ui/namespace-colors.ts`
   (→ `GLYPH_COLORS`), `ui/sideMenuPosition.ts` (→ `sidebar/position.ts`),
-  `ui/hooks/useSwipeReveal.ts` (the side-menu-row sibling of the extracted
-  `useRowSwipe` — left app-side, the framework's `Checklist` consumes `useRowSwipe`
-  directly). When weighing "extract next", start **below** these.
+  `ui/namespace-favicon.ts` (→ `namespaces/favicon.ts` — basename differs, so it
+  still ranks; done), `ui/hooks/useSwipeReveal.ts` (the side-menu-row sibling of
+  the extracted `useRowSwipe` — left app-side, the framework's `Checklist`
+  consumes `useRowSwipe` directly). Note `storage/namespaces.ts` and
+  `ui/NamespacesModal.tsx` now **dedupe out** (their basenames exist in the
+  framework's `src/namespaces/`), but the app copies still carry the
+  store/path-mapping glue the framework deliberately left behind — that residue
+  is **not** a candidate. When weighing "extract next", start **below** these.
 - **Demo app — current scope (the integration target).** `demo/` is a
   fully-fledged local-first nested-checklist PWA in the apps' pure-black/green
   look, built end to end from the framework's own surface — the reference app
@@ -634,11 +677,28 @@ Sweep`, undo → manual `Time Traveler`); the Settings → General
   dialog, and the Settings → General `LanguagePicker` (now `useLang`/`setLanguage`,
   not an `AppSettings` field) flips the entire UI to Svenska instantly — the
   framework i18n runtime owns the language preference, the app owns the strings.
-  **Not yet modelled, so the natural next homes to widen into:** multiple
-  profiles/namespaces (the menu shows a single hard-coded "Default" namespace
-  header — real switching would seat storage backends, sync, encryption, and
-  per-profile appearance); a real Search; and Archive. Keep this note current as
-  the demo grows.
+  And a live **multi-namespace** feature (`/namespaces`) — the side-menu header
+  is now a workspace switcher (the active namespace's glyph + name; tapping it or
+  the cog opens the `NamespacesModal`), seeded with two namespaces ("Privat" =
+  the renamed default with the household lists, "Jobb" = a blue-briefcase empty
+  workspace). An app-side `useNamespaces` store (the framework's "store stays in
+  the app" seam — over the pure list helpers) holds the registry + active-slug
+  pointer in two localStorage keys; `useChecklistStore` was **re-keyed by the
+  active slug** (`docKey(slug)`: the default keeps the historical un-suffixed key,
+  others get `:<slug>`), so switching swaps the whole document **and its undo
+  history**. The gotcha that shaped it: a namespace switch must adopt the new
+  doc **without** a persist-effect racing the old doc into the new key — solved
+  by keeping `{ slug, data }` together in one state and **adjusting it during
+  render** (React's blessed input-changed pattern) rather than in an effect. The
+  tab favicon now follows the active **namespace** via `namespaceFaviconHref`
+  (falling back to the active list's glyph). `AppData` lost its `namespace`
+  field — the registry owns namespace identity now.
+  **Not yet modelled, so the natural next homes to widen into:** real
+  **sync/backends** (the menu's namespaces are local-only — a "where your data
+  lives" picker + a sync-status surface would seat the `storage` adapters and a
+  future SyncStatus extraction), per-namespace **encryption** (lock one
+  workspace), a real **Search**, and **Archive**. Keep this note current as the
+  demo grows.
 
 ## Extraction conventions
 

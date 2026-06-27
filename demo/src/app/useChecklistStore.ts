@@ -7,33 +7,58 @@ import {
   removeNode,
   type ChecklistNode,
 } from "@niclaslindstedt/oss-framework/checklist";
+import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { SEED } from "./seed.ts";
 import type { AppData, Folder, List } from "./types.ts";
 
-// The app's data store. Holds the whole document in state, persists it to
-// localStorage, and exposes the edit actions the screens drive — toggling
-// items, adding lists / folders / items, switching the active list — over an
-// undo / redo history. This is the "store stays in the app" seam: the
-// framework owns the pure tree transforms (`toggleNode`, `countProgress`, …);
-// this hook owns where the data lives and how edits stack up.
+// The app's data store. Holds one namespace's document in state, persists it to
+// a per-namespace localStorage key, and exposes the edit actions the screens
+// drive — toggling items, adding lists / folders / items, switching the active
+// list — over an undo / redo history. This is the "store stays in the app"
+// seam: the framework owns the pure tree transforms (`toggleNode`,
+// `countProgress`, …) and the namespace data model; this hook owns where each
+// namespace's document lives and how edits stack up.
+//
+// The store is keyed by the active namespace slug. Switching namespaces hands
+// this hook a new slug; it adopts that namespace's document and resets the
+// undo history, so each workspace keeps its own data and its own history.
 
-const STORAGE_KEY = "oss-demo:checklist:doc";
+const DOC_KEY_PREFIX = "oss-demo:checklist:doc";
 
-function load(): AppData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AppData;
-  } catch {
-    // Corrupt or unavailable storage — fall back to the seed.
-  }
-  return SEED;
+/** localStorage key for a namespace's document. The default namespace keeps
+ *  the historical un-suffixed key so an existing demo's data survives the
+ *  multi-namespace upgrade; every other namespace gets a per-slug suffix. */
+export function docKey(slug: string): string {
+  return slug === DEFAULT_NAMESPACE_SLUG
+    ? DOC_KEY_PREFIX
+    : `${DOC_KEY_PREFIX}:${slug}`;
 }
 
 let counter = 0;
 function freshId(prefix: string): string {
   counter += 1;
   return `${prefix}-${counter}`;
+}
+
+/** A blank starter document for a brand-new namespace — one empty list so the
+ *  screen is never blank. */
+function emptyDoc(): AppData {
+  return {
+    activeListId: "start",
+    folders: [],
+    lists: [{ id: "start", title: "Att göra", folderId: null, items: [] }],
+  };
+}
+
+function load(slug: string): AppData {
+  try {
+    const raw = localStorage.getItem(docKey(slug));
+    if (raw) return JSON.parse(raw) as AppData;
+  } catch {
+    // Corrupt or unavailable storage — fall back to the seed / a blank doc.
+  }
+  return slug === DEFAULT_NAMESPACE_SLUG ? SEED : emptyDoc();
 }
 
 /** Count of still-unchecked nodes in a list — the side menu's row badge. */
@@ -43,27 +68,42 @@ export function remaining(list: List): number {
 
 export type ChecklistStore = ReturnType<typeof useChecklistStore>;
 
-export function useChecklistStore() {
-  const [data, setData] = useState<AppData>(load);
+export function useChecklistStore(slug: string) {
+  // The active slug travels *with* the document in state so the persist effect
+  // can never write one namespace's data under another's key (the clobber a
+  // separate `data` + `slug` state would race into on a switch).
+  const [state, setState] = useState(() => ({ slug, data: load(slug) }));
   // Edit history. `setActive` replaces the present without pushing, so
   // navigation never clutters undo; every content edit goes through `commit`.
   const past = useRef<AppData[]>([]);
   const future = useRef<AppData[]>([]);
   const [version, setVersion] = useState(0); // re-render on history change
 
+  // Namespace switch — adopt that namespace's document and reset history.
+  // Adjusting state during render (rather than in an effect) is React's blessed
+  // way to respond to a changed input with no stale-doc flash and no clobbered
+  // save.
+  if (state.slug !== slug) {
+    past.current = [];
+    future.current = [];
+    setState({ slug, data: load(slug) });
+  }
+
+  const data = state.data;
+
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(docKey(state.slug), JSON.stringify(state.data));
     } catch {
       // Storage full / unavailable — the in-memory state still works.
     }
-  }, [data]);
+  }, [state]);
 
   const commit = useCallback((next: AppData) => {
-    setData((prev) => {
-      past.current.push(prev);
+    setState((prev) => {
+      past.current.push(prev.data);
       future.current = [];
-      return next;
+      return { ...prev, data: next };
     });
     setVersion((v) => v + 1);
   }, []);
@@ -71,9 +111,9 @@ export function useChecklistStore() {
   const undo = useCallback(() => {
     const prev = past.current.pop();
     if (!prev) return;
-    setData((cur) => {
-      future.current.push(cur);
-      return prev;
+    setState((cur) => {
+      future.current.push(cur.data);
+      return { ...cur, data: prev };
     });
     setVersion((v) => v + 1);
   }, []);
@@ -81,9 +121,9 @@ export function useChecklistStore() {
   const redo = useCallback(() => {
     const next = future.current.pop();
     if (!next) return;
-    setData((cur) => {
-      past.current.push(cur);
-      return next;
+    setState((cur) => {
+      past.current.push(cur.data);
+      return { ...cur, data: next };
     });
     setVersion((v) => v + 1);
   }, []);
@@ -93,13 +133,15 @@ export function useChecklistStore() {
   // local-first refresh, not a fake spinner. Replaces the present without
   // touching the undo history (a sync isn't an edit you'd undo).
   const reload = useCallback(() => {
-    setData(load());
+    setState((cur) => ({ ...cur, data: load(cur.slug) }));
     setVersion((v) => v + 1);
   }, []);
 
   const setActive = useCallback((id: string) => {
-    setData((prev) =>
-      prev.activeListId === id ? prev : { ...prev, activeListId: id },
+    setState((prev) =>
+      prev.data.activeListId === id
+        ? prev
+        : { ...prev, data: { ...prev.data, activeListId: id } },
     );
   }, []);
 

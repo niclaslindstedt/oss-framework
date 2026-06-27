@@ -74,6 +74,10 @@ export default defineConfig({
         replacement: here("../src/i18n/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/namespaces",
+        replacement: here("../src/namespaces/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

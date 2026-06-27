@@ -17,6 +17,7 @@ import {
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
+import type { Namespace } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
@@ -45,12 +46,22 @@ function listIcon(list: List, active: boolean) {
 
 type Props = {
   store: ChecklistStore;
+  // The workspace the menu's lists belong to — its glyph + name head the menu,
+  // and tapping the header (or the cog) opens the namespaces manager.
+  activeNamespace: Namespace;
+  onOpenNamespaces: () => void;
   onOpenSettings: () => void;
   // Close the drawer after a navigation (a no-op when the sidebar is docked).
   onNavigate: () => void;
 };
 
-export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
+export function SideMenuContent({
+  store,
+  activeNamespace,
+  onOpenNamespaces,
+  onOpenSettings,
+  onNavigate,
+}: Props) {
   const t = useT();
   const { data, addList, addFolder, setActive, undo, redo, canUndo, canRedo } =
     store;
@@ -76,15 +87,33 @@ export function SideMenuContent({ store, onOpenSettings, onNavigate }: Props) {
 
   return (
     <div className="flex h-full flex-col select-none">
-      {/* Namespace section — fixed. */}
+      {/* Namespace section — fixed. The header is a switcher: it shows the
+          active workspace's glyph + name and opens the namespaces manager
+          (create / switch / rename / restyle / delete). */}
       <div className="shrink-0">
         <SectionHeader
           label={t("menu.namespace")}
-          addLabel={t("menu.namespaceSettings")}
+          addLabel={t("namespaces.open")}
           addIcon={<CogIcon className="h-4 w-4" />}
+          onAdd={onOpenNamespaces}
         />
-        <NavRow active icon={<FolderIcon className="h-5 w-5" />}>
-          <span className="flex-1 truncate">{data.namespace}</span>
+        <NavRow
+          active
+          onClick={onOpenNamespaces}
+          icon={
+            <Glyph
+              name={activeNamespace.glyph}
+              className="h-5 w-5"
+              style={
+                activeNamespace.color
+                  ? { color: activeNamespace.color }
+                  : undefined
+              }
+            />
+          }
+        >
+          <span className="flex-1 truncate">{activeNamespace.name}</span>
+          <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted" />
         </NavRow>
       </div>
 
@@ -206,11 +235,13 @@ function SectionHeader({
   addLabel,
   border,
   addIcon,
+  onAdd,
 }: {
   label: string;
   addLabel?: string;
   border?: boolean;
   addIcon?: ReactNode;
+  onAdd?: () => void;
 }) {
   return (
     <div
@@ -224,6 +255,7 @@ function SectionHeader({
       {addIcon && (
         <button
           type="button"
+          onClick={onAdd}
           aria-label={addLabel ?? label}
           className="-mr-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg-bright"
         >

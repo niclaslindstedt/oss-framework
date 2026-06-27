@@ -21,7 +21,6 @@ const leaf = (id: string, label: string, checked = false): ChecklistNode =>
     : { id, label, checked };
 
 export const SEED: AppData = {
-  namespace: "Default",
   activeListId: "veckohandling",
   folders: [{ id: "packlistor", name: "Packlistor" }],
   lists: [
