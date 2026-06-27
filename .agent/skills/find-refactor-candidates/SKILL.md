@@ -1,20 +1,39 @@
 ---
 name: find-refactor-candidates
-description: "Use when deciding what to extract into the OSS Framework next. Clones the notes and checklist apps, ranks files by cross-app similarity, and reports the cheapest, safest shared code to migrate — flagging clusters that should move as a whole module."
+description: "Use when deciding what to extract into the OSS Framework next. Clones the notes and checklist apps, ranks files by cross-app similarity, and reports the highest-leverage code to mine into reusable components — flagging clusters that should move as a whole module."
 ---
 
 # Find refactoring candidates
 
-The OSS Framework exists to hold the functionality that `notes` and
-`checklist` currently maintain as near-duplicate copies — storage backends,
-encryption, themes, folders, namespaces, achievements, i18n, swipe/gesture
-hooks, modals. This skill finds the next best thing to pull out of those two
-apps and into the framework, ranked so the safest, highest-leverage
-extractions come first.
+The OSS Framework holds reusable React components, hooks, and utilities for
+building local-first PWAs. The richest **source material** is the
+functionality `notes` and `checklist` currently maintain as near-duplicate
+copies — storage backends, encryption, themes, folders, namespaces,
+achievements, i18n, swipe/gesture hooks, modals. This skill finds the next
+best thing to mine out of those two apps and turn into a framework component,
+ranked so the highest-leverage extractions come first.
 
 It does **not** perform the extraction. It produces the candidate list and
 the evidence (similarity, line counts, whole-module clusters) a human or a
-follow-up agent uses to decide what to migrate, then how.
+follow-up agent uses to decide what to extract, then how.
+
+> **Who consumes the framework — read this first.** The framework targets
+> **new, green-field apps** built on top of it. `notes` and `checklist` are
+> **source material, not consumers**: their duplicated code is the best
+> evidence of what's genuinely reusable, but they will **not** be migrated back
+> onto the framework. There is no "remigrate into the source apps" step, and
+> nothing about an extraction should be shaped by what those two apps happen to
+> render today.
+>
+> The consequence for every decision below: **optimise for the best possible
+> component, not for drop-in compatibility with the source apps.** When two
+> copies disagree, pick the design that makes the strongest, most coherent
+> component for a new app — not the one that would be least disruptive to
+> `notes`/`checklist`. Convergence on a superset is still usually right, but
+> because a superset is the more *complete* component, not because an app would
+> break if a slot vanished. Spend your effort on component quality (clean API,
+> sensible defaults, good docs, demo polish), **not** on minimising migration
+> friction for the apps you sourced from.
 
 ## Tracking mechanism
 
@@ -86,13 +105,20 @@ extractions teach you more.
 | < 80% similar                                                                                                       | Genuinely diverged or app-specific          | Leave in the apps for now; revisit after the cheap wins land.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Any file > 1000 lines (⚠️ in the report)                                                                            | Violates OSS_SPEC §20.5                     | Split by concern _as part of_ extraction — do not import the monolith.                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Names baked in (`Note`, `checklist`)                                                                                | App-domain coupling                         | Parameterize or generalize the type before it enters the public API.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Copies that were _supposed_ to be identical but **drifted** (different slot counts, extra fields, renamed CSS vars) | Accidental divergence, not design           | **Converge, don't preserve.** Pick the **superset** as canonical and migrate both apps onto it — never drop a field/slot an app actively renders (its CSS reads it, its UI shows it). Do **not** parameterize the engine just to keep both drifted shapes alive; that ossifies the drift instead of healing it. Confirm the direction by checking which copy is the ancestor / actively uses the extra surface. Ask the user if the convergence has real UX cost (e.g. one app gains controls). |
+| Copies that were _supposed_ to be identical but **drifted** (different slot counts, extra fields, renamed CSS vars) | Accidental divergence, not design           | **Converge on the best design, don't preserve both.** Pick the **superset** as canonical because it is the more *complete* component for a new app — not to spare a source app. Do **not** parameterize the engine just to keep both drifted shapes alive; that ossifies the drift instead of building a clean component. When the two copies genuinely conflict (not just one being a subset), choose the cleaner, more general shape even if neither source app used it verbatim. Confirm the direction by checking which copy is the ancestor / carries the richer surface. Ask the user only if the choice has a real product-design cost worth their call (e.g. dropping a capability one copy had). |
 | A **store** wrapping shared data (`useSyncExternalStore`, a synced settings doc, persistence keys)                  | The data is shared; the store is app glue   | **Leave the store in the app.** Extract the _data_ (types, presets, palettes) and the _pure logic_ it drives (projection, validation/coercion, seeding). The store is usually fused with app-only concerns (achievements, editor prefs, list layout) and must not come along. The app keeps owning where the user's choice lives.                                                                                                                                                               |
 | Hand-maintained "remove every var/key" cleanup list parallel to a writer                                            | Drift bait — the two lists fall out of sync | When you extract the writer, make it **track what it wrote** (e.g. a `WeakMap` of written keys) and clear exactly that. One source of truth beats two parallel lists — a quality win worth taking _during_ the extraction.                                                                                                                                                                                                                                                                      |
 | Near-identical **repo tooling** (build/release scripts, CI workflows) duplicated across apps                        | Shared process, not shared library code     | Copy it into the framework's own `scripts/` + workflows and **dogfood** it — don't ship it as an npm export (CLI scripts aren't importable surface). Generalise the app-specific bits (skip-lists, doc-slug examples, deploy env). A component whose data this tooling generates (e.g. `changelog` ← changeset fragments) should land _with_ its tooling so the framework uses the same pipeline it ships.                                                                                      |
 | **App glue** wrapping an otherwise-shareable component (a `Modal`, `useT`/i18n, an icon set)                        | UI chrome fused to a portable core          | **Drop the glue at the seam, don't parameterise it.** Replace the app `Modal` with a self-contained portal (reuse the framework's own primitives, e.g. `useEscapeKey`), i18n with injectable `labels` props (English defaults), and the icon import with inline glyphs. Keep build-tool inlining (`?raw` / `import.meta.glob`) the app's job — take the glob _result_, not the glob.                                                                                                            |
 
 Known structural notes about the source apps (keep current):
+
+> Many notes below end with an **"Each app's migration: …"** step (delete the
+> app's copy, import from the framework). Those are kept for **provenance** — a
+> record of where the surface came from and how the seam was drawn. They are
+> **not** work to be done: `notes`/`checklist` are not being migrated onto the
+> framework. Read them as "here is what was duplicated and which copy won," and
+> don't add new per-app migration steps for future extractions.
 
 - **`storage/` (transport layer) — extracted (done).** Lives in the framework
   as `@niclaslindstedt/oss-framework/storage`: the `StorageAdapter` byte
@@ -414,6 +440,34 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   migration: delete its `pwa/` copies, import from `/pwa`, pass its `BASE_URL` /
   resolved `cacheId` / `!DEV` as config, lift the hook above the toast, and pass
   translated `labels`. See `src/pwa/README.md`.
+- **`achievements/` (gamification subsystem) — analysed, not yet extracted (NEXT
+  CANDIDATE).** The full `achievements/` cluster exists in both apps with an
+  **identical file layout** (`types.ts`, `derive.ts`, `bus.ts`,
+  `useAchievementWatcher.ts`, `catalog.ts`, `glyphs.tsx`, `index.ts`) plus the
+  two modals `ui/achievements/AchievementsModal.tsx` (86% similar) and
+  `AchievementUnlockModal.tsx` (70%). The logic files are near-identical bar
+  comments and one app-domain noun. **The seam (a clean engine-over-catalog
+  split):**
+  - **Extract (generic over a `TState` type param):** the model in `types.ts`
+    (`AchievementTier`, `TIER_POINTS`, `TIER_ORDER`, and `Trigger<TState>` /
+    `Achievement<TState>` — today's concrete `AchState = { snapshot; settings }`
+    becomes the app's type argument), `deriveUnlocks<TState>` (`derive.ts`), the
+    manual `bus`, `useAchievementWatcher`, the achievement `glyphs.tsx`, and both
+    modals. Drop app glue at the seam: `useT`/i18n → injectable `labels`, the app
+    `Modal` + icons → the framework's own `/components`.
+  - **Stays app-side (the "store"/app-data equivalent):** `catalog.ts` (~620
+    lines) is the concrete list of achievements + their predicates, hard-coupled
+    to each app's domain (`ChecklistItem`/`Snapshot`, `Note`/`Appearance`). It is
+    *what the app chooses to reward* — the framework supplies the `Achievement`
+    type its entries satisfy and the engine that runs them, not the entries
+    themselves. The concrete `AchState` shape stays app-side as the type arg.
+  - **Drift to converge:** notes names the learn-more flag `learnMore?`,
+    checklist `hasLearnMore?` — take **`hasLearnMore?`** (it accurately names a
+    boolean flag, not the body). `Appearance` vs `Settings` is just each app's
+    `AchState` slice and dissolves into the type param.
+  - **Demo home:** a profile/stats surface — a "Trophies" Settings tab or a
+    profile screen rendering `AchievementsModal` over a small demo catalog, with
+    real unlocks firing through the watcher/bus as the user checks items off.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -484,21 +538,23 @@ When a run actually extracts a candidate (not just reports it), follow these.
 They are the accumulated "how", learned from real migrations — keep them
 current as the framework grows.
 
-### Every component ships a migration README (required)
+### Every component ships a usage README (required)
 
-**Every framework component/module must have a migration README** at
+**Every framework component/module must have a README** at
 `src/<module>/README.md`. It is the deliverable that makes the extraction
-_usable_.
+_usable_ by the new apps that will build on it.
 
-> **READMEs are app-agnostic — always.** The framework is consumed by many apps,
-> not just the ones an extraction happened to be sourced from. **Never name a
-> specific consuming app (`notes`, `checklist`, …) in a module README.** Write
-> in terms of "your app" and the framework's own symbols. App-specific migration
-> notes belong in the skill's structural notes (here), not in shipped docs. This
-> rule holds for every README, present and future.
+> **READMEs are app-agnostic — always.** The framework targets green-field apps,
+> not the ones an extraction happened to be sourced from. **Never name a source
+> app (`notes`, `checklist`, …) in a module README.** Write in terms of "your
+> app" and the framework's own symbols. Source-app provenance notes belong in
+> the skill's structural notes (here), not in shipped docs. This rule holds for
+> every README, present and future.
 
-Write it as the module's own import guide for any app replacing a comparable
-home-grown implementation:
+Write it as the module's own adoption guide for a **new app** building on the
+framework. The audience is someone wiring this in from scratch, **not** someone
+migrating a home-grown copy — so lead with how to use it well, not how to
+replace something:
 
 - **What it is / what it owns vs. what stays in the app** — be explicit about
   the seam (e.g. "the store stays in your app; the framework owns the data and
@@ -506,21 +562,18 @@ home-grown implementation:
 - **The contract** the module imposes (CSS variables written, DOM attributes,
   event shapes, file paths) so the app's other layers can line up.
 - **Generic usage** — install, import, a quick-start wiring example, the full
-  API surface.
-- **A migration section, framed by degree of match.** Describe how to move a
-  pre-existing implementation onto the framework in general terms (what
-  shrinks, what gets deleted, what becomes a thin adapter; show before/after
-  with framework symbols, not app filenames).
-- **A "partial match" section (required).** Most adopters will _not_ match the
-  framework exactly. Spell out the mismatches that arise and how to reconcile
-  each: the app has **fewer** slots/fields than the framework (extra controls
-  appear with nothing to style → add the CSS, or hide the control); the app has
-  **more** / **extra** surface the framework lacks (keep it app-side layered on
-  top, or propose widening the framework); **renamed** variables/keys (map them
-  in CSS or an adapter); **different value mappings** (the framework's concrete
-  values differ from the app's); **store-shape** differences. Make the failure
-  modes concrete so an adopter recognises their case.
-- **Verification** — how to confirm the app still behaves after wiring.
+  API surface. This is the heart of the README; make it excellent.
+- **An "adapting to your app" section (required).** A new app's needs won't
+  match the component exactly. Spell out the mismatches that arise and how to
+  reconcile each: the app wants **fewer** slots/fields than the component
+  exposes (which controls to hide, what CSS to drop); the app needs **more** /
+  **extra** surface the component lacks (layer it app-side on top, or propose
+  widening the framework); **renamed** variables/keys (map them in CSS or an
+  adapter); **different value mappings**; **store-shape** differences. Make the
+  cases concrete so an adopter recognises theirs. Do **not** frame this as
+  migrating off an existing implementation — frame it as fitting a clean
+  component to a new app's requirements.
+- **Verification** — how to confirm the app behaves correctly after wiring.
 
 Link the module README from the top-level `README.md` API section and add a
 `CHANGELOG.md` entry, per the `AGENTS.md` documentation sync points.
@@ -622,9 +675,9 @@ When running this skill:
 
 If the run **also extracted** a candidate, additionally:
 
-- [ ] Decided the convergence direction for any drifted copies (superset wins; nothing an app renders is dropped).
+- [ ] Decided the convergence direction for any drifted copies (pick the most complete, cleanest design for a new app — usually the superset).
 - [ ] Left the app-specific store/state in the apps; moved only the shared data + pure logic.
-- [ ] Wrote the module's migration README (`src/<module>/README.md`) with a per-app replacement guide.
+- [ ] Wrote the module's usage README (`src/<module>/README.md`) as an adoption guide for a new app (usage + "adapting to your app"), not a per-app replacement guide.
 - [ ] Wired the subpath export in all four places (barrel, root index, tsup, package.json).
 - [ ] **Integrated the new surface into the demo app** in a natural, realistic way that improves the experience — wired into an existing flow, or the demo's scope widened (Settings tab, profiles, a new screen) to give it a logical home. No contrived showcase widgets.
 - [ ] Added the matching `demo/vite.config.ts` alias for the new subpath, built the demo (`npm run build --workspace demo`) green, and **verified the new surface renders and responds in the running app** (headless screenshot).
