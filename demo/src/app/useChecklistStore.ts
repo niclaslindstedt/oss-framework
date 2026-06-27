@@ -319,6 +319,39 @@ export function useChecklistStore(slug: string) {
     [commit, data],
   );
 
+  // Restore an archived folder — the Archive page's "restore" outcome. Lifts the
+  // flag off the folder and every list it holds, so the whole group reappears in
+  // the menu just as it left. Undoable.
+  const unarchiveFolder = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        folders: data.folders.map((f) =>
+          f.id === id ? { ...f, archived: false } : f,
+        ),
+        lists: data.lists.map((l) =>
+          l.folderId === id ? { ...l, archived: false } : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Permanently delete an archived folder — the Archive page's "delete" outcome.
+  // Unlike the menu's `deleteFolder` (which keeps a live folder's lists by
+  // reparenting them to the root), purging from the archive drops the folder and
+  // every list under it together: they're already out of sight, and the archive
+  // is the one place a checklist is meant to leave the document for good.
+  // Undoable.
+  const deleteArchivedFolder = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        folders: data.folders.filter((f) => f.id !== id),
+        lists: data.lists.filter((l) => l.folderId !== id),
+      }),
+    [commit, data],
+  );
+
   // Rename a checklist — the swipe-left pencil outcome. Undoable.
   const renameList = useCallback(
     (id: string, title: string) =>
@@ -356,6 +389,21 @@ export function useChecklistStore(slug: string) {
         activeListId: nextActiveId(lists, data.activeListId),
       });
     },
+    [commit, data],
+  );
+
+  // Restore an archived checklist — the Archive page's "restore" outcome. Drops
+  // the `archived` flag so the list reappears in the menu, back in whichever
+  // folder it came from (or at the root). Undoable; the active pointer is left
+  // alone so a restore never yanks the screen onto the recovered list.
+  const unarchiveList = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === id ? { ...l, archived: false } : l,
+        ),
+      }),
     [commit, data],
   );
 
@@ -482,9 +530,12 @@ export function useChecklistStore(slug: string) {
     renameFolder,
     deleteFolder,
     archiveFolder,
+    unarchiveFolder,
+    deleteArchivedFolder,
     renameList,
     deleteList,
     archiveList,
+    unarchiveList,
     moveListToFolder,
     moveListToNamespace,
     moveFolderToNamespace,

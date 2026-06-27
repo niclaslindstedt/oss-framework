@@ -51,6 +51,17 @@ export const en = {
     empty: "No releases yet.",
     back: "Back",
   },
+  archive: {
+    title: "Archive",
+    empty:
+      "Nothing archived. Swipe a list or folder right — or drag it onto Archive — to shelve it here.",
+    folders: "Archived folders",
+    checklists: "Archived checklists",
+    restoreFolder: "Restore folder",
+    restoreChecklist: "Restore checklist",
+    delete: "Delete",
+    rowActions: "Archive actions",
+  },
   search: {
     title: "Search",
     placeholder: "Search lists and items…",

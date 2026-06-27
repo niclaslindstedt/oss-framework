@@ -50,6 +50,17 @@ export const sv: Catalog = {
     empty: "Inga versioner än.",
     back: "Tillbaka",
   },
+  archive: {
+    title: "Arkiv",
+    empty:
+      "Inget arkiverat. Svep en lista eller mapp åt höger — eller dra den till Arkiv — för att lägga den här.",
+    folders: "Arkiverade mappar",
+    checklists: "Arkiverade checklistor",
+    restoreFolder: "Återställ mapp",
+    restoreChecklist: "Återställ checklista",
+    delete: "Ta bort",
+    rowActions: "Arkivåtgärder",
+  },
   search: {
     title: "Sök",
     placeholder: "Sök listor och poster…",
