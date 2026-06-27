@@ -211,6 +211,9 @@ export const sv: Catalog = {
         "Välj en backend för dokumentet. Molnglyfen i sidhuvudet speglar sparstatusen; tryck på den för synkens kommandocentral. Molnet här är simulerat — inga data lämnar din enhet.",
       backendThisDevice: "Den här enheten",
       backendCloud: "Simulerat moln",
+      cloudProviderTitle: "Molntjänst",
+      cloudProviderHint:
+        'Vilken tjänst det simulerade molnet synkar mot. Öppna menyn och börja skriva — "one" hoppar till OneDrive. Ditt val visas efter "synkad till …" på sidhuvudets glyf och som mappen i kommandocentralen.',
       encryptSync: "Krypterad i vila",
       encryptSyncHint:
         "Visa backend som krypterad i kommandocentralens detaljruta (På/Av).",

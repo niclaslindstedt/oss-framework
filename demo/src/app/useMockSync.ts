@@ -36,7 +36,38 @@ export type SyncFault =
   | "conflict"
   | "throttled";
 
+// The cloud drives a real local-first PWA can sync to. The demo's cloud is
+// simulated (see the header note), so these differ only in their display name
+// and the folder path the `SyncDetailsModal` reports — but that is exactly the
+// choice an adopter exposes, and picking one flows straight into the header
+// `SyncStatus` glyph ("synced to {name}"). A long, flat list like this is the
+// natural home for a type-ahead `SelectPicker`: type "one" to land on OneDrive.
+export type CloudProvider = {
+  id: string;
+  name: string;
+  // The path stem shown as "where your data lives"; the document slug is
+  // appended per list.
+  folder: string;
+};
+
+export const CLOUD_PROVIDERS: readonly CloudProvider[] = [
+  { id: "gdrive", name: "Google Drive", folder: "Apps/OSS Demo" },
+  { id: "dropbox", name: "Dropbox", folder: "Apps/OSS Demo" },
+  { id: "onedrive", name: "OneDrive", folder: "Apps/OSS Demo" },
+  { id: "icloud", name: "iCloud Drive", folder: "OSS Demo" },
+  { id: "webdav", name: "WebDAV server", folder: "dav/oss-demo" },
+  { id: "s3", name: "Amazon S3", folder: "oss-demo-bucket" },
+  { id: "nextcloud", name: "Nextcloud", folder: "Files/OSS Demo" },
+];
+
+const DEFAULT_PROVIDER_ID = "gdrive";
+
+function providerById(id: string): CloudProvider {
+  return CLOUD_PROVIDERS.find((p) => p.id === id) ?? CLOUD_PROVIDERS[0];
+}
+
 const BACKEND_KEY = "oss-demo:sync:backend";
+const PROVIDER_KEY = "oss-demo:sync:provider";
 const ENCRYPTED_KEY = "oss-demo:sync:encrypted";
 // Snappy timings so the lifecycle reads in a few seconds of clicking around.
 const SAVE_DEBOUNCE_MS = 700;
@@ -46,6 +77,11 @@ const THROTTLE_RETRY_MS = 1400;
 export type MockSync = {
   backend: SyncBackend;
   setBackend: (b: SyncBackend) => void;
+  // Which cloud drive the (simulated) cloud backend syncs to. Only meaningful
+  // while `backend === "cloud"`; its name surfaces in the header `SyncStatus`
+  // and its folder in the `SyncDetailsModal`.
+  providerId: string;
+  setProviderId: (id: string) => void;
   encrypted: boolean;
   setEncrypted: (v: boolean) => void;
   fault: SyncFault;
@@ -69,8 +105,16 @@ function readBackend(): SyncBackend {
   return localStorage.getItem(BACKEND_KEY) === "cloud" ? "cloud" : "local";
 }
 
+function readProviderId(): string {
+  const saved = localStorage.getItem(PROVIDER_KEY);
+  return saved && CLOUD_PROVIDERS.some((p) => p.id === saved)
+    ? saved
+    : DEFAULT_PROVIDER_ID;
+}
+
 export function useMockSync(store: ChecklistStore, slug: string): MockSync {
   const [backend, setBackendState] = useState<SyncBackend>(readBackend);
+  const [providerId, setProviderIdState] = useState<string>(readProviderId);
   const [encrypted, setEncryptedState] = useState<boolean>(
     () => localStorage.getItem(ENCRYPTED_KEY) === "1",
   );
@@ -153,6 +197,13 @@ export function useMockSync(store: ChecklistStore, slug: string): MockSync {
     [store.version],
   );
 
+  const setProviderId = useCallback((id: string) => {
+    const provider = providerById(id);
+    localStorage.setItem(PROVIDER_KEY, provider.id);
+    syncLog.info(`backend: switched cloud drive → ${provider.name}`);
+    setProviderIdState(provider.id);
+  }, []);
+
   const setEncrypted = useCallback((v: boolean) => {
     localStorage.setItem(ENCRYPTED_KEY, v ? "1" : "0");
     setEncryptedState(v);
@@ -208,9 +259,13 @@ export function useMockSync(store: ChecklistStore, slug: string): MockSync {
       return "online";
     }, [fault]);
 
+  const provider = providerById(providerId);
+
   return {
     backend,
     setBackend,
+    providerId,
+    setProviderId,
     encrypted,
     setEncrypted,
     fault,
@@ -218,10 +273,12 @@ export function useMockSync(store: ChecklistStore, slug: string): MockSync {
     status,
     dirty,
     offline,
-    providerName: isCloud ? "Simulated cloud" : "This device",
+    // The chosen drive's name is what the header `SyncStatus` shows after
+    // "synced to …"; on the local backend the data never leaves the device.
+    providerName: isCloud ? provider.name : "This device",
     backendKind: isCloud ? "cloud" : "folder",
     location: {
-      path: isCloud ? `Apps/OSS Demo/${slug}` : docKey(slug),
+      path: isCloud ? `${provider.folder}/${slug}` : docKey(slug),
       url: null,
     },
     saveNow,

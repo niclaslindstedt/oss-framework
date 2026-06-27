@@ -24,7 +24,7 @@ defaults.
 | `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                                  |
 | `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard.               |
 | `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
-| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav.                                                                      |
+| `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav + type-ahead.                                                         |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                                  |
@@ -357,6 +357,14 @@ Most adopters won't line up exactly. The mismatches and how to reconcile each:
 - **Your `SelectPicker` trigger looked different.** Pass `triggerClassName` to
   restyle the trigger and `panelClassName` for the dropdown; the defaults are a
   bordered field.
+- **Type-ahead matched nothing, or you don't want it.** With the panel open,
+  `SelectPicker` lets the user type to jump to an option — on by default
+  whenever an option offers a string to match (its `label`, or an explicit
+  `typeaheadLabel` when the label is a React node like an icon + text). If your
+  labels are all nodes and you want typing to work, set `typeaheadLabel` per
+  option; to switch the behaviour off entirely, pass `typeahead={false}`. The
+  underlying [`useTypeahead`](../hooks/README.md) hook is exported for wiring the
+  same "type to select" onto your own menus and radiogroups.
 - **You need a glyph this set doesn't have.** Keep your own glyph component
   app-side and pass it in (the components that show icons accept `ReactNode`), or
   propose widening the framework set.
@@ -369,7 +377,9 @@ After wiring, confirm the app still behaves:
   focus, locks body scroll, and Escape peels one layer at a time when stacked.
 - A `SelectPicker` opens on click/Enter/Space/Arrow, moves the highlight with
   the arrow keys, commits on Enter, and dismisses on Escape / outside-click
-  without committing.
+  without committing. With the panel open, **typing** jumps the highlight to the
+  first option whose label starts with what you typed — the matched characters
+  are marked — and the buffer resets after a short pause.
 - Buttons, checkboxes, and inputs pick up your theme colours and switch with the
   active theme.
 - The glyphs inherit `text-*` colour and `h-*/w-*` size from their call site.

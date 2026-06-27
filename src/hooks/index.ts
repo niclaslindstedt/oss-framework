@@ -31,3 +31,4 @@ export {
   type UseClipboardOptions,
   type UseClipboardResult,
 } from "./useClipboard.ts";
+export { useTypeahead, matchPrefixRange } from "./useTypeahead.ts";
