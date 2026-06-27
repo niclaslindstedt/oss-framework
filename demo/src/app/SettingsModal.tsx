@@ -19,6 +19,7 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 
 import { CodeIcon, ScrollTextIcon } from "./icons.tsx";
+import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import { DEFAULT_SETTINGS, type AppSettings } from "./useAppSettings.ts";
 import {
@@ -44,19 +45,23 @@ type TabId =
   | "developer"
   | "logs";
 
+// A typed message key (the argument `useT`'s `t` accepts), so each tab's label
+// stays a compile-checked catalog path.
+type TKey = Parameters<ReturnType<typeof useT>>[0];
+
 type TabDef = {
   id: TabId;
-  label: string;
+  labelKey: TKey;
   icon: (p: IconProps) => ReactNode;
 };
 
 const TABS: TabDef[] = [
-  { id: "general", label: "General", icon: SlidersIcon },
-  { id: "appearance", label: "Appearance", icon: PaletteIcon },
-  { id: "editor", label: "Editor", icon: PencilIcon },
-  { id: "storage", label: "Storage", icon: DatabaseIcon },
-  { id: "developer", label: "Developer", icon: CodeIcon },
-  { id: "logs", label: "Logs", icon: ScrollTextIcon },
+  { id: "general", labelKey: "settings.tabs.general", icon: SlidersIcon },
+  { id: "appearance", labelKey: "settings.tabs.appearance", icon: PaletteIcon },
+  { id: "editor", labelKey: "settings.tabs.editor", icon: PencilIcon },
+  { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
+  { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
+  { id: "logs", labelKey: "settings.tabs.logs", icon: ScrollTextIcon },
 ];
 
 type Props = {
@@ -80,6 +85,7 @@ export function SettingsModal({
   commitSettings,
   onSimulateUpdate,
 }: Props) {
+  const t = useT();
   const [tab, setTab] = useState<TabId>("general");
   const [menuOpen, setMenuOpen] = useState(false);
   const [draft, setDraft] = useState<AppSettings>(settings);
@@ -105,12 +111,15 @@ export function SettingsModal({
   // The Developer / Logs tabs only exist while developer mode (or capture) is
   // on — mirror the real app. If the active tab vanishes, fall back to General.
   const visible = TABS.filter(
-    (t) =>
-      (t.id !== "developer" || draft.devMode) &&
-      (t.id !== "logs" || draft.devMode || draft.captureLogs),
+    (tabItem) =>
+      (tabItem.id !== "developer" || draft.devMode) &&
+      (tabItem.id !== "logs" || draft.devMode || draft.captureLogs),
   );
-  const activeTab = visible.some((t) => t.id === tab) ? tab : "general";
-  const activeDef = visible.find((t) => t.id === activeTab) ?? visible[0]!;
+  const activeTab = visible.some((tabItem) => tabItem.id === tab)
+    ? tab
+    : "general";
+  const activeDef =
+    visible.find((tabItem) => tabItem.id === activeTab) ?? visible[0]!;
   const ActiveIcon = activeDef.icon;
 
   function save() {
@@ -131,7 +140,7 @@ export function SettingsModal({
       open={open}
       onClose={cancel}
       labelledBy="settings-title"
-      closeLabel="Cancel"
+      closeLabel={t("common.cancel")}
     >
       {/* Header: tab menu trigger (left) + close (right). */}
       <header className="relative flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface-3 px-4 py-3">
@@ -152,12 +161,12 @@ export function SettingsModal({
           <span className="inline-flex shrink-0 text-accent">
             <ActiveIcon className="h-3.5 w-3.5" />
           </span>
-          <span className="min-w-0">{activeDef.label}</span>
+          <span className="min-w-0">{t(activeDef.labelKey)}</span>
         </button>
         <button
           type="button"
           onClick={cancel}
-          aria-label="Close"
+          aria-label={t("common.close")}
           className="-mr-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg"
         >
           <CloseIcon className="h-5 w-5" />
@@ -175,17 +184,17 @@ export function SettingsModal({
         }}
       >
         <div role="menu" className="flex w-full flex-col gap-0.5 p-2">
-          {visible.map((t) => {
-            const Icon = t.icon;
-            const isActive = t.id === activeTab;
+          {visible.map((tabItem) => {
+            const Icon = tabItem.icon;
+            const isActive = tabItem.id === activeTab;
             return (
               <button
-                key={t.id}
+                key={tabItem.id}
                 type="button"
                 role="menuitem"
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => {
-                  setTab(t.id);
+                  setTab(tabItem.id);
                   setMenuOpen(false);
                 }}
                 className={`flex w-full cursor-pointer items-center gap-2 rounded px-2 py-2 text-left text-sm hover:bg-surface ${
@@ -193,7 +202,7 @@ export function SettingsModal({
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span>{t.label}</span>
+                <span>{t(tabItem.labelKey)}</span>
               </button>
             );
           })}
@@ -225,14 +234,14 @@ export function SettingsModal({
       {/* Footer: Reset (left) | Cancel + Save (right). */}
       <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-surface-3 px-4 py-3">
         <Button variant="secondary" onClick={reset}>
-          Reset to defaults
+          {t("common.resetToDefaults")}
         </Button>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={cancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" onClick={save}>
-            Save
+            {t("common.save")}
           </Button>
         </div>
       </footer>

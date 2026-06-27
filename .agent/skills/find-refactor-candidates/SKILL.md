@@ -528,20 +528,46 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   are app-specific — do not pull them into the framework's `theme` module.
 - `storage/useStorageBackend.ts` is the largest shared file (~2000 lines) and
   blows the §20.5 limit — it must be decomposed during extraction, not lifted.
-- `i18n/locales/**` similarity is low by design (translations differ); the
-  i18n _machinery_ (`i18n/index.ts`, `locale.ts`, `language-preference.ts`,
-  `LanguageRoot.tsx`) is the real candidate.
-- **Extract next (recommendation, after `encryption`):** the **i18n machinery**
-  is the strongest remaining clean win — it directly unblocks the demo's
-  outstanding "i18n language switch" gap (strings are still hard-coded English),
-  and every already-extracted module that took `labels`/`MessageKey` props was
-  built anticipating it. Treat the locale _tables_ as the app's (translations
-  diverge); extract the machinery + a tiny seed catalogue. After that, the
-  **namespaces** cluster (`storage/namespaces.ts` 76%, `ui/NamespacesModal.tsx`
-  75%, `namespace-store.ts`, `useNamespaceRegistry.ts`, `namespace-favicon.ts`)
-  is the next big subsystem — but it's **store-heavy**, so expect most of it to
-  stay app-side per the store rule (extract the namespace _data/types_ + the pure
-  favicon builder, leave the registry/store).
+- **`i18n/` (typed `t()` runtime) — extracted (done).** Lives in the framework
+  as `@niclaslindstedt/oss-framework/i18n`: `createI18n(config)` — a **factory**
+  that returns a fully-typed runtime (`useT`/`useLang`/`LanguageRoot`/
+  `LanguageProvider`/`ensureCatalog`/`isCatalogLoaded`/`tFor`/`setLanguage`/
+  `readLanguagePreference`/`writeLanguagePreference`) over an app's own catalogs,
+  plus `detectBrowserLanguage`/`formatMessage`/`flattenCatalog` and the
+  `Widen`/`Leaves`/`CatalogShape`/`I18nConfig`/`I18n` types. The four machinery
+  files (`index.ts`, `locale.ts`, `language-preference.ts`, `LanguageRoot.tsx`)
+  were **comment-only drift** across the apps; the real work was **inverting the
+  module-level singletons into a closure factory** so a green-field app (or a
+  test, or a second mount) holds an independent runtime — the apps' `flatEn`/
+  `flatCatalogs`/`CATALOG_LOADERS`/`inFlight` module globals and the hard-coded
+  `Catalog`/`Lang`/`sv`-loader become factory generics + config. **App glue
+  dropped at the seam:** the hard-coded `notes/language` / `checklist:settings:
+language` localStorage keys and `notes:language` / `checklist:language` events
+  became `storageKey`/`eventName` config (defaults `oss.language`/`oss:language`);
+  the apps' `bcp47`/`detectInitialLanguage` (which languages exist — app data)
+  became injectable `toBcp47`/`detectLanguage` with sensible defaults
+  (identity / `navigator.language` prefix match). **`LanguageRoot` took notes'
+  clean shape, not checklist's** (checklist fused `ToastProvider` + `UpdateToast`
+  chrome into it) — the framework's `LanguageRoot` provides language + gates first
+  paint + tracks `<html lang>` (notes' accessibility superset); mounting a toast
+  stays the app's job. **The locale _tables_ stayed app-side** (translations
+  diverge — not reusable): the framework ships **no locale data**, only the
+  machinery. **Demo:** the previously-inert language setting is now real — the app
+  has its own `demo/src/app/i18n/` (en + code-split sv catalogs over `createI18n`),
+  `main.tsx` wraps `<App>` in `LanguageRoot`, and `useT()` drives the side menu,
+  screen header, and the whole Settings dialog; the `LanguagePicker` now reads
+  `useLang()`/`setLanguage()` so picking Svenska re-renders the entire UI live
+  (language moved **out of** `AppSettings` — the i18n runtime owns the preference,
+  like a real app). See `src/i18n/README.md`.
+- **Extract next (recommendation, after `i18n`):** the **namespaces** cluster
+  (`storage/namespaces.ts` 76%, `ui/NamespacesModal.tsx` 75%, `namespace-store.ts`,
+  `useNamespaceRegistry.ts`, `namespace-favicon.ts`) is the next big subsystem —
+  but it's **store-heavy**, so expect most of it to stay app-side per the store
+  rule (extract the namespace _data/types_ + the pure favicon builder, leave the
+  registry/store). It also pairs naturally with the demo's biggest remaining gap
+  (multiple profiles/namespaces — the menu still shows a single hard-coded
+  "Default"). The locale _tables_ themselves are **not** candidates (translations
+  diverge by design); the i18n machinery they sit on is now extracted.
 - **Known false positives in the ranking (already extracted, but _renamed_).**
   `similarity.mjs` dedupes by **basename**, so a file the framework extracted
   under a new name still appears at the top of the report. Skip these — they are
@@ -568,11 +594,10 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   drawer is open); a per-list appearance feature (`/glyphs`) — each list
   carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
   edited via a header `FloatingPanel` popover (`ListAppearancePopover`); a
-  Settings → General "Open the menu with" preference (`menuMode`) that toggles
-  the phone drawer between a floating button and `useEdgeSwipeOpen`'s inward
-  edge swipe, plus a sibling "Open settings with" preference (`settingsMode`)
-  that does the same for a floating **settings** button (a `FloatingButton`
-  resting on the right edge) opening the Settings dialog; and a Settings →
+  Settings → General "Open the sidebar with" preference (`menuMode`) that
+  toggles the phone drawer between a floating button and `useEdgeSwipeOpen`'s
+  inward edge swipe (Settings is reached from the sidebar's footer, not a
+  separate opener); and a Settings →
   Storage playground over the `StorageAdapter` contract whose async
   `save`/`reload` now front the framework's `CipherGlyph` busy indicator (held
   for a `BUSY_MIN_MS` anti-flicker window) — the playground also has an
@@ -602,15 +627,18 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   (`app/useAchievements.ts`) drive `useAchievementWatcher`, with a first-run
   retroactive award via `deriveUnlocks` and live earns (check-all → `Clean
 Sweep`, undo → manual `Time Traveler`); the Settings → General
-  `disableAchievements` toggle (now on by default) gates it.
-  **Not yet modelled, so the natural next homes to
-  widen into:**
-  multiple
+  `disableAchievements` toggle (now on by default) gates it; and a live **i18n
+  language switch** (`/i18n`) — `main.tsx` wraps `<App>` in the demo's own
+  `LanguageRoot` (built from `createI18n` over `app/i18n/` en + code-split sv
+  catalogs), `useT()` drives the side menu, screen header, and the whole Settings
+  dialog, and the Settings → General `LanguagePicker` (now `useLang`/`setLanguage`,
+  not an `AppSettings` field) flips the entire UI to Svenska instantly — the
+  framework i18n runtime owns the language preference, the app owns the strings.
+  **Not yet modelled, so the natural next homes to widen into:** multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace
   header — real switching would seat storage backends, sync, encryption, and
-  per-profile appearance); a real Search; Archive; and an i18n language switch
-  (strings are currently hard-coded English). Keep this note current as the demo
-  grows.
+  per-profile appearance); a real Search; and Archive. Keep this note current as
+  the demo grows.
 
 ## Extraction conventions
 

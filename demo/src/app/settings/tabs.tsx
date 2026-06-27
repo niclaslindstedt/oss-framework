@@ -21,6 +21,7 @@ import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 import { useStandaloneMobile } from "@niclaslindstedt/oss-framework/pwa";
 
 import { log, logStore } from "../log.ts";
+import { useT } from "../i18n/index.ts";
 import type { AppSettings } from "../useAppSettings.ts";
 import { LanguagePicker } from "./shared.tsx";
 
@@ -38,61 +39,57 @@ export function GeneralTab({
   settings: AppSettings;
   update: Update;
 }) {
+  const t = useT();
+  const modeOptions = [
+    { value: "swipe" as const, label: t("settings.general.optionSwipe") },
+    { value: "button" as const, label: t("settings.general.optionButton") },
+  ];
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">
-        General preferences for this device.
-      </p>
+      <p className="mb-3 text-xs text-muted">{t("settings.general.intro")}</p>
 
-      <Section title="Language">
+      <Section title={t("settings.general.languageTitle")}>
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">Choose language</span>
-          <LanguagePicker
-            value={settings.language}
-            onChange={(next) => {
-              update("language", next);
-              log.info(`Language set to ${next}`);
-            }}
-          />
+          <span className="text-sm text-fg-bright">
+            {t("settings.general.chooseLanguage")}
+          </span>
+          <LanguagePicker />
           <p className="text-xs text-muted">
-            Translate the UI between English and Swedish.
+            {t("settings.general.languageHint")}
           </p>
         </div>
       </Section>
 
-      <Section title="Achievements">
+      <Section title={t("settings.general.achievementsTitle")}>
         <ToggleRow
-          label="Disable achievements"
-          hint="Stop tracking achievements and hide the trophy button. Achievements you've already earned are kept."
+          label={t("settings.general.disableAchievements")}
+          hint={t("settings.general.disableAchievementsHint")}
           checked={settings.disableAchievements}
           onChange={(next) => update("disableAchievements", next)}
         />
       </Section>
 
-      <Section title="Sidebar">
+      <Section title={t("settings.general.sidebarTitle")}>
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">Open sidebar with</span>
+          <span className="text-sm text-fg-bright">
+            {t("settings.general.openSidebarWith")}
+          </span>
           <SegmentedControl
             value={settings.menuMode}
-            options={[
-              { value: "swipe", label: "Right-swipe" },
-              { value: "button", label: "Floating button" },
-            ]}
+            options={modeOptions}
             onChange={(next) => update("menuMode", next)}
-            ariaLabel="Open sidebar with"
+            ariaLabel={t("settings.general.openSidebarWith")}
           />
           <p className="text-xs text-muted">
-            Choose how to open the sidebar on this device — tap the floating
-            button, or swipe in from the edge of the screen. Settings lives in
-            the sidebar's footer.
+            {t("settings.general.sidebarHint")}
           </p>
         </div>
       </Section>
 
-      <Section title="Developer">
+      <Section title={t("settings.general.developerTitle")}>
         <ToggleRow
-          label="Developer mode"
-          hint="Reveal the Developer tab with diagnostic tools. Stays on this device."
+          label={t("settings.general.developerMode")}
+          hint={t("settings.general.developerModeHint")}
           checked={settings.devMode}
           onChange={(next) => update("devMode", next)}
         />
@@ -110,21 +107,20 @@ export function EditorTab({
   settings: AppSettings;
   update: Update;
 }) {
+  const t = useT();
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">
-        How item text behaves as you type.
-      </p>
-      <Section title="Input">
+      <p className="mb-3 text-xs text-muted">{t("settings.editor.intro")}</p>
+      <Section title={t("settings.editor.inputTitle")}>
         <ToggleRow
-          label="Spell check"
-          hint="Underline misspelled words while editing an item."
+          label={t("settings.editor.spellCheck")}
+          hint={t("settings.editor.spellCheckHint")}
           checked={settings.spellCheck}
           onChange={(next) => update("spellCheck", next)}
         />
         <ToggleRow
-          label="Monospace items"
-          hint="Render item text in the monospace UI font."
+          label={t("settings.editor.monospace")}
+          hint={t("settings.editor.monospaceHint")}
           checked={settings.monospace}
           onChange={(next) => update("monospace", next)}
         />
@@ -152,6 +148,7 @@ const inputClass =
   "rounded-md border border-line bg-surface-2 px-2 py-1 font-mono text-sm text-fg outline-none focus:border-accent";
 
 export function StorageTab() {
+  const t = useT();
   // The raw browser backend, and a passphrase ref the encrypting wrapper reads
   // fresh on every op — the seam a real app owns: the framework holds the
   // passphrase nowhere, the app threads it in by reference.
@@ -292,14 +289,14 @@ export function StorageTab() {
         surfaces a <code>ConflictError</code>. While a read or write is in
         flight the framework's <code>CipherGlyph</code> stands in for a spinner.
       </p>
-      <Section title="Document">
+      <Section title={t("settings.storage.documentTitle")}>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={5}
           spellCheck={false}
           disabled={locked}
-          placeholder="Type a document, then Save. Reload the page — it persists."
+          placeholder={t("settings.storage.docPlaceholder")}
           className="w-full resize-y rounded-md border border-line bg-surface-2 p-2 font-mono text-sm text-fg outline-none focus:border-accent disabled:opacity-50"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -308,19 +305,21 @@ export function StorageTab() {
             onClick={save}
             disabled={busy !== null || locked}
           >
-            Save
+            {t("common.save")}
           </Button>
           <Button
             variant="secondary"
             onClick={() => void reload()}
             disabled={busy !== null || locked}
           >
-            Reload
+            {t("settings.storage.reload")}
           </Button>
           {busy ? (
             <span className="flex items-center gap-2 text-sm text-accent">
               <CipherGlyph />
-              {busy === "writing" ? "enciphering…" : "reading…"}
+              {busy === "writing"
+                ? t("settings.storage.enciphering")
+                : t("settings.storage.reading")}
             </span>
           ) : (
             status && <span className="text-sm text-success">{status}</span>
@@ -328,10 +327,10 @@ export function StorageTab() {
         </div>
       </Section>
 
-      <Section title="Encryption at rest">
+      <Section title={t("settings.storage.encryptionTitle")}>
         <ToggleRow
-          label="Encrypt this document"
-          hint="Wrap the backend with withEncryption — bytes on disk become an AES-GCM envelope keyed by your passphrase."
+          label={t("settings.storage.encryptDocument")}
+          hint={t("settings.storage.encryptDocumentHint")}
           checked={mode !== "plaintext"}
           onChange={(next) => {
             setEncError("");
@@ -351,10 +350,10 @@ export function StorageTab() {
         {mode === "unlocked" && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-success">
-              Encrypted &amp; unlocked — saves encipher, loads decrypt.
+              {t("settings.storage.encryptedUnlocked")}
             </span>
             <Button variant="secondary" onClick={lock}>
-              Lock (simulate reload)
+              {t("settings.storage.lock")}
             </Button>
           </div>
         )}
@@ -375,7 +374,7 @@ export function StorageTab() {
                   e.key === "Enter" &&
                   void (locked ? unlock() : enableEncryption())
                 }
-                placeholder="Passphrase"
+                placeholder={t("settings.storage.passphrase")}
                 className={inputClass}
               />
               <Button
@@ -383,7 +382,9 @@ export function StorageTab() {
                 onClick={() => void (locked ? unlock() : enableEncryption())}
                 disabled={!pass || busy !== null}
               >
-                {locked ? "Unlock" : "Encrypt"}
+                {locked
+                  ? t("settings.storage.unlock")
+                  : t("settings.storage.encrypt")}
               </Button>
             </div>
             {encError && (
@@ -393,14 +394,13 @@ export function StorageTab() {
         )}
       </Section>
 
-      <Section title="Bytes on disk">
-        <p className="text-xs text-muted">
-          What <code>localStorage</code> actually holds for this document —
-          plaintext, or the JSON envelope when encrypted.
-        </p>
+      <Section title={t("settings.storage.bytesTitle")}>
+        <p className="text-xs text-muted">{t("settings.storage.bytesIntro")}</p>
         <div>
           <Button variant="secondary" onClick={refreshRaw}>
-            {rawBytes === null ? "Show stored bytes" : "Refresh"}
+            {rawBytes === null
+              ? t("settings.storage.showStoredBytes")
+              : t("settings.storage.refresh")}
           </Button>
         </div>
         {rawBytes !== null && (
@@ -424,18 +424,17 @@ export function DeveloperTab({
   update: Update;
   onSimulateUpdate: () => void;
 }) {
+  const t = useT();
   // Real install context, read from the framework's PWA detection. `true` only
   // inside an installed PWA window on a phone/tablet — a normal tab is `false`.
   const standalone = useStandaloneMobile();
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">
-        Diagnostic tools. These stay on this device.
-      </p>
-      <Section title="Logging">
+      <p className="mb-3 text-xs text-muted">{t("settings.developer.intro")}</p>
+      <Section title={t("settings.developer.loggingTitle")}>
         <ToggleRow
-          label="Capture logs"
-          hint="Record diagnostic log lines so the Logs tab can show them."
+          label={t("settings.developer.captureLogs")}
+          hint={t("settings.developer.captureLogsHint")}
           checked={settings.captureLogs}
           onChange={(next) => update("captureLogs", next)}
         />
@@ -444,10 +443,10 @@ export function DeveloperTab({
           className="self-start"
           onClick={() => log.info("Test log line from the Developer tab")}
         >
-          Write a test log line
+          {t("settings.developer.writeTestLine")}
         </Button>
       </Section>
-      <Section title="Software updates">
+      <Section title={t("settings.developer.updatesTitle")}>
         <p className="text-xs text-muted">
           An installed PWA drives the framework's <code>UpdateToast</code> from{" "}
           <code>usePwaUpdate()</code> — its service worker reaching the{" "}
@@ -460,20 +459,22 @@ export function DeveloperTab({
           className="self-start"
           onClick={onSimulateUpdate}
         >
-          Simulate an available update
+          {t("settings.developer.simulateUpdate")}
         </Button>
       </Section>
-      <Section title="Build">
+      <Section title={t("settings.developer.buildTitle")}>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
           <dt className="text-muted">framework</dt>
           <dd className="text-fg tabular-nums">
             @niclaslindstedt/oss-framework
           </dd>
-          <dt className="text-muted">mode</dt>
+          <dt className="text-muted">{t("settings.developer.modeLabel")}</dt>
           <dd className="text-fg">{import.meta.env.MODE}</dd>
-          <dt className="text-muted">display</dt>
+          <dt className="text-muted">{t("settings.developer.displayLabel")}</dt>
           <dd className="text-fg">
-            {standalone ? "installed PWA (standalone)" : "browser tab"}
+            {standalone
+              ? t("settings.developer.installedPwa")
+              : t("settings.developer.browserTab")}
           </dd>
         </dl>
       </Section>
@@ -484,13 +485,11 @@ export function DeveloperTab({
 // --- Logs ------------------------------------------------------------------
 
 export function LogsTab() {
+  const t = useT();
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">
-        The in-app log buffer, rendered live from the framework's logging
-        module.
-      </p>
-      <Section title="Logs">
+      <p className="mb-3 text-xs text-muted">{t("settings.logs.intro")}</p>
+      <Section title={t("settings.logs.logsTitle")}>
         <LogViewer store={logStore} />
       </Section>
     </div>

@@ -70,6 +70,10 @@ export default defineConfig({
         replacement: here("../src/encryption/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/i18n",
+        replacement: here("../src/i18n/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

@@ -117,6 +117,8 @@ Today:
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.     |
 | `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.              |
 | `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.          |
+| `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs). |
+| `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.   |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -315,6 +317,21 @@ import {
   encryptText,
   decryptEnvelope,
 } from "@niclaslindstedt/oss-framework/encryption";
+```
+
+The `i18n` module is a tiny, **typed** translation runtime with no third-party
+dependency. `createI18n(config)` takes your per-language catalogs and returns a
+fully-typed surface — `useT()` (a `t("a.b.c")` whose keys autocomplete and
+reject typos), a `LanguageRoot` that mirrors the preference to `localStorage`,
+gates the first paint so a returning user never sees a flash of the fallback
+language, and keeps `<html lang>` in step, plus `setLanguage` to switch at
+runtime. Non-default languages are code-split and loaded on demand. Your app
+owns the strings (translation tables diverge per app); the framework owns the
+machinery. See [`src/i18n/README.md`](src/i18n/README.md) for the full API and
+an adoption guide.
+
+```ts
+import { createI18n } from "@niclaslindstedt/oss-framework/i18n";
 ```
 
 ## Demo / preview site

@@ -19,6 +19,7 @@ export default defineConfig({
     "pwa/index": "src/pwa/index.ts",
     "achievements/index": "src/achievements/index.ts",
     "encryption/index": "src/encryption/index.ts",
+    "i18n/index": "src/i18n/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
