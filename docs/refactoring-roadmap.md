@@ -66,45 +66,11 @@ _(none yet)_
 
 ### Severity 5–6
 
-- **`components`: a placement-preset shorthand for `FloatingPanel`.**
-  - **Files:** `src/components/FloatingPanel.tsx` +
-    `src/components/useFloatingPosition.ts`; demo callers re-supply nearly the
-    same placement object —
-    `demo/src/app/ListAppearancePopover.tsx` (`anchor: "left"`,
-    `coordinateSpace: "viewport"`, `width: { kind: "min", … }`),
-    `demo/src/app/SettingsModal.tsx`.
-  - **Responsibility handed back:** `anchor: "left"` + `coordinateSpace:
-"viewport"` + `width.kind: "min"` is the dropdown default every popover
-    repeats; only the `minPx` and `gap` really vary. Generic layout config, not
-    domain.
-  - **Plan:** accept a `placement: FloatingPlacement | "dropdown" | "popover"`
-    union with a small preset table; callers pass `"dropdown"` and override
-    `minPx`/`gap` only when they differ. Existing object callers unchanged.
-  - **Risk:** must re-verify the demo's two panels render pixel-identical under
-    the preset; presets that drift from current values would move panels. Verify
-    in the running app.
-  - **Severity: 5.**
+_(none yet)_
 
 ### Severity 3–4
 
-- **`components`: a `rowAction(kind, { label, onSelect })` helper for
-  `RowActionMenu`.**
-  - **Files:** `src/components/RowActionMenu.tsx`; demo assembles the same
-    `{ label, icon: <PencilIcon className="h-5 w-5" />, onSelect }` /
-    `{ …, icon: <TrashIcon … />, danger: true }` shapes at
-    `demo/src/app/SideMenuContent.tsx` (rename / delete actions, two sites).
-  - **Responsibility handed back:** the rename→pencil, delete→trash icon
-    pairing, the `h-5 w-5` icon size, and `danger: true` on delete are UI
-    conventions every adopter repeats; not domain. The _labels_ stay injected
-    (i18n).
-  - **Plan:** export a `rowAction("rename" | "delete" | "archive", { label,
-onSelect })` factory returning a `RowAction` with the conventional icon +
-    danger flag; callers still pass the (translated) label and handler. Raw
-    `RowAction` objects stay valid.
-  - **Risk:** the framework would own a default icon set — keep it small and
-    overridable (a `RowAction` with an explicit `icon` still wins). Don't drag
-    app-specific actions in.
-  - **Severity: 4.**
+_(none yet)_
 
 ### Easy wins (mechanical, any severity)
 
@@ -112,50 +78,8 @@ _(none yet)_
 
 ## Landed
 
-- **`components`: an `InlineEditRow` primitive owning the inline rename/create
-  editor.** The demo hand-rolled the same in-place text editor twice
-  (`FolderEditRow`, `ListEditRow` in `SideMenuContent.tsx`) — byte-identical
-  focus-and-select on mount, the Enter/blur-commits-(trimmed)-Escape-cancels
-  flow, and the subtle `committed` latch that stops a post-Enter blur from
-  firing the callback twice. Lifted all three facets (the focus effect, the
-  commit/cancel semantics, the input + shared row shell) into one
-  `components/InlineEditRow`; the demo's two editors collapsed to thin chrome
-  wrappers that pass only their distinct icon/leading/padding. Takes and returns
-  a plain string — no domain entity crosses the seam. New direct unit coverage
-  for the focus/commit/cancel/double-fire behaviour. (2026-06, _Severity 7_)
-- **`hooks`: one shared modal gate behind all three global gestures.** Replaced
-  the three byte-identical `document.querySelector('[aria-modal="true"]') !==
-null` probes (`usePullToRefresh`, `useEdgeSwipeOpen`, `useUndoRedoShortcuts`)
-  with a single exported `isModalOpen()` leaf helper they all call — one source
-  of truth for "is a dialog gating the screen?", so honouring a new marker later
-  is a one-line change instead of a three-site hunt. Exported on `.`/`./hooks`
-  so an adopter's own document-level gesture can gate the same way. No demo
-  change: this was internal duplication, never adopter boilerplate. (2026-06,
-  _Severity 7_)
-- **`hooks/useUndoRedoShortcuts`: own "silence while a modal owns the
-  keyboard".** Added `gateWhileModalOpen` (default `true`): a chord now no-ops
-  while any `[aria-modal="true"]` element is mounted, so a global Cmd/Ctrl+Z
-  can't reach through an open dialog to the document behind it — accessibility
-  wiring the README used to document as the adopter's job. The demo's `enabled`
-  expression now only gates the non-modal navigation drawer; the modal case is
-  handled for free. (2026-06, _Severity 4_)
-- **`hooks/usePullToRefresh`: own the min-display anti-flicker window.** Added a
-  `minDisplayMs` option (default `600`) that holds `"refreshing"` for at least
-  that long from gesture-release, even when `onRefresh` settles sooner; a
-  refresh that outlasts the floor resets immediately. The demo dropped its
-  `setTimeout(r, 900)` pad and the vestigial `syncing` gate. (2026-06, _Severity 7_)
+_(none yet)_
 
 ## Investigated and skipped
 
-- **A `useSafeAreaInsets()` / safe-area CSS helper (was an easy win, 3).**
-  Re-verified on the 2026-06 sweep: the demo's safe-area usage is pure-CSS
-  Tailwind arbitrary values
-  (`pt-[calc(1.25rem+env(safe-area-inset-top))]` at
-  `demo/src/app/ChecklistScreen.tsx`, footer/bottom at `:236` and
-  `SettingsModal.tsx`), **not** JS. A JS `useSafeAreaInsets()` hook can't be
-  consumed by that CSS without rewriting it to inline styles (strictly worse),
-  so there's no boilerplate to delete in the demo — the lift can't be
-  demonstrated. The three sites also use different padding bases
-  (`1.25rem` / `0.75rem` / `1.5rem`), which are app layout values; folding them
-  into one helper would drag app chrome across the seam. Below threshold as
-  framed. Re-evaluate only if an adopter starts reading insets from JS.
+_(none yet)_
