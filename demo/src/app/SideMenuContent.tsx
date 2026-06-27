@@ -106,8 +106,13 @@ type Props = {
   // Open the "What's new" dialog (the framework `ChangelogModal`, mounted by
   // `App`) — reached from the About dropdown.
   onOpenChangelog: () => void;
-  // Close the drawer after a navigation (a no-op when the sidebar is docked).
+  // Close the drawer after a navigation (a no-op when the sidebar is docked) and
+  // return the main area to the checklist view.
   onNavigate: () => void;
+  // The active top-level view — highlights the Archive button when it's showing.
+  view: "checklist" | "archive";
+  // Switch the main area to the Archive page (the Archive button's tap).
+  onShowArchive: () => void;
   // PWA update state, threaded from `usePwaUpdate` (here, the demo's simulated
   // stand-in). The footer's "check for updates" row drives them.
   checkingUpdate: boolean;
@@ -124,6 +129,8 @@ export function SideMenuContent({
   onOpenSearch,
   onOpenChangelog,
   onNavigate,
+  view,
+  onShowArchive,
   checkingUpdate,
   updateAvailable,
   onCheckUpdate,
@@ -533,6 +540,8 @@ export function SideMenuContent({
             <BarButton
               label={dnd.dragging ? t("menu.dropToArchive") : t("menu.archive")}
               badge={archivedCount > 0 ? String(archivedCount) : undefined}
+              onClick={onShowArchive}
+              current={view === "archive"}
               dropRef={archiveZone.ref}
               over={archiveZone.isOver}
               active={archiveZone.isActive}
@@ -859,6 +868,7 @@ function BarButton({
   badge,
   disabled,
   onClick,
+  current,
   dropRef,
   over,
   active,
@@ -868,22 +878,30 @@ function BarButton({
   badge?: string;
   disabled?: boolean;
   onClick?: () => void;
+  // Marks the button as the open view (Archive while the Archive page shows) —
+  // a steady accent tint, distinct from the transient drop-zone highlight.
+  current?: boolean;
   // When this button doubles as a drop zone (Archive): the framework ref, and
   // whether a droppable drag is in flight (`active`) / hovering it (`over`).
   dropRef?: (el: HTMLElement | null) => void;
   over?: boolean;
   active?: boolean;
 }) {
+  // A live drag's drop-zone feedback wins over the resting "current view" tint
+  // so the user can see where a dropped item will land.
   const dropState = over
     ? "bg-accent/30 text-fg-bright"
     : active
       ? "text-accent ring-1 ring-accent/40 ring-inset"
-      : "";
+      : current
+        ? "bg-accent/20 text-fg-bright"
+        : "";
   return (
     <button
       ref={dropRef}
       type="button"
       aria-label={label}
+      aria-pressed={current}
       disabled={disabled}
       onClick={onClick}
       className={`relative flex flex-1 items-center justify-center py-2.5 transition-colors ${
@@ -892,7 +910,9 @@ function BarButton({
           : "cursor-pointer text-fg hover:bg-surface-2 hover:text-fg-bright"
       } ${dropState}`}
     >
-      <span className={over ? "text-fg-bright" : "text-muted"}>{children}</span>
+      <span className={over || current ? "text-fg-bright" : "text-muted"}>
+        {children}
+      </span>
       {badge !== undefined && (
         <span className="absolute top-0.5 right-0.5 rounded-full bg-surface-3 px-1 py-0.5 text-[10px] leading-none text-muted tabular-nums">
           {badge}

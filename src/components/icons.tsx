@@ -383,6 +383,16 @@ export function ArchiveIcon({ className }: IconProps) {
   );
 }
 
+/** A counter-clockwise arrow looping out of an archive — restore / unarchive. */
+export function RestoreIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </Glyph>
+  );
+}
+
 /** A cloud with a check — a backend that is in sync. */
 export function CloudCheckIcon({ className }: IconProps) {
   return (
