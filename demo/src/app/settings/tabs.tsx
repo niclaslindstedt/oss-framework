@@ -69,9 +69,9 @@ export function GeneralTab({
         />
       </Section>
 
-      <Section title="Menu">
+      <Section title="Sidebar">
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">Open the menu with</span>
+          <span className="text-sm text-fg-bright">Open sidebar with</span>
           <SegmentedControl
             value={settings.menuMode}
             options={[
@@ -79,30 +79,12 @@ export function GeneralTab({
               { value: "button", label: "Floating button" },
             ]}
             onChange={(next) => update("menuMode", next)}
-            ariaLabel="Open the menu with"
+            ariaLabel="Open sidebar with"
           />
           <p className="text-xs text-muted">
-            Choose how to open the side menu on this device — tap the floating
-            button, or swipe in from the edge of the screen.
-          </p>
-        </div>
-      </Section>
-
-      <Section title="Settings">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">Open settings with</span>
-          <SegmentedControl
-            value={settings.settingsMode}
-            options={[
-              { value: "swipe", label: "Right-swipe" },
-              { value: "button", label: "Floating button" },
-            ]}
-            onChange={(next) => update("settingsMode", next)}
-            ariaLabel="Open settings with"
-          />
-          <p className="text-xs text-muted">
-            Choose how to open Settings on this device — tap the floating
-            settings button, or swipe in from the edge it rests on.
+            Choose how to open the sidebar on this device — tap the floating
+            button, or swipe in from the edge of the screen. Settings lives in
+            the sidebar's footer.
           </p>
         </div>
       </Section>

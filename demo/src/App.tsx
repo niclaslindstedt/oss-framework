@@ -6,13 +6,11 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 import {
-  FloatingButton,
   Sidebar,
   useEdgeSwipeOpen,
+  usePersistentMenuPosition,
   useSidebarInset,
-  type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
-import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 import { UpdateToast } from "@niclaslindstedt/oss-framework/pwa";
 import {
   useMediaQuery,
@@ -59,10 +57,12 @@ export function App() {
   // shell is told the answer.
   const pinned = useMediaQuery("(min-width: 768px)");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [position, setPosition] = useState<MenuButtonPosition>({
-    side: "left",
-    y: 0.5,
-  });
+  // The sidebar button's resting spot is remembered across reloads by the
+  // framework's `usePersistentMenuPosition` — a drop-in for `useState` backed by
+  // localStorage, so a placement the user drags it to survives a refresh.
+  const [position, setPosition] = usePersistentMenuPosition(
+    "oss-demo:checklist:menu-position",
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Achievements (Settings → General toggles the feature off). The store is the
   // app's — the framework owns the engine, the bus, and the trophy UI. Earning
@@ -98,33 +98,17 @@ export function App() {
   // state); this static demo has no service worker, so the Developer tab lets
   // you trigger the prompt to see the framework `UpdateToast` in its real spot.
   const [updateReady, setUpdateReady] = useState(false);
-  // The settings button rests on the opposite edge from the menu button by
-  // default, so the two floating buttons don't stack — drag either anywhere.
-  const [settingsPosition, setSettingsPosition] = useState<MenuButtonPosition>({
-    side: "right",
-    y: 0.5,
-  });
 
-  // "Open the menu with" (Settings → General): on phones, the user picks
-  // between the floating button and an inward edge swipe. In swipe mode the
-  // button is hidden and `useEdgeSwipeOpen` opens the drawer from whichever
-  // edge it rests on — the same gesture the source apps offer in their PWA.
+  // "Open sidebar with" (Settings → General): on phones, the user picks between
+  // the floating button and an inward edge swipe. In swipe mode the button is
+  // hidden and `useEdgeSwipeOpen` opens the drawer from whichever edge it rests
+  // on — the same gesture the source apps offer in their PWA. Settings itself is
+  // reached from the sidebar's footer row, so there is a single floating button.
   const swipeToOpen = !pinned && settings.menuMode === "swipe";
   useEdgeSwipeOpen({
     side: position.side,
     enabled: swipeToOpen && !drawerOpen,
     onOpen: () => setDrawerOpen(true),
-  });
-
-  // "Open settings with" (Settings → General): the same choice for reaching
-  // the Settings dialog — a floating settings button by default, or an inward
-  // edge swipe from the side it rests on. Both are phone-only; on wide screens
-  // the docked menu's Settings footer row is always in reach.
-  const swipeToOpenSettings = !pinned && settings.settingsMode === "swipe";
-  useEdgeSwipeOpen({
-    side: settingsPosition.side,
-    enabled: swipeToOpenSettings && !settingsOpen && !drawerOpen,
-    onOpen: () => setSettingsOpen(true),
   });
 
   // Keyboard undo/redo over the same document history the side-menu buttons
@@ -190,8 +174,8 @@ export function App() {
         panelScroll={false}
         labels={{
           nav: "Checklists",
-          open: "Open menu",
-          close: "Close menu",
+          open: "Open sidebar",
+          close: "Close sidebar",
         }}
       >
         <SideMenuContent
@@ -224,24 +208,6 @@ export function App() {
           }
         />
       </main>
-
-      {/* The floating settings button — the default way to reach Settings on
-          phones, built from the same framework `FloatingButton` the Sidebar
-          uses for its menu toggle. Hidden when the user switches to the edge-
-          swipe gesture, and on wide screens where the docked menu shows a
-          Settings row. */}
-      {!pinned && settings.settingsMode === "button" && (
-        <FloatingButton
-          position={settingsPosition}
-          onPositionChange={setSettingsPosition}
-          onPress={() => setSettingsOpen(true)}
-          haspopup="dialog"
-          expanded={settingsOpen}
-          label="Open settings"
-        >
-          <CogIcon className="h-5 w-5" />
-        </FloatingButton>
-      )}
 
       <SettingsModal
         open={settingsOpen}

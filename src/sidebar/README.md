@@ -169,6 +169,34 @@ It is a `position: fixed`, `z-40`, `h-11 w-11` disc on `bg-surface` / `border-li
 instead (a "swipe to open" preference), hide it and wire `useEdgeSwipeOpen` the
 same way the menu does, watching `position.side`.
 
+## Remember the resting spot (`usePersistentMenuPosition`)
+
+The shell is controlled — it never persists the `position` itself, because the
+host usually needs the value too (`useSidebarInset` and `useEdgeSwipeOpen` both
+read `position.side`). But _wiring up_ that persistence is the same localStorage
+boilerplate in every app, so the module ships it as a drop-in for the `useState`
+you'd otherwise hold the position in:
+
+```tsx
+import {
+  Sidebar,
+  usePersistentMenuPosition,
+} from "@niclaslindstedt/oss-framework/sidebar";
+
+// Was: const [position, setPosition] = useState<MenuButtonPosition>({ … });
+const [position, setPosition] = usePersistentMenuPosition(
+  "myapp:menu-position",
+);
+
+<Sidebar position={position} onPositionChange={setPosition} /* … */ />;
+```
+
+It hydrates from `localStorage[storageKey]` on mount (validating the stored
+shape, falling back to the default `{ side: "left", y: 0.5 }` — override with the
+second `initial` argument), and writes back on every `onPositionChange`, so the
+spot the user drags the button to survives a reload. It's SSR-safe (no `window`
+access until the first read) and silently tolerates blocked / full storage.
+
 ## Styling contract
 
 The shell paints with the framework's semantic colour slots and a few drawer

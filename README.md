@@ -188,7 +188,9 @@ A `useEdgeSwipeOpen` hook (the mirror of swipe-to-close) opens the drawer with
 an inward edge swipe, for apps that hide the floating button. The draggable,
 edge-resting FAB the shell floats is also exported on its own as
 `FloatingButton`, so an app can pin a second global action (open Settings, a
-composer) from the same primitive. See
+composer) from the same primitive. A `usePersistentMenuPosition` hook is a
+localStorage-backed drop-in for the `useState` that holds the button's resting
+spot, so a dragged-to placement survives a reload. See
 [`src/sidebar/README.md`](src/sidebar/README.md) for the prop surface and the
 small CSS-token / keyframe contract an app supplies.
 

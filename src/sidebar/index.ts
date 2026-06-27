@@ -28,6 +28,7 @@ export {
   useDraggableMenuButton,
   type DraggableMenuButton,
 } from "./useDraggableMenuButton.ts";
+export { usePersistentMenuPosition } from "./usePersistentMenuPosition.ts";
 export {
   useDrawerSwipeClose,
   type DrawerSwipeClose,

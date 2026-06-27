@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  Checkbox,
   ClearableInput,
   Fab,
   PullToRefreshIndicator,
@@ -29,9 +28,9 @@ import type { ChecklistStore } from "./useChecklistStore.ts";
 
 // The list screen — the app's main view, rebuilt from the framework's
 // `/checklist`, `/components`, and `/glyphs` surface so it matches the real
-// app: a header with the list's appearance button, its title checkbox, the
-// progress ring, and copy / sync glyph buttons; the nested checklist body; and
-// the centered create FAB with an inline composer for adding items.
+// app: a header with the list's appearance glyph, the progress ring, and copy /
+// sync glyph buttons; the nested checklist body; and the centered create FAB
+// with an inline composer for adding items.
 export function ChecklistScreen({
   store,
   trophy,
@@ -131,7 +130,6 @@ export function ChecklistScreen({
           list={activeList}
           onChange={(patch) => setListAppearance(activeList.id, patch)}
         />
-        <Checkbox checked onChange={() => {}} ariaLabel="List" />
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-wide text-fg-bright">
           {activeList.title}
         </h1>
