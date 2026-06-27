@@ -31,3 +31,4 @@ export * from "./checklist/index.ts";
 export * from "./glyphs/index.ts";
 export * from "./pwa/index.ts";
 export * from "./achievements/index.ts";
+export * from "./encryption/index.ts";

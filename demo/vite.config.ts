@@ -66,6 +66,10 @@ export default defineConfig({
         replacement: here("../src/achievements/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/encryption",
+        replacement: here("../src/encryption/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
