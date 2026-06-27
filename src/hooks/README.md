@@ -7,15 +7,16 @@ primitives both source apps had grown their own byte-identical copies of. They
 own **behaviour**, not markup: a hook hands back state and event handlers; your
 component decides what to render with them.
 
-| Export                 | What it is                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------------- |
-| `useEscapeKey`         | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
-| `useMediaQuery`        | Subscribe to a CSS media query; re-renders when it flips. Reads the initial value in sync.   |
-| `useDesktopPointer`    | `true` on a precise, hovering pointer (mouse/trackpad) — gate right-click affordances.       |
-| `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
-| `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
-| `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.             |
-| `useLongPress`         | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.    |
+| Export                 | What it is                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `useEscapeKey`         | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly).  |
+| `useMediaQuery`        | Subscribe to a CSS media query; re-renders when it flips. Reads the initial value in sync.    |
+| `useDesktopPointer`    | `true` on a precise, hovering pointer (mouse/trackpad) — gate right-click affordances.        |
+| `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                  |
+| `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.    |
+| `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.              |
+| `useLongPress`         | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.     |
+| `isModalOpen`          | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate. |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -330,3 +331,29 @@ useUndoRedoShortcuts({
 - A chord pressed while a text field is focused is ignored (native field undo
   still runs).
 - With `enabled: false` no chord fires; flipping it back rebinds the listener.
+
+## `isModalOpen`
+
+The shared **modal gate** the framework's global, document-level gestures and
+shortcuts use to stand down while a dialog owns the screen. It returns `true`
+while any `[aria-modal="true"]` element is mounted — the marker the framework's
+`Modal`, `SettingsModal`, and `ChangelogModal` all carry — and `false`
+otherwise.
+
+```ts
+import { isModalOpen } from "@niclaslindstedt/oss-framework/hooks";
+
+// Inside your own document-level gesture handler:
+if (isModalOpen()) return; // a dialog owns the screen — don't act
+```
+
+You rarely call this directly — `usePullToRefresh`, `useEdgeSwipeOpen`, and
+`useUndoRedoShortcuts` already consult it so a pull, an edge swipe, or a global
+Cmd/Ctrl+Z can't reach through an open dialog to the surface behind it. It's
+exported for the same reason those hooks share it: if you add your **own**
+document-level gesture, gate it the same way instead of re-deriving the probe,
+and there's a single place to honour a new marker should the contract ever grow.
+
+Call it **imperatively at event time** (inside the handler), not at mount — it
+reads the live DOM each time, so it reflects whatever dialog is open the instant
+the gesture fires.

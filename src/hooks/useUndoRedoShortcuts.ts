@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect } from "react";
 
+import { isModalOpen } from "./isModalOpen.ts";
+
 // Parameters for {@link useUndoRedoShortcuts}.
 export interface UndoRedoShortcutsParams {
   // Whether an undo step is available; a Cmd/Ctrl+Z press no-ops when `false`.
@@ -23,13 +25,6 @@ export interface UndoRedoShortcutsParams {
   // mutate the document behind it. Set it `false` for a modal that genuinely
   // wants undo to stay live, or one that doesn't carry `aria-modal`.
   gateWhileModalOpen?: boolean;
-}
-
-// True while any `[aria-modal="true"]` element is mounted — the marker every
-// framework dialog carries. Checked per-chord (not at mount) so it reflects the
-// live DOM when the key is pressed.
-function hasOpenModal(): boolean {
-  return document.querySelector('[aria-modal="true"]') !== null;
 }
 
 // Global Cmd/Ctrl+Z (undo) and Cmd/Ctrl+Shift+Z / Ctrl+Y (redo) bound to a
@@ -60,7 +55,7 @@ export function useUndoRedoShortcuts(params: UndoRedoShortcutsParams): void {
       const isUndo = key === "z" && !e.shiftKey;
       const isRedo = (key === "z" && e.shiftKey) || key === "y";
       if (!isUndo && !isRedo) return;
-      if (gateWhileModalOpen && hasOpenModal()) return;
+      if (gateWhileModalOpen && isModalOpen()) return;
       const target = e.target as HTMLElement | null;
       if (target) {
         const tag = target.tagName;

@@ -89,6 +89,7 @@ Today:
 | `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.                                        |
 | `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.                                                 |
 | `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                             |
+| `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |
 | `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                             |
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |

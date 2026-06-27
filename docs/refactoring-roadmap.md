@@ -62,26 +62,7 @@ _(none yet)_
 
 ### Severity 7–8
 
-- **Collapse the duplicated `[aria-modal="true"]` modal-gate probe into one
-  shared helper.**
-  - **Files:** the identical `document.querySelector('[aria-modal="true"]') !==
-null` check is now hand-rolled in three places —
-    `src/hooks/usePullToRefresh.ts:87`, `src/sidebar/useEdgeSwipeOpen.ts:42`,
-    and `src/hooks/useUndoRedoShortcuts.ts` (`hasOpenModal`). Each suppresses a
-    global gesture/shortcut while a framework dialog owns the screen.
-  - **Responsibility handed back:** none to the _adopter_ — this is internal
-    duplication. "Is a modal open?" is one generic DOM probe re-implemented N=3
-    times; a contract change (e.g. honouring `inert`, or a second marker
-    attribute) would have to be made in three spots and could silently drift.
-  - **Plan:** add a leaf helper in `hooks` (e.g. `isModalOpen()` /
-    `useModalOpen`) and have all three call it. `hooks` is a leaf so both
-    `sidebar` and the sibling hooks may import it without breaking the one-way
-    dependency rule (feature → hooks is allowed). Pure internal refactor, no
-    public-surface change beyond optionally exporting the helper.
-  - **Risk:** low — behaviour-identical extraction. Decide whether the helper
-    is public surface (exported, documented) or internal-only; if exported it
-    needs a changeset, if internal it's a pure refactor.
-  - **Severity: 7.**
+_(none yet)_
 
 ### Severity 5–6
 
@@ -114,6 +95,15 @@ left}` px (read from CSS env vars), or a documented utility, in `hooks`.
 
 ## Landed
 
+- **`hooks`: one shared modal gate behind all three global gestures.** Replaced
+  the three byte-identical `document.querySelector('[aria-modal="true"]') !==
+null` probes (`usePullToRefresh`, `useEdgeSwipeOpen`, `useUndoRedoShortcuts`)
+  with a single exported `isModalOpen()` leaf helper they all call — one source
+  of truth for "is a dialog gating the screen?", so honouring a new marker later
+  is a one-line change instead of a three-site hunt. Exported on `.`/`./hooks`
+  so an adopter's own document-level gesture can gate the same way. No demo
+  change: this was internal duplication, never adopter boilerplate. (2026-06,
+  _Severity 7_)
 - **`hooks/useUndoRedoShortcuts`: own "silence while a modal owns the
   keyboard".** Added `gateWhileModalOpen` (default `true`): a chord now no-ops
   while any `[aria-modal="true"]` element is mounted, so a global Cmd/Ctrl+Z
