@@ -30,8 +30,9 @@ import {
 | Font families + stacks, font-scale steps, shape/flavour presets       | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough |
 | Colour-slot vocabulary + per-preset palettes (`palettes.ts`)          | Where values are persisted/synced (localStorage, a settings file, …)       |
 | `UiStyle` (global shape/flavour axes) + `CustomTheme` colour palette  | Any app-only settings that happen to live beside the theme code            |
-| `customThemeSeed`, `coerceUiStyle`, `coerceCustomTheme`               | The `[data-button-style]` / `[data-elevation]` flavour CSS (host paint)    |
-| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*` | The CSS rules for the non-`custom` presets (`[data-theme="…"] { … }`)      |
+| `customThemeSeed`, `coerceUiStyle`, `coerceCustomTheme`               | Your **app-shell layout** (the viewport / reset CSS — see the demo)        |
+| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*` | Optional: hand-tuned overrides layered on top of the shipped stylesheet    |
+| **The stylesheet** (`styles.css`): token map, flavour CSS, presets    | Mounting it: one `@import` (or `installPresetTokens()` against source)     |
 | The webfont loaders (`fonts.ts`)                                      | The static import of the default `mono` font in your entry module          |
 
 The **store is deliberately not part of this module.** An app's appearance
@@ -39,6 +40,51 @@ state is usually fused with concerns the framework knows nothing about (editor
 preferences, layout, a synced achievements map, feature flags). The framework
 gives you the _data_ and the _projection_; you keep owning _where the user's
 choice lives_ and how it syncs.
+
+## Styling: the shipped stylesheet
+
+The framework ships its own CSS so you don't hand-write (and slowly drift) the
+token map, the flavour rules, and the preset palettes. The components paint with
+Tailwind utility classes (`bg-surface`, `text-fg`, …) that resolve through the
+slot variables, so **Tailwind v4 is a prerequisite** — the stylesheet plugs into
+your Tailwind entry.
+
+**Published apps — one import, everything baked in:**
+
+```css
+/* your app.css */
+@import "tailwindcss";
+@import "@niclaslindstedt/oss-framework/styles.css";
+```
+
+`styles.css` carries the `@theme inline` token map, the button / control /
+elevation flavour rules, the drawer keyframes, the reduce-motion short-circuit,
+a `@source` that scans the framework so its utility classes are emitted, and the
+`:root[data-theme="…"]` colour blocks for **every built-in preset** — generated
+from `PRESET_PALETTES` at build time, so they can never drift from the data. No
+runtime call is needed.
+
+**Building against framework source** (e.g. the demo, or a monorepo that aliases
+the package to `src`), import the static half and inject the preset colours at
+runtime instead, since the baked bundle only exists after a build:
+
+```css
+@import "tailwindcss";
+@import "@niclaslindstedt/oss-framework/theme/framework.css";
+@source "…/oss-framework/src"; /* scan the source for utility classes */
+```
+
+```ts
+// entry module, before first paint
+import { installPresetTokens } from "@niclaslindstedt/oss-framework/theme";
+installPresetTokens(); // injects the per-preset [data-theme] blocks once
+```
+
+`PRESET_TOKENS_CSS` is the same blocks as a string if you'd rather embed them
+yourself. What stays yours is only **app-shell layout** — the html/body reset and
+whatever viewport behaviour your shell wants (the demo's
+[`styles.css`](../../demo/src/styles.css) is a worked example: it imports
+`framework.css`, then adds a full-viewport non-scrolling reset).
 
 ## The CSS-variable contract
 
@@ -72,12 +118,12 @@ removed again the moment the user switches back to a preset.
 
 `--control-radius` is the one flavour the framework's own `Checkbox` reads
 directly. The `data-button-style` / `data-control-style` / `data-elevation`
-attributes are **host-owned paint hooks**, exactly like `[data-theme]`: the
-engine sets the attribute, your stylesheet keys off it (the demo's
-[`styles.css`](../../demo/src/styles.css) carries a reference set — button
-flavours off `data-button-style [data-ui="button"]`, shadow depth off
-`data-elevation`). The engine tracks exactly what it wrote, so there is no
-stale-variable list to maintain.
+attributes are paint hooks the engine sets — and the **shipped stylesheet keys
+off them for you** (button flavours off `data-button-style [data-ui="button"]`,
+shadow depth off `data-elevation`; see the Styling section). You only need to
+write your own rules here if you want a look beyond the bundled flavours. The
+engine tracks exactly what it wrote, so there is no stale-variable list to
+maintain.
 
 ## Quick start
 
@@ -197,6 +243,10 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
 - **`palettes.ts`** — `CustomThemeColors`, `COLOR_KEYS`,
   `COLOR_KEY_TO_CSS_VAR`, `COLOR_LABELS`, `COLOR_GROUPS`, `PRESET_PALETTES`,
   `DEFAULT_CUSTOM_THEME_COLORS_DARK/LIGHT`.
+- **`preset-tokens.ts`** — `PRESET_TOKENS_CSS` (the per-preset `[data-theme]`
+  blocks as a string) and `installPresetTokens()` (inject them once at runtime).
+  Plus the static **`framework.css`** / prebuilt **`styles.css`** the package
+  ships (see the Styling section).
 - **`ui-style.ts`** — `UiStyle` (the global shape / flavour axes),
   `DEFAULT_UI_STYLE`, `coerceUiStyle`.
 - **`custom-theme.ts`** — `CustomTheme` (now just the colour palette),
@@ -259,7 +309,11 @@ the Appearance UI.
    layout) migrates forward for free — pass it straight to `coerceUiStyle`, whose
    field names line up.
 
-4. **Align your CSS** to the variable contract above, and your Appearance UI to
+4. **Replace your token / flavour / preset CSS with the shipped stylesheet** —
+   `@import "@niclaslindstedt/oss-framework/styles.css"` (see Styling above).
+   Delete your hand-written `[data-theme="…"]` palette blocks, your
+   `[data-button-style]` / `[data-elevation]` flavour rules, and your `@theme`
+   token map; keep only your app-shell layout. Point your Appearance UI at
    `COLOR_GROUPS` / `COLOR_LABELS` / the `*_PRESETS` lists.
 
 5. **Delete your font loaders** and import `loadFontFamily` /

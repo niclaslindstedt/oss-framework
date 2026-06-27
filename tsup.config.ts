@@ -36,4 +36,9 @@ export default defineConfig({
   // `workbox-window` is the same shape: the PWA update hook lazily imports it,
   // and the consuming app (which owns the service-worker build) supplies it.
   external: ["react", "react-dom", /^@fontsource\//, "workbox-window"],
+  // After the JS/d.ts build, assemble the shipped stylesheet: the static
+  // `framework.css` plus the per-preset colour blocks generated from
+  // `PRESET_PALETTES` (the compiled module is needed, hence onSuccess). See
+  // scripts/build-styles.mjs.
+  onSuccess: "node scripts/build-styles.mjs",
 });

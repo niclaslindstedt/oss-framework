@@ -31,6 +31,8 @@
       "import": "./dist/theme/index.js",
       "require": "./dist/theme/index.cjs"
     },
+    "./styles.css": "./dist/styles.css",
+    "./theme/framework.css": "./dist/theme/framework.css",
     "./changelog": {
       "types": "./dist/changelog/index.d.ts",
       "import": "./dist/changelog/index.js",
