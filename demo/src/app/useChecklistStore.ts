@@ -88,6 +88,15 @@ export function useChecklistStore() {
     setVersion((v) => v + 1);
   }, []);
 
+  // Re-read the persisted document from localStorage, picking up edits made in
+  // another tab. Drives the pull-to-refresh "sync" gesture — a genuine
+  // local-first refresh, not a fake spinner. Replaces the present without
+  // touching the undo history (a sync isn't an edit you'd undo).
+  const reload = useCallback(() => {
+    setData(load());
+    setVersion((v) => v + 1);
+  }, []);
+
   const setActive = useCallback((id: string) => {
     setData((prev) =>
       prev.activeListId === id ? prev : { ...prev, activeListId: id },
@@ -191,6 +200,7 @@ export function useChecklistStore() {
     addList,
     addFolder,
     setListAppearance,
+    reload,
     undo,
     redo,
   };

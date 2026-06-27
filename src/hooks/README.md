@@ -7,10 +7,11 @@ primitives both source apps had grown their own byte-identical copies of. They
 own **behaviour**, not markup: a hook hands back state and event handlers; your
 component decides what to render with them.
 
-| Export         | What it is                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| `useEscapeKey` | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
-| `useRowSwipe`  | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
+| Export             | What it is                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| `useEscapeKey`     | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
+| `useRowSwipe`      | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
+| `usePullToRefresh` | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -93,7 +94,7 @@ useRowSwipe(onDismiss, {
   mouse drag. Gate it yourself (e.g. a pointer-type / coarse-pointer check) if
   you only want it on touch.
 
-## Verification
+### Verifying `useRowSwipe`
 
 - A vertical drag scrolls the list; it never moves the row or fires `onDismiss`.
 - A short swipe settles back to `offset: 0`; a left swipe past `openAt` rests at
@@ -101,3 +102,68 @@ useRowSwipe(onDismiss, {
   `onDismiss` after `dismissMs`.
 - A tap that trails a drag is swallowed (the row's own controls don't fire), and
   a tap on an already-open row closes it.
+
+## `usePullToRefresh`
+
+The touch-driven pull-to-refresh both apps grew, distilled to a single hook. It
+listens at the **document** level for a downward drag that begins while the
+scroll region is at its top, applies rubber-band damping, and fires your async
+`onRefresh` once the user crosses the trigger distance and lets go. It owns the
+gesture and the state machine only — you render the affordance with
+[`PullToRefreshIndicator`](../components/README.md) (or your own markup) from the
+`{ state, pullDistance }` it returns.
+
+```tsx
+import { usePullToRefresh } from "@niclaslindstedt/oss-framework/hooks";
+import { PullToRefreshIndicator } from "@niclaslindstedt/oss-framework/components";
+
+function Screen({ onRefresh }: { onRefresh: () => Promise<void> }) {
+  const { state, pullDistance } = usePullToRefresh(onRefresh);
+  return (
+    <div className="relative">
+      <PullToRefreshIndicator state={state} pullDistance={pullDistance} />
+      {/* …your scrollable content… */}
+    </div>
+  );
+}
+```
+
+`state` walks `idle → pulling → release → refreshing → idle`; `pullDistance` is
+the damped travel in px. The gesture is **touch-only** by design (pull-to-refresh
+is a mobile idiom) and gates itself three ways so it never fights normal use:
+
+- **Scroll gate** — it arms only when every scrollable ancestor of the touch
+  target is at its top, so a mid-scroll drag still scrolls the list.
+- **Modal gate** — it stands down while any `[aria-modal="true"]` element is
+  mounted, so a drag inside a dialog can't refresh the chrome behind it.
+- **Form gate** — a drag that starts on an `input` / `textarea` / `select` /
+  `contenteditable` is ignored.
+
+Pass `{ enabled: false }` to suspend it (e.g. while a refresh you triggered some
+other way is already running); disabling mid-pull clears any armed indicator.
+The shell that hosts the content needs `position: relative` (or a fixed
+ancestor) so the indicator — which pins to the top of the visual viewport —
+lands in the right place.
+
+### Migrating an existing pull-to-refresh
+
+- **Hand-rolled touch tracking → the hook.** Delete your `touchstart` /
+  `touchmove` / `touchend` bookkeeping and the damping math; drive your existing
+  indicator off `{ state, pullDistance }` instead. The trigger distance, max
+  pull, and resistance are the apps' tuned values and are not currently props —
+  if yours differ materially, widen the hook rather than re-implementing it.
+- **A spinner-only refresh with no gesture.** Keep your button/menu refresh and
+  call the same `onRefresh`; add the hook for the gesture and let both paths
+  share the async. Gate the hook with `enabled` off your own in-flight flag so a
+  tap and a pull can't overlap.
+- **Pointer / mouse pull in your app.** This hook is touch-only on purpose. If
+  you supported a mouse drag, that path stays your app's concern.
+
+### Verifying `usePullToRefresh`
+
+- A pull from the top past the trigger flips `state` to `release`; letting go
+  fires `onRefresh` and holds `state: "refreshing"` until the promise settles,
+  then returns to `idle` with `pullDistance: 0`.
+- A short pull (under the trigger) settles back to `idle` without firing.
+- An upward drag, a drag inside an open modal, and a drag while mid-scrolled all
+  leave `state: "idle"` and never fire `onRefresh`.

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Checkbox,
   ClearableInput,
   Fab,
+  PullToRefreshIndicator,
   CloudCheckIcon,
   CopyIcon,
   PlusIcon,
+  RefreshIcon,
 } from "@niclaslindstedt/oss-framework/components";
+import { usePullToRefresh } from "@niclaslindstedt/oss-framework/hooks";
 import {
   Checklist,
   ChecklistProgress,
@@ -32,16 +35,34 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
     addItem,
     deleteItem,
     setListAppearance,
+    reload,
   } = store;
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus the composer when it opens.
   useEffect(() => {
     if (composing) inputRef.current?.focus();
   }, [composing]);
+
+  // The pull-to-refresh "sync": a local-first app re-checks where its data
+  // lives. Here that means re-reading the persisted document (picking up edits
+  // from another tab) behind a short min-delay so the gesture's spinner reads.
+  // The header sync glyph mirrors `syncing`; the same handler powers a tap.
+  const sync = useCallback(async () => {
+    setSyncing(true);
+    await new Promise((r) => setTimeout(r, 900));
+    reload();
+    setSyncing(false);
+  }, [reload]);
+
+  // Pull down from the top of the list to sync. The hook owns the gesture and
+  // gates itself (touch-only, stands down inside a modal, only at scroll-top);
+  // the indicator below renders its three states.
+  const pull = usePullToRefresh(sync, { enabled: !syncing });
 
   if (!activeList) return null;
 
@@ -74,6 +95,10 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
 
   return (
     <div className="relative mx-auto flex h-full w-full max-w-2xl flex-col px-4 pt-[calc(1.25rem+env(safe-area-inset-top))]">
+      <PullToRefreshIndicator
+        state={pull.state}
+        pullDistance={pull.pullDistance}
+      />
       <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
         <ListAppearancePopover
           list={activeList}
@@ -97,8 +122,16 @@ export function ChecklistScreen({ store }: { store: ChecklistStore }) {
         <GlyphButton label={copied ? "Copied" : "Copy list"} onClick={copyList}>
           <CopyIcon className="h-4 w-4" />
         </GlyphButton>
-        <GlyphButton label="In sync" tone="accent">
-          <CloudCheckIcon className="h-4 w-4" />
+        <GlyphButton
+          label={syncing ? "Syncing…" : "In sync — tap or pull to refresh"}
+          tone="accent"
+          onClick={() => void sync()}
+        >
+          {syncing ? (
+            <RefreshIcon className="h-4 w-4 animate-spin" />
+          ) : (
+            <CloudCheckIcon className="h-4 w-4" />
+          )}
         </GlyphButton>
       </header>
 
