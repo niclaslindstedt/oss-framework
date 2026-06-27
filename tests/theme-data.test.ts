@@ -21,7 +21,12 @@ import {
 describe("preset vocabulary", () => {
   it("classifies presets into families", () => {
     expect(themeFamily("dracula")).toBe("dark");
+    expect(themeFamily("tokyoNight")).toBe("dark");
+    expect(themeFamily("catppuccin")).toBe("dark");
+    expect(themeFamily("rosePine")).toBe("dark");
     expect(themeFamily("gruvbox")).toBe("dark");
+    expect(themeFamily("catppuccinLatte")).toBe("light");
+    expect(themeFamily("rosePineDawn")).toBe("light");
     expect(themeFamily("solarizedLight")).toBe("light");
     expect(themeFamily("system")).toBe("system");
     expect(themeFamily("custom")).toBe("custom");
@@ -29,6 +34,8 @@ describe("preset vocabulary", () => {
 
   it("guards stored values", () => {
     expect(isThemePreset("nord")).toBe(true);
+    expect(isThemePreset("tokyoNight")).toBe(true);
+    expect(isThemePreset("rosePine")).toBe(true);
     expect(isThemePreset("monokai")).toBe(false);
     expect(isThemePreset("teal")).toBe(false);
     expect(isFontFamily("serif")).toBe(true);
