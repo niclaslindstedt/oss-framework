@@ -12,6 +12,7 @@ import {
   type MenuButtonPosition,
 } from "@niclaslindstedt/oss-framework/sidebar";
 import { CogIcon } from "@niclaslindstedt/oss-framework/components";
+import { useUndoRedoShortcuts } from "@niclaslindstedt/oss-framework/hooks";
 import {
   DEFAULT_GLYPH,
   glyphDataUri,
@@ -77,6 +78,18 @@ export function App() {
     side: settingsPosition.side,
     enabled: swipeToOpenSettings && !settingsOpen && !drawerOpen,
     onOpen: () => setSettingsOpen(true),
+  });
+
+  // Keyboard undo/redo over the same document history the side-menu buttons
+  // drive (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Ctrl+Y). Silenced while a phone
+  // drawer is open over the screen — the drawer owns the keyboard then — but
+  // always live when the sidebar is docked (pinned) on a wide screen.
+  useUndoRedoShortcuts({
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
+    onUndo: store.undo,
+    onRedo: store.redo,
+    enabled: pinned || !drawerOpen,
   });
 
   useEffect(() => {

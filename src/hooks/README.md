@@ -7,11 +7,12 @@ primitives both source apps had grown their own byte-identical copies of. They
 own **behaviour**, not markup: a hook hands back state and event handlers; your
 component decides what to render with them.
 
-| Export             | What it is                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------- |
-| `useEscapeKey`     | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
-| `useRowSwipe`      | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
-| `usePullToRefresh` | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
+| Export                 | What it is                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `useEscapeKey`         | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly). |
+| `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                 |
+| `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.   |
+| `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.             |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -167,3 +168,69 @@ lands in the right place.
 - A short pull (under the trigger) settles back to `idle` without firing.
 - An upward drag, a drag inside an open modal, and a drag while mid-scrolled all
   leave `state: "idle"` and never fire `onRefresh`.
+
+## `useUndoRedoShortcuts`
+
+Binds the global undo/redo chords — **Cmd/Ctrl+Z** for undo, **Cmd/Ctrl+Shift+Z**
+or **Ctrl+Y** for redo — to a document-level history both apps drove from the same
+hand-rolled keyboard handler. It owns the listener only: you keep the history
+(an undo/redo store) and pass it `canUndo` / `canRedo` plus the `onUndo` /
+`onRedo` steppers.
+
+```tsx
+import { useUndoRedoShortcuts } from "@niclaslindstedt/oss-framework/hooks";
+
+function App({ store }: { store: DocStore }) {
+  useUndoRedoShortcuts({
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
+    onUndo: store.undo,
+    onRedo: store.redo,
+  });
+  // …
+}
+```
+
+It deliberately **bails out while focus is inside an editable element**
+(`<input>` / `<textarea>` / `<select>` / `contenteditable`) so the browser's
+native field-level undo keeps working as the user types — the global timeline
+only steps the document history once focus leaves the text. When a chord does
+act, it `preventDefault()`s so the browser doesn't also run its own undo.
+
+`enabled` (default `true`) gates the whole listener. Set it `false` while another
+surface owns the keyboard — an open drawer or overlay whose own controls take
+over — so a stray Cmd/Ctrl+Z doesn't reach through and mutate the document
+behind it:
+
+```tsx
+useUndoRedoShortcuts({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  enabled: !drawerOpen || pinned, // silence while a (non-docked) drawer is open
+});
+```
+
+### Migrating an existing undo/redo binding
+
+- **Hand-rolled `keydown` handler → the hook.** Delete your global listener and
+  its modifier/editable-target bookkeeping; wire `canUndo`/`canRedo` and the
+  steppers from your store instead. The hook's chord set
+  (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y) and editable-element bail-out match the
+  common implementation, so behaviour carries over unchanged.
+- **History lives in a context / external store.** Fine — the hook holds no
+  state. Read `canUndo`/`canRedo` and pass the store's `undo`/`redo` straight
+  through; the hook re-subscribes whenever those identities change.
+- **You silence shortcuts in some modes.** Funnel that condition through
+  `enabled` rather than conditionally calling the hook (Rules of Hooks). A
+  docked, always-visible sidebar usually stays enabled; only a transient overlay
+  drawer needs silencing.
+
+### Verifying `useUndoRedoShortcuts`
+
+- Cmd/Ctrl+Z calls `onUndo` only when `canUndo`; Cmd/Ctrl+Shift+Z and Ctrl+Y call
+  `onRedo` only when `canRedo`; each acting chord prevents the browser default.
+- A chord pressed while a text field is focused is ignored (native field undo
+  still runs).
+- With `enabled: false` no chord fires; flipping it back rebinds the listener.

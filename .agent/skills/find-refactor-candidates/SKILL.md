@@ -347,6 +347,34 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   glyph (which flips to a spinning `RefreshIcon`) and by the pull-to-refresh
   gesture, with `PullToRefreshIndicator` overlaying the screen. See
   `src/hooks/README.md` and `src/components/README.md`.
+- **`ui/hooks/useUndoRedoShortcuts.ts` (global undo/redo chords) — extracted
+  (done).** Lives in the framework as `@niclaslindstedt/oss-framework/hooks`
+  (`useUndoRedoShortcuts`, `UndoRedoShortcutsParams`). The apps had **drifted**
+  only at the seam: notes' copy lacked the `enabled` gate checklist's carried, so
+  the framework took **checklist's superset** (the `enabled` flag, default
+  `true`) — a clean shared-verbatim lift otherwise (same chord set Cmd/Ctrl+Z ·
+  Cmd/Ctrl+Shift+Z / Ctrl+Y, same editable-element bail-out, same
+  `preventDefault` on an acting chord). A leaf hook: it holds no state and
+  imports nothing from the feature modules — **the history stays the app's**
+  (you pass `canUndo`/`canRedo` + the `onUndo`/`onRedo` steppers from your
+  store). **Demo:** the side menu already had Undo/Redo **buttons** over
+  `useChecklistStore`'s history but no keyboard path; the hook is wired in
+  `App.tsx` with `enabled: pinned || !drawerOpen` (silence the chords while a
+  phone drawer owns the screen, always live when the sidebar is docked),
+  exercising the superset gate exactly as designed. See `src/hooks/README.md`.
+- **`ui/hooks/useMediaQuery.ts` (72%) — strong next candidate, NOT yet
+  extracted.** A tiny dependency-free leaf hook (subscribe to a CSS media
+  query). It is duplicated **three ways** — notes, checklist, **and the demo's
+  own `demo/src/app/useMediaQuery.ts`** (used for the sidebar `pinned` flag), so
+  extracting it de-dups the demo too (drop its local copy, import `/hooks`). The
+  72% score is comment drift only; the core function is byte-identical. Take
+  **checklist's superset**, which also exports `useDesktopPointer()`
+  (`(hover: hover) and (pointer: fine)`, gates desktop right-click context
+  menus) — but to avoid a dead export, the demo must exercise `useDesktopPointer`
+  too. Its natural use (a right-click context menu on list rows) sits inside the
+  framework `Checklist` rows, so wiring it cleanly means **widening `Checklist`**
+  with a per-row context-menu callback (the demo's side-menu rows, which it owns,
+  are an alternative home that needs no `Checklist` change).
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -375,7 +403,9 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   `/components`) plus an Appearance tab over `/theme` — `app/settings/shared.tsx`
   now holds only the app-glue `LanguagePicker`; an
   undo/redo document store (`useChecklistStore`, localStorage) and a seed
-  (`app/seed.ts`); a per-list appearance feature (`/glyphs`) — each list
+  (`app/seed.ts`) — driven by the side menu's Undo/Redo buttons **and** global
+  keyboard chords (`useUndoRedoShortcuts` in `App.tsx`, silenced while a phone
+  drawer is open); a per-list appearance feature (`/glyphs`) — each list
   carries a `glyph`+`color`, rendered in the menu and re-badging the favicon,
   edited via a header `FloatingPanel` popover (`ListAppearancePopover`); a
   Settings → General "Open the menu with" preference (`menuMode`) that toggles

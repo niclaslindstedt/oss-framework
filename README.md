@@ -86,6 +86,7 @@ Today:
 | `useEscapeKey`           | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                             |
 | `useRowSwipe`            | `.` and `./hooks`      | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
 | `usePullToRefresh`       | `.` and `./hooks`      | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.  |
+| `useUndoRedoShortcuts`   | `.` and `./hooks`      | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.           |
 | `useApplyTheme`          | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.                       |
 | theme data               | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
 | `SettingsModal`          | `.` and `./theme`      | Self-contained dialog over the appearance picker.                                    |
