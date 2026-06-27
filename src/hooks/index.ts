@@ -25,3 +25,9 @@ export {
   useUndoRedoShortcuts,
   type UndoRedoShortcutsParams,
 } from "./useUndoRedoShortcuts.ts";
+export {
+  useClipboard,
+  copyTextToClipboard,
+  type UseClipboardOptions,
+  type UseClipboardResult,
+} from "./useClipboard.ts";
