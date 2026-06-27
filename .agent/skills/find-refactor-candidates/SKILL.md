@@ -325,6 +325,28 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   `StorageAdapter` `save`/`reload` — because the localStorage backend resolves
   sub-frame, the tab holds it on screen for a `BUSY_MIN_MS` anti-flicker window
   (a standard spinner beat) so the animation reads. See `src/components/README.md`.
+- **`ui/hooks/usePullToRefresh.ts` + `ui/PullToRefreshIndicator.tsx`
+  (pull-to-refresh) — extracted (done).** A hook/component **pair** split across
+  two existing modules: the gesture hook lands in `@niclaslindstedt/oss-framework/hooks`
+  (`usePullToRefresh`, `PullToRefreshState`), the slide-down pill in
+  `@niclaslindstedt/oss-framework/components` (`PullToRefreshIndicator`). The
+  **hook was byte-identical code bar comments** across the apps (a clean lift);
+  the **indicator** differed only at the i18n seam and the already-resolved
+  radius drift (`rounded-[var(--radius)]` → `rounded-sm`, the converged theme).
+  **App glue dropped at the seam:** `useT(...)` became injectable `labels`
+  (English defaults `PullToRefreshLabels`); the icons resolve to the framework's
+  own `components/icons.tsx` (`ArrowDownIcon`/`SpinnerIcon` already lived there).
+  **No new subpath wiring** — both modules already export, so the lift was just
+  two files + two barrel lines. The `components → hooks` type import
+  (`PullToRefreshState`) is fine: that direction was already established
+  (`FloatingPanel` imports `useEscapeKey`); only the leaf `hooks` must not import
+  _up_. **Demo:** the list screen's previously-static "In sync" `CloudCheckIcon`
+  header button is now live — a `reload()` was added to `useChecklistStore` (re-reads
+  the persisted doc, picking up another tab's edits, off the undo history), and a
+  screen-local `sync()` (min-delay + `reload`) is driven **both** by a tap on the
+  glyph (which flips to a spinning `RefreshIcon`) and by the pull-to-refresh
+  gesture, with `PullToRefreshIndicator` overlaying the screen. See
+  `src/hooks/README.md` and `src/components/README.md`.
 - `theme/themes.ts` in each app also holds **non-theme** settings (notes:
   `EditorSettings`, `ListLayout`, `FolderPlacement`; both: misc prefs). Those
   are app-specific — do not pull them into the framework's `theme` module.
@@ -363,8 +385,12 @@ string>` deliberately rejects numbers. See `src/components/README.md`.
   resting on the right edge) opening the Settings dialog; and a Settings →
   Storage playground over the `StorageAdapter` contract whose async
   `save`/`reload` now front the framework's `CipherGlyph` busy indicator (held
-  for a `BUSY_MIN_MS` anti-flicker window). **Not yet modelled, so the natural
-  next homes to widen into:**
+  for a `BUSY_MIN_MS` anti-flicker window); and a list-screen **pull-to-refresh
+  sync** — the header's "In sync" glyph is live (tap to sync, spins while in
+  flight) and an inward pull from the list top triggers the same `sync()`
+  (`useChecklistStore.reload` behind a min-delay), surfaced by
+  `PullToRefreshIndicator`. **Not yet modelled, so the natural next homes to
+  widen into:**
   multiple
   profiles/namespaces (the menu shows a single hard-coded "Default" namespace
   header — real switching would seat storage backends, sync, encryption, and

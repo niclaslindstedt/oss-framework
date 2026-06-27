@@ -81,31 +81,33 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export             | From                   | Purpose                                                                              |
-| ------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
-| `useEscapeKey`     | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                             |
-| `useRowSwipe`      | `.` and `./hooks`      | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
-| `useApplyTheme`    | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.                       |
-| theme data         | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
-| `SettingsModal`    | `.` and `./theme`      | Self-contained dialog over the appearance picker.                                    |
-| `AppearancePicker` | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.                    |
-| `ChangelogModal`   | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                          |
-| `parseChangelog`   | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
-| `StorageAdapter`   | `.` and `./storage`    | Byte-level persistence contract for swappable backends.                              |
-| storage backends   | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
-| `createLogStore`   | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                           |
-| `LogViewer`        | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
-| `Sidebar`          | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.                       |
-| `FloatingButton`   | `.` and `./sidebar`    | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
-| `Modal`            | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
-| `Button` / form    | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
-| `Badge` / `Fab`    | `.` and `./components` | A count pill and a floating action button.                                           |
-| settings layout    | `.` and `./components` | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
-| `CipherGlyph`      | `.` and `./components` | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
-| glyph set          | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
-| `Checklist`        | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
-| checklist tree     | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
-| glyph picker kit   | `.` and `./glyphs`     | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
+| Export                   | From                   | Purpose                                                                              |
+| ------------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
+| `useEscapeKey`           | `.` and `./hooks`      | Capture-phase Escape handler gated on an `enabled` flag.                             |
+| `useRowSwipe`            | `.` and `./hooks`      | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                           |
+| `usePullToRefresh`       | `.` and `./hooks`      | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.  |
+| `useApplyTheme`          | `.` and `./theme`      | Projects the chosen appearance onto `<html>` as CSS variables.                       |
+| theme data               | `.` and `./theme`      | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                     |
+| `SettingsModal`          | `.` and `./theme`      | Self-contained dialog over the appearance picker.                                    |
+| `AppearancePicker`       | `.` and `./theme`      | Controlled theme / font / colour editor over a `ThemeAppearance`.                    |
+| `ChangelogModal`         | `.` and `./changelog`  | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                          |
+| `parseChangelog`         | `.` and `./changelog`  | Parse a `CHANGELOG.md` into the typed release list it renders.                       |
+| `StorageAdapter`         | `.` and `./storage`    | Byte-level persistence contract for swappable backends.                              |
+| storage backends         | `.` and `./storage`    | Browser, local-folder, Dropbox, and Google Drive adapters.                           |
+| `createLogStore`         | `.` and `./logging`    | In-app log ring buffer + capture mirror; the storage sink.                           |
+| `LogViewer`              | `.` and `./logging`    | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                  |
+| `Sidebar`                | `.` and `./sidebar`    | Responsive nav shell: docked sidebar / floating-button drawer.                       |
+| `FloatingButton`         | `.` and `./sidebar`    | The draggable, edge-resting FAB the shell floats, reusable on its own.               |
+| `Modal`                  | `.` and `./components` | Portalled accessible dialog (backdrop, focus trap, scroll lock).                     |
+| `Button` / form          | `.` and `./components` | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.          |
+| `Badge` / `Fab`          | `.` and `./components` | A count pill and a floating action button.                                           |
+| settings layout          | `.` and `./components` | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.            |
+| `CipherGlyph`            | `.` and `./components` | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner. |
+| `PullToRefreshIndicator` | `.` and `./components` | Slide-down pill that surfaces the `usePullToRefresh` gesture.                        |
+| glyph set                | `.` and `./components` | Dependency-free inline SVG icons, each driven by `className`.                        |
+| `Checklist`              | `.` and `./checklist`  | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete. |
+| checklist tree           | `.` and `./checklist`  | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …       |
+| glyph picker kit         | `.` and `./glyphs`     | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.      |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed

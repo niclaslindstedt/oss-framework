@@ -26,6 +26,7 @@ defaults.
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                |
 | `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row. |
 | `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.         |
+| `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                    |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                         |
 | `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                    |
@@ -182,6 +183,30 @@ With motion off it holds a static frame, which still reads as enciphered bytes.
 Because the localStorage backends resolve in well under a frame, pair it with a
 small minimum-display window (a standard anti-flicker beat) when fronting a fast
 async op so the animation reads rather than flashes past.
+
+### Pull-to-refresh affordance (`PullToRefreshIndicator`)
+
+The slide-down pill that surfaces a pull-to-refresh gesture. It is purely
+presentational — it renders nothing at rest and otherwise shows a three-state
+arrow/spinner + label, translated by `pullDistance` so it appears to emerge from
+behind the header as the user pulls. Pair it with
+[`usePullToRefresh`](../hooks/README.md), which owns the gesture and hands back
+the `{ state, pullDistance }` it consumes:
+
+```tsx
+import { PullToRefreshIndicator } from "@niclaslindstedt/oss-framework/components";
+import { usePullToRefresh } from "@niclaslindstedt/oss-framework/hooks";
+
+const { state, pullDistance } = usePullToRefresh(onRefresh);
+<PullToRefreshIndicator state={state} pullDistance={pullDistance} />;
+```
+
+It carries no i18n: the three visible strings default to English
+(`"Pull to refresh"` / `"Release to refresh"` / `"Refreshing…"`) and override
+via `labels` (a partial `PullToRefreshLabels`). It paints through the theme
+tokens (`surface` / `line` / `fg`, the `rounded-sm` corner) and fixes itself to
+the top of the visual viewport below the iOS safe-area inset, so the host that
+scrolls the content should be `position: relative` (or under a fixed ancestor).
 
 ## Migrating an existing implementation
 
