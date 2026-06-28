@@ -754,7 +754,7 @@ function NavRow({
       type="button"
       onClick={onClick}
       className={`flex w-full cursor-pointer items-center gap-3 py-[var(--density-row-py)] text-left text-sm ${
-        indent ? "pr-5 pl-10" : "px-5"
+        indent ? "pr-5 pl-14" : "px-5"
       } ${state}`}
     >
       <span className={`shrink-0 ${active ? "text-accent" : "text-muted"}`}>
@@ -786,7 +786,7 @@ function FolderRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-[var(--density-row-py)] pr-1 pl-3 text-left text-fg hover:text-fg-bright"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-[var(--density-row-py)] pr-1 pl-6 text-left text-fg hover:text-fg-bright"
       >
         <span className="text-muted">
           {expanded ? (
@@ -841,7 +841,7 @@ function FolderEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className="gap-2 pr-2 pl-3"
+      className="gap-2 pr-2 pl-6"
       leading={<span className="h-4 w-4 shrink-0" aria-hidden="true" />}
       icon={<FolderIcon className="h-5 w-5" />}
       iconClassName="text-muted"
@@ -874,7 +874,7 @@ function ListEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className={`gap-3 ${indent ? "pr-5 pl-10" : "px-5"}`}
+      className={`gap-3 ${indent ? "pr-5 pl-14" : "px-5"}`}
       icon={icon}
     />
   );
