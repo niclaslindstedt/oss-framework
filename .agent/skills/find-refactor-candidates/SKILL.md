@@ -367,15 +367,29 @@ surprises aren't re-discovered.
   (`segmentMatches` + `Highlighted`). budget's `i18n/locales/**` and `data/**`
   dominate the top of the report but are **app-domain data, not extractable** —
   filter them out (skip `i18n/`, `data/`, `seo/`) before ranking.
-- **Type-ahead cluster (`hooks/useTypeahead`, `hooks/useRovingTabindex`,
-  `utils/highlight`):** net-new in budget. **Extracted so far:** `useTypeahead`
-  - `matchPrefixRange` (re-homed from `utils/highlight.ts`) into `src/hooks/`,
-    and wired into `SelectPicker` (type-ahead is on by default when an option has a
-    string label / `typeaheadLabel`). **Still unextracted (next candidates):**
-    `useRovingTabindex` / `useGridRovingTabindex` — foundational WAI-ARIA roving
-    tabindex hooks many menus/grids want; they need a real demo consumer (a
-    keyboard-navigable menu or glyph grid) to land honestly.
-- **Demo scope added this run:** the Storage tab's "Where your data lives" section
+- **Type-ahead / keyboard-nav cluster (`hooks/useTypeahead`,
+  `hooks/useRovingTabindex`, `utils/highlight`):** net-new in budget, now
+  **fully extracted.** `useTypeahead` + `matchPrefixRange` (re-homed from
+  `utils/highlight.ts`) landed in `src/hooks/`, wired into `SelectPicker`
+  (type-ahead on by default when an option has a string label / `typeaheadLabel`).
+  `useRovingTabindex` / `useGridRovingTabindex` (WAI-ARIA roving tabindex, 1-D +
+  2-D) landed in `src/hooks/useRovingTabindex.ts` and were wired **into the
+  existing `glyphs` pickers** — `useGridRovingTabindex` into `GlyphPicker` (the
+  leading clear cell is index 0, `columns: 8`), `useRovingTabindex` (horizontal)
+  into `ColorPalette` (its `flex-wrap` row has variable columns, so the 1-D hook
+  is the right fit, not the grid one). Both use `active: false` (always-mounted
+  in a form: the selected cell stays the Tab stop, arrows take over on tab-in).
+  This was an **in-module hooks addition** (no new subpath) + an enhancement of
+  two shipped components — exactly the "enhance an existing component" path. The
+  donor's hook was already clean; the only synthesis past it was lifting the
+  inline option/return types to named exported types. **Nothing left in this
+  cluster.**
+- **Demo scope:** `GlyphPicker` / `ColorPalette` already had a demo seat in
+  `demo/src/app/ListAppearancePopover.tsx` (the list-appearance popover), so the
+  roving-tabindex enhancement landed there automatically — no new screen needed.
+  Both pickers are now arrow-key navigable in the running demo (verified: 2
+  radiogroups, one Tab stop each, ArrowDown jumps a full glyph row).
+- **Demo scope added earlier:** the Storage tab's "Where your data lives" section
   now has a **Cloud drive `SelectPicker`** (shown only on the simulated-cloud
   backend), backed by `CLOUD_PROVIDERS` in `demo/src/app/useMockSync.ts`. The
   chosen provider's name flows into the header `SyncStatus` ("synced to …") and

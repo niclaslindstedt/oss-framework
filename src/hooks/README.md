@@ -7,17 +7,20 @@ primitives both source apps had grown their own byte-identical copies of. They
 own **behaviour**, not markup: a hook hands back state and event handlers; your
 component decides what to render with them.
 
-| Export                 | What it is                                                                                    |
-| ---------------------- | --------------------------------------------------------------------------------------------- |
-| `useEscapeKey`         | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly).  |
-| `useMediaQuery`        | Subscribe to a CSS media query; re-renders when it flips. Reads the initial value in sync.    |
-| `useDesktopPointer`    | `true` on a precise, hovering pointer (mouse/trackpad) — gate right-click affordances.        |
-| `useRowSwipe`          | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                  |
-| `usePullToRefresh`     | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.    |
-| `useUndoRedoShortcuts` | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.              |
-| `useLongPress`         | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.     |
-| `isModalOpen`          | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate. |
-| `useClipboard`         | Copy text with a self-resetting `copied` flag; `copyTextToClipboard` is the pure write.       |
+| Export                  | What it is                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| `useEscapeKey`          | Calls `onEscape` on Escape while `enabled`, in the capture phase (nested-dropdown friendly).  |
+| `useMediaQuery`         | Subscribe to a CSS media query; re-renders when it flips. Reads the initial value in sync.    |
+| `useDesktopPointer`     | `true` on a precise, hovering pointer (mouse/trackpad) — gate right-click affordances.        |
+| `useRowSwipe`           | A swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                  |
+| `usePullToRefresh`      | A touch pull-to-refresh gesture at the top of a scroll region; fires an async `onRefresh`.    |
+| `useUndoRedoShortcuts`  | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document-level history.              |
+| `useLongPress`          | Press-and-hold gesture: fires past a delay, cancels on a drag, swallows the trailing tap.     |
+| `isModalOpen`           | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate. |
+| `useClipboard`          | Copy text with a self-resetting `copied` flag; `copyTextToClipboard` is the pure write.       |
+| `useTypeahead`          | List-box "type to select": printable keystrokes jump to the first matching option.            |
+| `useRovingTabindex`     | Roving tabindex for a 1-D list (listbox / radiogroup / menu) — one Tab stop, arrows navigate. |
+| `useGridRovingTabindex` | Roving tabindex for a 2-D grid picker — arrows walk rows and columns, Home/End jump corners.  |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -440,3 +443,81 @@ radiogroup and want the same "type to select".
   raise it for long labels.
 - **You don't want highlighting.** Ignore `query` / `matchPrefixRange` and just
   use `onMatch` to move the cursor; the hook works either way.
+
+## `useRovingTabindex` / `useGridRovingTabindex`
+
+The WAI-ARIA **roving tabindex** both apps' pickers had grown by hand. A
+listbox, radiogroup, menu, or grid should be a **single Tab stop** — Tab moves
+focus into the widget and back out, and the **arrow keys** move within it — not
+a wall of N tab stops the user has to step through one by one. These two hooks
+own that focus bookkeeping; your component renders the items and wires three
+things back: `tabIndex={isCursorAt(i) ? 0 : -1}`, `ref={registerItem(i)}`, and
+`onKeyDown` on each item.
+
+```tsx
+import { useRovingTabindex } from "@niclaslindstedt/oss-framework/hooks";
+
+function Listbox({ options, selected, onPick }) {
+  const { isCursorAt, registerItem, onKeyDown } = useRovingTabindex({
+    itemCount: options.length,
+    initialIndex: selected, // the Tab stop seats on the selected row
+    active: false, // see "active" below
+    typeaheadLabels: options.map((o) => o.label), // optional type-ahead
+  });
+  return (
+    <ul role="listbox">
+      {options.map((o, i) => (
+        <li
+          key={o.id}
+          ref={registerItem(i)}
+          role="option"
+          aria-selected={i === selected}
+          tabIndex={isCursorAt(i) ? 0 : -1}
+          onKeyDown={onKeyDown}
+          onClick={() => onPick(i)}
+        >
+          {o.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+**`useRovingTabindex`** drives a flat 1-D list. The arrow axis follows
+`orientation` (`"vertical"` default → Up/Down, `"horizontal"` → Left/Right),
+Home/End jump to the ends, and the cursor `wrap`s past the ends by default. When
+`typeaheadLabels` is supplied (one per item) the same `onKeyDown` also drives
+[`useTypeahead`](#usetypeahead) — printable keys jump the cursor to the first
+matching label — and the live buffer is published as `typeaheadQuery` for
+highlighting. `focusOnMove` (default `true`) calls `.focus()` on the cursored
+item as it moves (the listbox/menu pattern); set it `false` for a radiogroup
+where the arrows should shift a visual cursor without pulling DOM focus.
+
+**`useGridRovingTabindex`** is the 2-D variant for a grid picker (a colour
+palette, a glyph grid): pass `columns` matching the rendered layout, and
+Left/Right walk the row while Up/Down jump a row.
+
+### `active`
+
+`active` is the open/mounted edge. On its **false→true** transition the cursor
+snaps back to `initialIndex` and (when focusing) moves there on the next frame —
+so a popover menu lands the first keypress on the selected row. Pass `false`
+for a picker that's **always mounted inside a form** (the framework's
+`GlyphPicker` / `ColorPalette` do this): the selected item stays the Tab stop,
+and the arrows take over once the user tabs in — no focus is ever forced.
+
+### Adapting to your app
+
+- **A leading "clear / none" cell.** Count it as index 0 and offset the real
+  items by one (what `GlyphPicker` does for its default-icon cell); seat
+  `initialIndex` on 0 when nothing is selected.
+- **A wrapping grid (variable columns).** `useGridRovingTabindex` assumes a
+  fixed `columns` count. For a `flex-wrap` row whose column count depends on
+  width, use the 1-D `useRovingTabindex` with `orientation: "horizontal"`
+  instead — every arrow walks one cell, which is right for a small palette
+  (again, what `ColorPalette` does).
+- **Select-follows-focus.** These hooks move a **cursor**, not the selection;
+  picking stays your `onClick` (Enter/Space on a native `<button>` fires it).
+  If you want the arrows to also commit the selection, call your pick handler
+  from an effect on `cursor`.

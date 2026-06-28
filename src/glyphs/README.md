@@ -48,6 +48,12 @@ never persist anything.
   own translated labels.
 - **`GLYPH_NAMES` omits `DEFAULT_GLYPH`** — the picker's leading "clear" cell
   already stands for the default, so the default name is not offered twice.
+- **Both pickers are keyboard-navigable radiogroups.** They own a
+  [roving tabindex](../hooks/README.md#userovingtabindex--usegridrovingtabindex)
+  internally: the selected cell is the single Tab stop, and the arrow keys move
+  within the group (`GlyphPicker` walks its 8-column grid in 2-D; `ColorPalette`
+  cycles its swatches), with Home/End jumping to the ends. Enter/Space picks the
+  focused cell. You wire nothing for this — it's built in.
 
 ## Quick start
 
@@ -89,8 +95,8 @@ link.href = glyphDataUri(glyph ?? DEFAULT_GLYPH, color ?? "#888");
 | Export                         | Kind      | Notes                                                                |
 | ------------------------------ | --------- | -------------------------------------------------------------------- |
 | `Glyph`                        | component | `{ name?, className?, style? }` — inline SVG, falls back to default. |
-| `GlyphPicker`                  | component | grid radiogroup; leading cell clears to the default.                 |
-| `ColorPalette`                 | component | swatch radiogroup; plain radios in tab order.                        |
+| `GlyphPicker`                  | component | grid radiogroup (roving tabindex); leading cell clears to default.   |
+| `ColorPalette`                 | component | swatch radiogroup (roving tabindex); arrow keys cycle the swatches.  |
 | `GLYPH_PATHS`                  | data      | `name → inner SVG markup`.                                           |
 | `DEFAULT_GLYPH`                | data      | the fallback glyph name (`"folder"`).                                |
 | `GLYPH_NAMES`                  | data      | pickable names, default omitted.                                     |
@@ -150,5 +156,6 @@ After wiring, confirm: the picker highlights the stored glyph and colour on
 open; picking the leading cell clears back to the default icon; the chosen
 colour tints both the selected picker cell and the rendered `Glyph`; and (if
 used) the favicon swaps to the active entity's badge. The pickers are
-radiogroups — tab/arrow into them and the `aria-checked` state should track the
-selection for assistive tech.
+roving-tabindex radiogroups — Tab lands on the selected cell (a single Tab
+stop), the arrow keys then move focus within the group (Home/End jump to the
+ends), and the `aria-checked` state tracks the selection for assistive tech.
