@@ -283,4 +283,23 @@ describe("TrophyButton", () => {
     );
     expect(screen.getByText("2")).toBeTruthy();
   });
+
+  it("renders a visible label row with showLabel, keeping the dynamic aria-label", () => {
+    const { rerender } = render(
+      <TrophyButton unseenCount={0} onClick={() => {}} showLabel />,
+    );
+    // The visible text stays the stable "Achievements" in both states; the
+    // aria-label carries the dynamic count.
+    expect(screen.getByText("Achievements")).toBeTruthy();
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
+      "Achievements",
+    );
+
+    rerender(<TrophyButton unseenCount={3} onClick={() => {}} showLabel />);
+    expect(screen.getByText("Achievements")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
+      "3 new achievements",
+    );
+  });
 });

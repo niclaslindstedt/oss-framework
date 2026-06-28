@@ -162,10 +162,13 @@ each:
   need a different scale, layer your own headers over the catalog data.)
 - **Custom tier icons.** Pass `tierGlyphs` to `AchievementsModal` (defaults are
   `DEFAULT_TIER_GLYPHS`).
-- **The trophy button lives somewhere specific** (a header vs. a menu row). It's
-  presentational — pass `className` to reseat it; it only renders the glyph + an
-  optional count badge and calls `onClick`. The quiet-vs-lit decision is yours:
-  you passed `unseenCount`, so branch `onClick` on it.
+- **The trophy button lives somewhere specific** (a header vs. a menu row). It
+  ships two forms: the compact icon-only button (default), and a full-width menu
+  row — pass `showLabel` to render the label text beside the glyph (badge inline)
+  so it drops in among sidebar footer rows. Either form's wrapper classes can be
+  replaced via `className`. It's presentational and calls `onClick`; the
+  quiet-vs-lit decision is yours: you passed `unseenCount`, so branch `onClick`
+  on it.
 - **Your state isn't a single object.** `TState` can be anything — a tuple, a
   composite `{ a, b }`. Keep referential identity on the slices your predicates
   read (most stores already do) so `slices` can skip cheaply; if you can't, omit

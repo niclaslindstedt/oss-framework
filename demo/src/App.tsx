@@ -201,16 +201,19 @@ export function App() {
   // window when the menu is pinned on a wide screen.
   useSidebarInset(pinned, position.side);
 
-  // The header trophy, shared by the checklist and note screens (or nothing when
-  // achievements are switched off). The screens own the layout; App owns what
-  // the button opens.
-  const trophyButton = achievementsEnabled ? (
+  // The achievements trophy, seated as a row at the foot of the sidebar (or
+  // nothing when achievements are switched off) — its full-width `showLabel`
+  // form reads as one of the footer rows. App owns what the button opens; a tap
+  // closes the drawer first so the tour / unlock modal isn't left behind it.
+  const trophyRow = achievementsEnabled ? (
     <TrophyButton
       unseenCount={ach.unseen.length}
-      onClick={() =>
-        ach.unseen.length > 0 ? setUnlockOpen(true) : setTourOpen(true)
-      }
-      className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
+      showLabel
+      onClick={() => {
+        setDrawerOpen(false);
+        if (ach.unseen.length > 0) setUnlockOpen(true);
+        else setTourOpen(true);
+      }}
     />
   ) : null;
 
@@ -290,6 +293,7 @@ export function App() {
           checkingUpdate={pwa.checking}
           updateAvailable={updateAvailable}
           onCheckUpdate={checkForUpdate}
+          trophy={trophyRow}
         />
       </Sidebar>
 
@@ -301,7 +305,6 @@ export function App() {
             store={store}
             sync={sync}
             onOpenSyncDetails={() => setSyncDetailsOpen(true)}
-            trophy={trophyButton}
           />
         ) : (
           <ChecklistScreen
@@ -309,7 +312,6 @@ export function App() {
             sync={sync}
             onOpenSyncDetails={() => setSyncDetailsOpen(true)}
             addItemPosition={settings.addItemPosition}
-            trophy={trophyButton}
           />
         )}
       </main>

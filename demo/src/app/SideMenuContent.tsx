@@ -139,6 +139,11 @@ type Props = {
   checkingUpdate: boolean;
   updateAvailable: boolean;
   onCheckUpdate: () => Promise<PwaUpdateCheckResult>;
+  // The framework `TrophyButton` in its `showLabel` row form, seated among the
+  // footer rows (or nothing when achievements are switched off) — relocated from
+  // the header so the trophy lives with the other menu actions. App owns what it
+  // opens.
+  trophy?: ReactNode;
 };
 
 export function SideMenuContent({
@@ -156,6 +161,7 @@ export function SideMenuContent({
   checkingUpdate,
   updateAvailable,
   onCheckUpdate,
+  trophy,
 }: Props) {
   const t = useT();
   const {
@@ -634,6 +640,10 @@ export function SideMenuContent({
         >
           {t("menu.donate")}
         </FooterLink>
+        {/* The achievements trophy, relocated from the header into the footer —
+            the framework `TrophyButton`'s row form reads as one of these rows.
+            Hidden (null) when achievements are switched off. */}
+        {trophy}
         {/* About: a single row that reveals the project links in an upward-
             flipping dropdown — there's no room below at the foot of the drawer.
             It reads as a plain footer row (no chevron) and just toggles the
@@ -809,7 +819,7 @@ function NavRow({
       type="button"
       onClick={onClick}
       className={`flex w-full cursor-pointer items-center gap-3 py-[var(--density-row-py)] text-left text-sm ${
-        indent ? "pr-5 pl-14" : "px-5"
+        indent ? "pr-5 pl-14" : "pr-5 pl-10"
       } ${state}`}
     >
       <span className={`shrink-0 ${active ? "text-accent" : "text-muted"}`}>
@@ -841,7 +851,7 @@ function FolderRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-[var(--density-row-py)] pr-1 pl-5 text-left text-fg hover:text-fg-bright"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-[var(--density-row-py)] pr-1 pl-10 text-left text-fg hover:text-fg-bright"
       >
         <span className={expanded ? "text-accent" : "text-muted"}>
           {expanded ? (
@@ -887,7 +897,7 @@ function FolderEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className="gap-3 pr-2 pl-5"
+      className="gap-3 pr-2 pl-10"
       icon={<FolderIcon className="h-5 w-5" />}
       iconClassName="text-muted"
     />
@@ -919,7 +929,7 @@ function ListEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className={`gap-3 ${indent ? "pr-5 pl-14" : "px-5"}`}
+      className={`gap-3 ${indent ? "pr-5 pl-14" : "pr-5 pl-10"}`}
       icon={icon}
     />
   );
@@ -1020,7 +1030,7 @@ function DraggableRow({
         // Opt the row out of the drawer's swipe-to-close while a finger is on
         // the handle — the handle owns this gesture.
         data-drawer-swipe-ignore
-        className="absolute inset-y-0 left-0 z-10 flex w-5 cursor-grab touch-none items-center justify-center text-muted opacity-30 group-hover:opacity-70"
+        className="absolute inset-y-0 left-0 z-10 flex w-10 cursor-grab touch-none items-center justify-center text-muted opacity-30 group-hover:opacity-70"
       >
         <GripIcon className="h-4 w-4" />
       </span>
