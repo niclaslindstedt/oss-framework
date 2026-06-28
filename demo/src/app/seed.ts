@@ -4,13 +4,13 @@ import type { ChecklistNode } from "@niclaslindstedt/oss-framework/checklist";
 import type { AppData } from "./types.ts";
 
 // The starting document the demo boots with — realistic shopping and packing
-// lists for an ordinary Swedish household. The active list is the weekly
-// grocery run ("Veckohandling"); the "Packlistor" folder groups the family's
-// recurring packing lists (a mountain hike, a charter holiday, the summer
-// cabin, the kids' bag), a couple of which nest a sub-list to show the tree
-// depth. A second standalone list rounds out the menu. Each list carries a
-// `glyph` + `color` from the framework's `/glyphs` catalogue, so the side-menu
-// icons and the tab favicon read in the list's own colour out of the box.
+// lists for an ordinary household. The active list is the weekly grocery run
+// ("Weekly groceries"); the "Packing lists" folder groups the family's
+// recurring packing lists (a mountain hike, a beach holiday, the summer cabin,
+// the kids' bag), a couple of which nest a sub-list to show the tree depth. A
+// second standalone list rounds out the menu. Each list carries a `glyph` +
+// `color` from the framework's `/glyphs` catalogue, so the side-menu icons and
+// the tab favicon read in the list's own colour out of the box.
 //
 // `checkedAt` stamps use a fixed timestamp so the "sort checked to the bottom"
 // order is deterministic across reloads (no wall-clock in the seed).
@@ -21,370 +21,370 @@ const leaf = (id: string, label: string, checked = false): ChecklistNode =>
     : { id, label, checked };
 
 export const SEED: AppData = {
-  activeListId: "veckohandling",
-  folders: [{ id: "packlistor", name: "Packlistor" }],
+  activeListId: "groceries",
+  folders: [{ id: "packing", name: "Packing lists" }],
   lists: [
     // A short standalone shopping list — sits above the active one in the menu.
     {
-      id: "apoteket",
-      title: "Apoteket",
+      id: "pharmacy",
+      title: "Pharmacy",
       folderId: null,
       glyph: "heart",
       color: "#e06c75",
       items: [
-        leaf("ap-alvedon", "Alvedon"),
-        leaf("ap-plaster", "Plåster"),
-        leaf("ap-nassprej", "Nässprej"),
-        leaf("ap-solskydd", "Solskyddsfaktor 30"),
+        leaf("ph-paracetamol", "Paracetamol"),
+        leaf("ph-plasters", "Plasters"),
+        leaf("ph-nasal-spray", "Nasal spray"),
+        leaf("ph-sunscreen", "Sunscreen SPF 30"),
       ],
     },
     // The active list — the weekly grocery run.
     {
-      id: "veckohandling",
-      title: "Veckohandling",
+      id: "groceries",
+      title: "Weekly groceries",
       folderId: null,
       glyph: "cart",
       color: "#98c379",
       items: [
-        leaf("vh-mjolk", "Mellanmjölk 1,5 %"),
-        leaf("vh-fil", "Filmjölk"),
-        leaf("vh-smor", "Bregott"),
-        leaf("vh-agg", "Ägg"),
-        leaf("vh-knacke", "Knäckebröd"),
-        leaf("vh-kaffe", "Bryggkaffe"),
-        leaf("vh-bananer", "Bananer"),
-        leaf("vh-gurka", "Gurka"),
-        leaf("vh-morotter", "Morötter"),
-        leaf("vh-kottbullar", "Köttbullar"),
-        leaf("vh-pasta", "Pasta"),
-        leaf("vh-krossade", "Krossade tomater"),
-        leaf("vh-lok", "Gul lök"),
-        leaf("vh-ost", "Lagrad ost"),
-        leaf("vh-toapapper", "Toalettpapper", true),
-        leaf("vh-diskmedel", "Diskmedel", true),
+        leaf("gr-milk", "Milk (1.5%)"),
+        leaf("gr-buttermilk", "Buttermilk"),
+        leaf("gr-butter", "Butter"),
+        leaf("gr-eggs", "Eggs"),
+        leaf("gr-crispbread", "Crispbread"),
+        leaf("gr-coffee", "Filter coffee"),
+        leaf("gr-bananas", "Bananas"),
+        leaf("gr-cucumber", "Cucumber"),
+        leaf("gr-carrots", "Carrots"),
+        leaf("gr-meatballs", "Meatballs"),
+        leaf("gr-pasta", "Pasta"),
+        leaf("gr-tomatoes", "Crushed tomatoes"),
+        leaf("gr-onion", "Yellow onion"),
+        leaf("gr-cheese", "Mature cheese"),
+        leaf("gr-toilet-paper", "Toilet paper", true),
+        leaf("gr-dish-soap", "Dish soap", true),
       ],
     },
     // The packing-lists folder.
     {
-      id: "fjallvandring",
-      title: "Fjällvandring",
-      folderId: "packlistor",
+      id: "hike",
+      title: "Mountain hike",
+      folderId: "packing",
       glyph: "leaf",
       color: "#5cb39e",
       items: [
-        leaf("fj-talt", "Tält"),
-        leaf("fj-sovsack", "Sovsäck"),
-        leaf("fj-liggunderlag", "Liggunderlag"),
-        leaf("fj-stormkok", "Stormkök & gasol"),
-        leaf("fj-kangor", "Vandringskängor"),
-        leaf("fj-karta", "Karta & kompass"),
+        leaf("hk-tent", "Tent"),
+        leaf("hk-sleeping-bag", "Sleeping bag"),
+        leaf("hk-sleeping-pad", "Sleeping pad"),
+        leaf("hk-stove", "Camping stove & gas"),
+        leaf("hk-boots", "Hiking boots"),
+        leaf("hk-map", "Map & compass"),
         {
-          id: "fj-klader",
-          label: "Kläder",
+          id: "hk-clothes",
+          label: "Clothes",
           checked: false,
           children: [
-            leaf("fj-underställ", "Ullunderställ"),
-            leaf("fj-fleece", "Fleecetröja"),
-            leaf("fj-regnstall", "Regnställ"),
-            leaf("fj-strumpor", "Vandringsstrumpor", true),
+            leaf("hk-base-layer", "Wool base layer"),
+            leaf("hk-fleece", "Fleece jacket"),
+            leaf("hk-rain-gear", "Rain gear"),
+            leaf("hk-socks", "Hiking socks", true),
           ],
         },
       ],
     },
     {
-      id: "charterresa",
-      title: "Charterresa",
-      folderId: "packlistor",
+      id: "beach",
+      title: "Beach holiday",
+      folderId: "packing",
       glyph: "plane",
       color: "#61afef",
       items: [
-        leaf("ch-pass", "Pass", true),
-        leaf("ch-boardingkort", "Boardingkort"),
-        leaf("ch-solkram", "Solkräm"),
-        leaf("ch-badklader", "Badkläder"),
-        leaf("ch-solglasogon", "Solglasögon"),
-        leaf("ch-laddare", "Mobilladdare"),
+        leaf("bh-passport", "Passport", true),
+        leaf("bh-boarding-pass", "Boarding pass"),
+        leaf("bh-sunscreen", "Sunscreen"),
+        leaf("bh-swimwear", "Swimwear"),
+        leaf("bh-sunglasses", "Sunglasses"),
+        leaf("bh-charger", "Phone charger"),
         {
-          id: "ch-necessar",
-          label: "Necessär",
+          id: "bh-toiletries",
+          label: "Toiletry bag",
           checked: false,
           children: [
-            leaf("ch-tandborste", "Tandborste"),
-            leaf("ch-tandkram", "Tandkräm"),
-            leaf("ch-deodorant", "Deodorant"),
+            leaf("bh-toothbrush", "Toothbrush"),
+            leaf("bh-toothpaste", "Toothpaste"),
+            leaf("bh-deodorant", "Deodorant"),
           ],
         },
       ],
     },
     {
-      id: "sommarstugan",
-      title: "Sommarstugan",
-      folderId: "packlistor",
+      id: "cabin",
+      title: "Summer cabin",
+      folderId: "packing",
       glyph: "home",
       color: "#e5c07b",
       items: [
-        leaf("ss-sanglinne", "Sänglinne"),
-        leaf("ss-handdukar", "Handdukar"),
-        leaf("ss-myggmedel", "Myggmedel"),
-        leaf("ss-tandstickor", "Tändstickor"),
+        leaf("cb-bed-linen", "Bed linen"),
+        leaf("cb-towels", "Towels"),
+        leaf("cb-bug-spray", "Bug spray"),
+        leaf("cb-matches", "Matches"),
       ],
     },
     {
-      id: "barnens-vaska",
-      title: "Barnens väska",
-      folderId: "packlistor",
+      id: "kids-bag",
+      title: "Kids' bag",
+      folderId: "packing",
       glyph: "gift",
       color: "#c678dd",
       items: [
-        leaf("bv-blojor", "Blöjor"),
-        leaf("bv-vatservetter", "Våtservetter"),
-        leaf("bv-gosedjur", "Gosedjur"),
-        leaf("bv-ombyte", "Ombyte"),
-        leaf("bv-regnklader", "Regnkläder"),
+        leaf("kb-diapers", "Diapers"),
+        leaf("kb-wet-wipes", "Wet wipes"),
+        leaf("kb-stuffed-animal", "Stuffed animal"),
+        leaf("kb-spare-clothes", "Change of clothes"),
+        leaf("kb-rain-clothes", "Rain clothes"),
       ],
     },
     // A standalone note — the live-preview Markdown editor's home in the demo.
     // A `note` list stores a Markdown `body` instead of checklist `items`;
     // opening it swaps the checklist screen for the editor.
     {
-      id: "anteckning-recept",
-      title: "Pannkakssmet",
+      id: "note-recipe",
+      title: "Pancake batter",
       folderId: null,
       kind: "note",
       glyph: "book",
       color: "#e5c07b",
       items: [],
       body: [
-        "# Pannkakssmet",
+        "# Pancake batter",
         "",
-        "En enkel smet till **fredagspannkakor** — räcker till hela familjen.",
+        "A simple batter for **Friday pancakes** — enough for the whole family.",
         "",
-        "## Ingredienser",
+        "## Ingredients",
         "",
-        "- 3 dl vetemjöl",
-        "- 6 dl mjölk",
-        "- 3 ägg",
-        "- 1 krm salt",
-        "- 2 msk smör till stekning",
+        "- 3 dl plain flour",
+        "- 6 dl milk",
+        "- 3 eggs",
+        "- 1 pinch of salt",
+        "- 2 tbsp butter for frying",
         "",
-        "## Gör så här",
+        "## Method",
         "",
-        "1. Vispa mjöl och *halva* mjölken slät.",
-        "2. Rör ner resten av mjölken, äggen och saltet.",
-        "3. Låt smeten svälla i ~30 min.",
+        "1. Whisk the flour and *half* the milk until smooth.",
+        "2. Stir in the rest of the milk, the eggs and the salt.",
+        "3. Let the batter rest for ~30 min.",
         "",
-        "> Tips: stek i rikligt med smör för krispiga kanter.",
+        "> Tip: fry in plenty of butter for crispy edges.",
         "",
-        "Mer inspiration: https://www.ica.se/recept/",
+        "More inspiration: https://www.bbcgoodfood.com/recipes",
       ].join("\n"),
     },
   ],
 };
 
-// The "Jobb" workspace — the everyday office namespace. The active list is the
-// week's task board ("Att göra denna vecka"); a quick-capture inbox sits below
-// it, and the "Möten" folder groups the recurring meeting agendas (standup,
+// The "Work" workspace — the everyday office namespace. The active list is the
+// week's task board ("To do this week"); a quick-capture inbox sits below it,
+// and the "Meetings" folder groups the recurring meeting agendas (standup,
 // sprint planning, retro) so the switcher lands on a workspace that already
 // looks lived-in rather than the blank starter document.
-const JOBB: AppData = {
-  activeListId: "jobb-vecka",
-  folders: [{ id: "jobb-moten", name: "Möten" }],
+const WORK: AppData = {
+  activeListId: "work-week",
+  folders: [{ id: "work-meetings", name: "Meetings" }],
   lists: [
     // The active list — this week's task board.
     {
-      id: "jobb-vecka",
-      title: "Att göra denna vecka",
+      id: "work-week",
+      title: "To do this week",
       folderId: null,
       glyph: "flag",
       color: "#61afef",
       items: [
-        leaf("jv-rapport", "Skicka kvartalsrapport till ledningen"),
-        leaf("jv-pr", "Granska pull request #482"),
-        leaf("jv-demo", "Boka rum för sprintdemo"),
-        leaf("jv-plan", "Uppdatera projektplanen i Jira"),
-        leaf("jv-budget", "Stäm av budget med ekonomi"),
-        leaf("jv-offert", "Svara på offertförfrågan", true),
-        leaf("jv-tidrapport", "Fyll i tidrapporten", true),
+        leaf("ww-report", "Send the quarterly report to management"),
+        leaf("ww-pr", "Review pull request #482"),
+        leaf("ww-demo", "Book a room for the sprint demo"),
+        leaf("ww-plan", "Update the project plan in Jira"),
+        leaf("ww-budget", "Reconcile the budget with finance"),
+        leaf("ww-quote", "Reply to the quote request", true),
+        leaf("ww-timesheet", "Fill in the timesheet", true),
       ],
     },
     // Quick-capture inbox — the loose ends to triage.
     {
-      id: "jobb-inkorg",
-      title: "Inkorg",
+      id: "work-inbox",
+      title: "Inbox",
       folderId: null,
       glyph: "bell",
       color: "#e5c07b",
       items: [
-        leaf("ji-faktura", "Ring leverantören om fakturan"),
-        leaf("ji-policy", "Läs igenom nya IT-policyn"),
-        leaf("ji-laptop", "Beställ laptop till nyanställd"),
-        leaf("ji-kvitto", "Ladda upp kvitton i utläggssystemet"),
+        leaf("wi-invoice", "Call the supplier about the invoice"),
+        leaf("wi-policy", "Read through the new IT policy"),
+        leaf("wi-laptop", "Order a laptop for the new hire"),
+        leaf("wi-receipts", "Upload receipts to the expense system"),
       ],
     },
     // The recurring-meeting agendas.
     {
-      id: "jobb-standup",
+      id: "work-standup",
       title: "Standup",
-      folderId: "jobb-moten",
+      folderId: "work-meetings",
       glyph: "users",
       color: "#98c379",
       items: [
-        leaf("js-igar", "Vad gjorde jag igår?"),
-        leaf("js-idag", "Vad gör jag idag?"),
-        leaf("js-hinder", "Några hinder?"),
+        leaf("ws-yesterday", "What did I do yesterday?"),
+        leaf("ws-today", "What am I doing today?"),
+        leaf("ws-blockers", "Any blockers?"),
       ],
     },
     {
-      id: "jobb-sprint",
-      title: "Sprintplanering",
-      folderId: "jobb-moten",
+      id: "work-sprint",
+      title: "Sprint planning",
+      folderId: "work-meetings",
       glyph: "calendar",
       color: "#61afef",
       items: [
-        leaf("jsp-backlog", "Gå igenom backloggen"),
-        leaf("jsp-estimera", "Estimera stories"),
-        leaf("jsp-mal", "Sätt sprintmål"),
-        leaf("jsp-fordela", "Fördela uppgifter"),
+        leaf("wsp-backlog", "Go through the backlog"),
+        leaf("wsp-estimate", "Estimate stories"),
+        leaf("wsp-goal", "Set the sprint goal"),
+        leaf("wsp-assign", "Assign tasks"),
         {
-          id: "jsp-risker",
-          label: "Risker att bevaka",
+          id: "wsp-risks",
+          label: "Risks to watch",
           checked: false,
           children: [
-            leaf("jsp-beroende", "Beroende på externt API"),
-            leaf("jsp-semester", "Halva teamet på semester v.29"),
+            leaf("wsp-dependency", "Dependency on an external API"),
+            leaf("wsp-vacation", "Half the team on vacation in week 29"),
           ],
         },
       ],
     },
     {
-      id: "jobb-retro",
+      id: "work-retro",
       title: "Retro",
-      folderId: "jobb-moten",
+      folderId: "work-meetings",
       glyph: "star",
       color: "#c678dd",
       items: [
-        leaf("jr-bra", "Vad gick bra?"),
-        leaf("jr-battre", "Vad kan bli bättre?"),
-        leaf("jr-atgarder", "Åtgärder till nästa sprint"),
+        leaf("wr-good", "What went well?"),
+        leaf("wr-better", "What could be better?"),
+        leaf("wr-actions", "Actions for next sprint"),
       ],
     },
   ],
 };
 
-// The "Kunduppdrag" workspace — a single client engagement. The active list is
-// the running delivery board; the "Faser" folder walks the engagement from
-// förstudie through utveckling to överlämning, so the project's whole arc reads
+// The "Client work" workspace — a single client engagement. The active list is
+// the running delivery board; the "Phases" folder walks the engagement from
+// discovery through development to handover, so the project's whole arc reads
 // in one switch.
-const KUNDUPPDRAG: AppData = {
-  activeListId: "ku-leverans",
-  folders: [{ id: "ku-faser", name: "Faser" }],
+const CLIENT: AppData = {
+  activeListId: "client-delivery",
+  folders: [{ id: "client-phases", name: "Phases" }],
   lists: [
     {
-      id: "ku-leverans",
-      title: "Att leverera",
+      id: "client-delivery",
+      title: "To deliver",
       folderId: null,
       glyph: "flag",
       color: "#c678dd",
       items: [
-        leaf("kl-kravspec", "Skriv kravspecifikation"),
-        leaf("kl-testmiljo", "Sätt upp testmiljö"),
-        leaf("kl-demo", "Demo för kund på fredag"),
-        leaf("kl-avtal", "Signera avtalstillägget"),
-        leaf("kl-faktura", "Fakturera mars", true),
+        leaf("cd-spec", "Write the requirements spec"),
+        leaf("cd-test-env", "Set up the test environment"),
+        leaf("cd-demo", "Demo for the client on Friday"),
+        leaf("cd-contract", "Sign the contract addendum"),
+        leaf("cd-invoice", "Invoice for March", true),
       ],
     },
     {
-      id: "ku-forstudie",
-      title: "Förstudie",
-      folderId: "ku-faser",
+      id: "client-discovery",
+      title: "Discovery",
+      folderId: "client-phases",
       glyph: "book",
       color: "#5cb39e",
       items: [
-        leaf("kf-intervju", "Intervjua intressenter", true),
-        leaf("kf-nulage", "Kartlägg nuläget", true),
-        leaf("kf-rapport", "Sammanställ förstudierapport"),
+        leaf("cdi-interview", "Interview stakeholders", true),
+        leaf("cdi-current", "Map the current state", true),
+        leaf("cdi-report", "Compile the discovery report"),
       ],
     },
     {
-      id: "ku-utveckling",
-      title: "Utveckling",
-      folderId: "ku-faser",
+      id: "client-build",
+      title: "Development",
+      folderId: "client-phases",
       glyph: "pen",
       color: "#61afef",
       items: [
-        leaf("kut-cicd", "Sätt upp CI/CD"),
-        leaf("kut-inlogg", "Implementera inloggning"),
+        leaf("cb-cicd", "Set up CI/CD"),
+        leaf("cb-login", "Implement login"),
         {
-          id: "kut-betalflode",
-          label: "Bygg betalflödet",
+          id: "cb-payments",
+          label: "Build the payment flow",
           checked: false,
           children: [
-            leaf("kut-checkout", "Kassasida"),
-            leaf("kut-kvitto", "Kvitto via e-post"),
-            leaf("kut-aterbetalning", "Återbetalning"),
+            leaf("cb-checkout", "Checkout page"),
+            leaf("cb-email-receipt", "Email receipt"),
+            leaf("cb-refunds", "Refunds"),
           ],
         },
       ],
     },
     {
-      id: "ku-overlamning",
-      title: "Överlämning",
-      folderId: "ku-faser",
+      id: "client-handover",
+      title: "Handover",
+      folderId: "client-phases",
       glyph: "gift",
       color: "#e5c07b",
       items: [
-        leaf("ko-dokumentation", "Skriv driftdokumentation"),
-        leaf("ko-utbildning", "Utbilda kundens personal"),
-        leaf("ko-slutmote", "Boka slutmöte"),
+        leaf("ch-ops-docs", "Write the operations docs"),
+        leaf("ch-training", "Train the client's staff"),
+        leaf("ch-closing", "Book the closing meeting"),
       ],
     },
   ],
 };
 
-// The "Tjänsteresa" workspace — prepping and running a business trip. The
-// active list is the bag itself; "Förberedelser" covers the bookings, and "På
-// plats" is the day's run of meetings once you land.
-const TJANSTERESA: AppData = {
-  activeListId: "tr-packlista",
+// The "Business trip" workspace — prepping and running a business trip. The
+// active list is the bag itself; "Preparations" covers the bookings, and "On
+// site" is the day's run of meetings once you land.
+const TRAVEL: AppData = {
+  activeListId: "travel-bag",
   folders: [],
   lists: [
     {
-      id: "tr-packlista",
-      title: "Packlista",
+      id: "travel-bag",
+      title: "Packing list",
       folderId: null,
       glyph: "briefcase",
       color: "#e5c07b",
       items: [
-        leaf("tp-laptop", "Laptop & laddare"),
-        leaf("tp-passerkort", "Passerkort"),
-        leaf("tp-visitkort", "Visitkort"),
-        leaf("tp-adapter", "Reseadapter"),
-        leaf("tp-material", "Presentationsmaterial", true),
+        leaf("tb-laptop", "Laptop & charger"),
+        leaf("tb-access-card", "Access card"),
+        leaf("tb-business-cards", "Business cards"),
+        leaf("tb-adapter", "Travel adapter"),
+        leaf("tb-slides", "Presentation materials", true),
       ],
     },
     {
-      id: "tr-forberedelser",
-      title: "Förberedelser",
+      id: "travel-prep",
+      title: "Preparations",
       folderId: null,
       glyph: "calendar",
       color: "#61afef",
       items: [
-        leaf("tf-resa", "Boka tåg/flyg", true),
-        leaf("tf-hotell", "Boka hotell", true),
-        leaf("tf-reserakning", "Förbered underlag till reseräkning"),
-        leaf("tf-mote", "Bekräfta mötet med partnern"),
+        leaf("tp-tickets", "Book train/flight", true),
+        leaf("tp-hotel", "Book a hotel", true),
+        leaf("tp-expenses", "Prepare the expense report paperwork"),
+        leaf("tp-confirm", "Confirm the meeting with the partner"),
       ],
     },
     {
-      id: "tr-plats",
-      title: "På plats",
+      id: "travel-onsite",
+      title: "On site",
       folderId: null,
       glyph: "pin",
       color: "#e06c75",
       items: [
-        leaf("tpl-kundbesok", "Kundbesök kl. 10"),
-        leaf("tpl-lunch", "Lunch med teamet"),
-        leaf("tpl-kontrakt", "Signera kontraktet"),
+        leaf("to-visit", "Client visit at 10"),
+        leaf("to-lunch", "Lunch with the team"),
+        leaf("to-contract", "Sign the contract"),
       ],
     },
   ],
@@ -396,7 +396,7 @@ const TJANSTERESA: AppData = {
 // namespace switcher is worth opening from the first run. A slug with no entry
 // falls back to the empty starter document.
 export const NAMESPACE_SEEDS: Record<string, AppData> = {
-  jobb: JOBB,
-  kunduppdrag: KUNDUPPDRAG,
-  tjansteresa: TJANSTERESA,
+  work: WORK,
+  client: CLIENT,
+  travel: TRAVEL,
 };

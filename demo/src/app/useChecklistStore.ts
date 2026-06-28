@@ -73,7 +73,7 @@ function emptyDoc(): AppData {
   return {
     activeListId: "start",
     folders: [],
-    lists: [{ id: "start", title: "Att göra", folderId: null, items: [] }],
+    lists: [{ id: "start", title: "To do", folderId: null, items: [] }],
   };
 }
 
