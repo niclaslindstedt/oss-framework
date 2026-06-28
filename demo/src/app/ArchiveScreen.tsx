@@ -13,6 +13,7 @@ import {
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { useDesktopPointer } from "@niclaslindstedt/oss-framework/hooks";
+import { flattenNodes } from "@niclaslindstedt/oss-framework/checklist";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
 
 import { useT } from "./i18n/index.ts";
@@ -44,6 +45,8 @@ export function ArchiveScreen({ store }: { store: ChecklistStore }) {
     deleteArchivedFolder,
     unarchiveList,
     deleteList,
+    unarchiveItem,
+    deleteArchivedItem,
   } = store;
   const desktop = useDesktopPointer();
   // Which archived folders the user has collapsed. Default-expanded, so only the
@@ -67,11 +70,23 @@ export function ArchiveScreen({ store }: { store: ChecklistStore }) {
   const archivedLists = data.lists.filter(
     (l) => l.archived && !archivedFolderIds.has(l.folderId ?? ""),
   );
-  // The header tally counts every shelved folder and list — folders plus all
-  // archived lists, including those swept up under an archived folder — so it
-  // matches the badge the side menu's Archive button wears.
+  // Archived *items* — individual rows shelved (swiped right) inside a still-live
+  // list, grouped under the list they came from. A whole-list archive is shown
+  // in the section above instead, so only live lists are scanned here.
+  const archivedItemGroups = data.lists
+    .filter((l) => !l.archived)
+    .map((l) => ({
+      list: l,
+      items: flattenNodes(l.items).filter((n) => n.archived),
+    }))
+    .filter((g) => g.items.length > 0);
+  const itemCount = archivedItemGroups.reduce((n, g) => n + g.items.length, 0);
+  // The header tally counts every shelved folder, list, and item — so it matches
+  // the badge the side menu's Archive button wears.
   const count =
-    archivedFolders.length + data.lists.filter((l) => l.archived).length;
+    archivedFolders.length +
+    data.lists.filter((l) => l.archived).length +
+    itemCount;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pt-[calc(1.25rem+env(safe-area-inset-top))]">
@@ -161,6 +176,45 @@ export function ArchiveScreen({ store }: { store: ChecklistStore }) {
                 </ul>
               </section>
             )}
+
+            {archivedItemGroups.length > 0 && (
+              <section className="mb-2">
+                <SectionLabel>{t("archive.items")}</SectionLabel>
+                {archivedItemGroups.map(({ list, items }) => (
+                  <div key={list.id}>
+                    <h3 className="flex items-center gap-2 px-3 pt-3 pb-1 text-xs font-medium text-muted">
+                      <span aria-hidden className="text-muted">
+                        {listIcon(list)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {list.title}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {items.length}
+                      </span>
+                    </h3>
+                    <ul className="m-0 list-none p-0">
+                      {items.map((item) => (
+                        <li key={item.id}>
+                          <ArchiveRow
+                            title={
+                              typeof item.label === "string" ? item.label : ""
+                            }
+                            checked={item.checked}
+                            desktop={desktop}
+                            restoreLabel={t("archive.restoreItem")}
+                            onRestore={() => unarchiveItem(list.id, item.id)}
+                            onDelete={() =>
+                              deleteArchivedItem(list.id, item.id)
+                            }
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            )}
           </>
         )}
       </div>
@@ -190,6 +244,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 // `RowActionMenu`; touch keeps the inline buttons.
 function ArchiveRow({
   title,
+  checked = false,
   icon,
   count,
   expanded,
@@ -200,7 +255,9 @@ function ArchiveRow({
   onDelete,
 }: {
   title: string;
-  icon: ReactNode;
+  // Strike the title through (an archived *item* carries its checked state).
+  checked?: boolean;
+  icon?: ReactNode;
   count?: number;
   // `undefined` for a non-collapsible row (no disclosure chevron).
   expanded?: boolean;
@@ -253,7 +310,13 @@ function ArchiveRow({
     >
       <div className="flex min-h-11 items-center gap-3 border-b border-line px-3 py-2">
         {leading}
-        <span className="min-w-0 flex-1 truncate text-fg">{title}</span>
+        <span
+          className={`min-w-0 flex-1 truncate ${
+            checked ? "text-muted line-through" : "text-fg"
+          }`}
+        >
+          {title}
+        </span>
         {count !== undefined && count > 0 && (
           <span className="shrink-0 text-xs text-muted tabular-nums">
             {count}

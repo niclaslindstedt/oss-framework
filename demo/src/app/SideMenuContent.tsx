@@ -82,9 +82,10 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
 // blank value can hide the row; the demo hard-codes the framework's own home.
 const SOURCE_URL = "https://github.com/niclaslindstedt/oss-framework";
 const DONATE_URL = "https://github.com/sponsors/niclaslindstedt";
-// The subtitle under the Source row — a real app feeds its build / version
-// label in here (a commit hash, a tag); the demo shows a static stand-in.
-const BUILD_LABEL = "demo";
+// The subtitle under the Source row — the framework package's released version,
+// inlined at build time (`__APP_VERSION__`, see `vite.config.ts`). A real app
+// would feed its own build / version label (a commit hash, a tag) in here.
+const BUILD_LABEL = `v${__APP_VERSION__}`;
 
 // The navigation drawer's content — the rows the framework `Sidebar` shell
 // frames. This is the app's own navigation (the framework owns only the
@@ -376,7 +377,13 @@ export function SideMenuContent({
       <div
         ref={rootZone.ref}
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto transition-colors ${
-          rootZone.isOver ? "bg-accent/10" : ""
+          // An inset `outline` (not a `ring`/`box-shadow`, which paints behind
+          // the rows' opaque backgrounds) frames the whole ungrouped region on
+          // top of its rows, so a checklist dragged out of a folder reads "drop
+          // here to ungroup" even when the pointer is over an opaque list row.
+          rootZone.isOver
+            ? "bg-accent/10 [outline:2px_solid_var(--color-accent)] [outline-offset:-2px]"
+            : ""
         }`}
       >
         {/* A fresh, unnamed folder editor — committing it creates the folder,
@@ -433,13 +440,7 @@ export function SideMenuContent({
             id: folder.id,
           });
           return (
-            <div
-              key={folder.id}
-              ref={folderZone.ref}
-              className={`transition-colors ${
-                folderZone.isOver ? "bg-accent/15" : ""
-              }`}
-            >
+            <div key={folder.id} ref={folderZone.ref}>
               <DraggableRow
                 handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
                 handleLabel={t("menu.dragToMove")}
@@ -452,6 +453,7 @@ export function SideMenuContent({
                     actions={folderActions}
                     onArchive={() => archiveFolder(folder.id)}
                     archiveLabel={t("menu.archive")}
+                    highlighted={folderZone.isOver}
                   >
                     <FolderRow
                       name={folder.name}

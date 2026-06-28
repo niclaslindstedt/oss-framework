@@ -25,6 +25,14 @@ export type ChecklistNode = {
    */
   checkedAt?: string;
   /**
+   * Shelved out of the live list without being deleted — the swipe-to-archive
+   * outcome. An archived node (and its subtree) drops out of the rendered rows
+   * ({@link flattenForDisplay}) and the progress counts ({@link countProgress}),
+   * but stays in the tree so an Archive view can list it and restore it. Absent
+   * (rather than `false`) while a node is live, so it round-trips byte-for-byte.
+   */
+  archived?: boolean;
+  /**
    * Nested sub-items (a "child checklist"). A parent's checked state cascades
    * to its whole subtree — checking a parent checks every descendant. Absent
    * (rather than an empty array) when a node is a leaf, so it round-trips
@@ -130,6 +138,27 @@ export function setNodeChecked(
 }
 
 /**
+ * Set the `archived` flag on the node with `id` — the swipe-to-archive (and
+ * restore) outcome. No cascade: archiving shelves a single item, leaving any
+ * sub-items in place. Setting it false deletes the flag so the node round-trips
+ * byte-for-byte. Returns the input unchanged (same ref) if `id` isn't found.
+ * Pure: structural sharing everywhere else.
+ */
+export function setNodeArchived(
+  nodes: readonly ChecklistNode[],
+  id: string,
+  archived: boolean,
+): ChecklistNode[] {
+  if (!findNode(nodes, id)) return nodes as ChecklistNode[];
+  return updateNode(nodes, id, (n) => {
+    if (archived) return { ...n, archived: true };
+    const next = { ...n };
+    delete next.archived;
+    return next;
+  });
+}
+
+/**
  * Check or uncheck **every** node in one sweep — the bulk action behind a
  * "check all / uncheck all" control. Returns the same tree untouched when
  * every node is already in the requested state.
@@ -190,6 +219,28 @@ export function renameNode(
   return updateNode(nodes, id, (n) => ({ ...n, label }));
 }
 
+/** Where {@link insertNode} drops a fresh node. */
+export type InsertPosition = { at: "top" | "bottom" } | { after: string };
+
+/**
+ * Insert `node` into the tree at a chosen spot — the add-item composer's drop:
+ * at the `"top"` or `"bottom"` of the root list, or as a sibling immediately
+ * `after` an existing node (wherever it sits, at that node's own depth). Falls
+ * back to appending at the root when an `after` target isn't found. Pure:
+ * structural sharing everywhere else.
+ */
+export function insertNode(
+  nodes: readonly ChecklistNode[],
+  node: ChecklistNode,
+  position: InsertPosition,
+): ChecklistNode[] {
+  if ("after" in position) {
+    if (!findNode(nodes, position.after)) return [...nodes, node];
+    return insertRelative(nodes, position.after, node, "after");
+  }
+  return position.at === "top" ? [node, ...nodes] : [...nodes, node];
+}
+
 // Insert `node` immediately before / after the node with `targetId`, wherever
 // it sits in the tree, rebuilding only the path down to it (structural sharing
 // elsewhere). Assumes `targetId` is present — the caller checks.
@@ -246,12 +297,16 @@ export function moveNode(
   return insertRelative(removeNode(nodes, dragId), targetId, dragged, position);
 }
 
-/** Checked / total counts over every node in the tree (sub-items included). */
+/**
+ * Checked / total counts over every **live** node in the tree (sub-items
+ * included; archived nodes excluded — a shelved item is out of the count the
+ * way it is out of the rendered list).
+ */
 export function countProgress(nodes: readonly ChecklistNode[]): {
   checked: number;
   total: number;
 } {
-  const all = flattenNodes(nodes);
+  const all = flattenNodes(nodes).filter((n) => !n.archived);
   return { checked: all.filter((n) => n.checked).length, total: all.length };
 }
 
@@ -317,6 +372,9 @@ export function flattenForDisplay(
   const out: DisplayRow[] = [];
   const walk = (list: readonly ChecklistNode[], depth: number) => {
     for (const n of list) {
+      // An archived node (and its whole subtree) drops out of the live list —
+      // it lives on in the tree for an Archive view to surface and restore.
+      if (n.archived) continue;
       const children = n.children ?? [];
       out.push({ node: n, depth, hasChildren: children.length > 0 });
       if (children.length > 0 && !collapsed.has(n.id)) {

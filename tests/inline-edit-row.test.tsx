@@ -40,7 +40,8 @@ describe("InlineEditRow", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onCommit).toHaveBeenCalledTimes(1);
-    expect(onCommit).toHaveBeenCalledWith("Errands");
+    // The second argument reports how the value committed (Enter vs blur).
+    expect(onCommit).toHaveBeenCalledWith("Errands", "enter");
     expect(onCancel).not.toHaveBeenCalled();
   });
 
@@ -57,7 +58,7 @@ describe("InlineEditRow", () => {
     fireEvent.change(input, { target: { value: "Work" } });
     fireEvent.blur(input);
 
-    expect(onCommit).toHaveBeenCalledWith("Work");
+    expect(onCommit).toHaveBeenCalledWith("Work", "blur");
   });
 
   it("cancels on Escape without committing", () => {

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
-  ClearableInput,
+  ArchiveIcon,
   CopyButton,
-  Fab,
+  FabMenu,
   PullToRefreshIndicator,
   PlusIcon,
+  TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   useDesktopPointer,
@@ -24,6 +25,7 @@ import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
 import { RowContextMenu, type RowMenuTarget } from "./RowContextMenu.tsx";
 import { useT } from "./i18n/index.ts";
+import type { AddItemPosition } from "./useAppSettings.ts";
 import type { ChecklistStore } from "./useChecklistStore.ts";
 import type { MockSync } from "./useMockSync.ts";
 
@@ -36,6 +38,7 @@ export function ChecklistScreen({
   store,
   sync,
   onOpenSyncDetails,
+  addItemPosition,
   trophy,
 }: {
   store: ChecklistStore;
@@ -43,6 +46,9 @@ export function ChecklistScreen({
   sync: MockSync;
   // Open the framework `SyncDetailsModal` (mounted by the app shell).
   onOpenSyncDetails: () => void;
+  // Where the composer drops a new item (Settings → Lists). "Enter on a row"
+  // always lands the next item directly below the one you're on.
+  addItemPosition: AddItemPosition;
   // The framework `TrophyButton`, slotted into the header by the app shell (or
   // nothing when achievements are switched off). The screen owns the layout;
   // App owns what the button opens.
@@ -55,23 +61,21 @@ export function ChecklistScreen({
     setActiveItems,
     addItem,
     deleteItem,
+    archiveItem,
+    archiveFinishedItems,
+    deleteFinishedItems,
     setListAppearance,
     reload,
   } = store;
+  // The list's own composer is owned by the framework `Checklist`; this only
+  // holds whether the toolbar composer (the one the add FAB opens) is showing.
   const [composing, setComposing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Desktop pointers (mouse / trackpad) have no swipe, so they reach a row's
   // actions through a right-click menu instead — the same Delete the touch
   // swipe latches. Touch devices report a coarse pointer and never arm it.
   const desktopPointer = useDesktopPointer();
   const [rowMenu, setRowMenu] = useState<RowMenuTarget | null>(null);
-
-  // Focus the composer when it opens.
-  useEffect(() => {
-    if (composing) inputRef.current?.focus();
-  }, [composing]);
 
   // The pull-to-refresh "sync": a local-first app re-checks where its data
   // lives — here, re-reading the persisted document to pick up edits from
@@ -92,21 +96,17 @@ export function ChecklistScreen({
 
   if (!activeList) return null;
 
-  function commitDraft() {
-    if (draft.trim()) {
-      addItem(draft);
-      setDraft("");
-      // Keep the composer open + focused for rapid entry.
-      inputRef.current?.focus();
-    } else {
-      setComposing(false);
-    }
-  }
+  // Finished (checked, still-live) items — what the FAB's bulk actions sweep.
+  const finishedCount = flattenNodes(activeList.items).filter(
+    (n) => n.checked && !n.archived,
+  ).length;
 
-  // The whole active list as plain task-list markdown, snapshotted when the
-  // copy fires. `CopyButton` owns the robust clipboard write and the tick flash.
+  // The whole active list as plain task-list markdown, snapshotted when the copy
+  // fires (archived items dropped — they're off the live list). `CopyButton`
+  // owns the robust clipboard write and the tick flash.
   function listMarkdown() {
     const lines = flattenNodes(activeList.items)
+      .filter((n) => !n.archived)
       .map(
         (n) =>
           `${n.checked ? "[x]" : "[ ]"} ${typeof n.label === "string" ? n.label : ""}`,
@@ -179,6 +179,13 @@ export function ChecklistScreen({
           items={activeList.items}
           onChange={setActiveItems}
           onDelete={deleteItem}
+          onArchive={archiveItem}
+          archiveLabel={t("screen.archive")}
+          onAdd={addItem}
+          addItemPosition={addItemPosition}
+          addPlaceholder={t("screen.addItem")}
+          composing={composing}
+          onComposingChange={setComposing}
           onRowContextMenu={
             desktopPointer
               ? (id, e) => {
@@ -200,43 +207,37 @@ export function ChecklistScreen({
           sinkChecked
           showGrips
         />
-
-        {composing && (
-          <div className="flex items-center gap-3 border-b border-line py-2.5">
-            <span aria-hidden className="w-5 shrink-0" />
-            <span
-              aria-hidden
-              className="flex h-5 w-5 shrink-0 rounded-sm border-2 border-muted"
-            />
-            <div className="flex-1 rounded-md border border-line bg-surface-2 px-2.5 py-1 focus-within:border-accent">
-              <ClearableInput
-                ref={inputRef}
-                value={draft}
-                onValueChange={setDraft}
-                placeholder={t("screen.addItem")}
-                clearLabel={t("screen.clear")}
-                className="text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitDraft();
-                  if (e.key === "Escape") setComposing(false);
-                }}
-                onBlur={() => {
-                  if (!draft.trim()) setComposing(false);
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* The add FAB. A tap opens the composer; a long press fans out the bulk
+          actions (archive / delete every finished item) the framework `FabMenu`
+          owns. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] flex justify-center">
-        <Fab
-          aria-label={t("screen.addItemAria")}
-          className="pointer-events-auto"
-          onClick={() => (composing ? commitDraft() : setComposing(true))}
-        >
-          <PlusIcon className="h-6 w-6" />
-        </Fab>
+        <div className="pointer-events-auto">
+          <FabMenu
+            aria-label={t("screen.addItemAria")}
+            moreActionsLabel={t("screen.moreActions")}
+            onActivate={() => setComposing(true)}
+            actions={[
+              {
+                icon: <ArchiveIcon className="h-6 w-6" />,
+                label: t("screen.archiveFinished"),
+                onSelect: archiveFinishedItems,
+                disabled: finishedCount === 0,
+                className: "bg-link text-page-bg",
+              },
+              {
+                icon: <TrashIcon className="h-6 w-6" />,
+                label: t("screen.deleteFinished"),
+                onSelect: deleteFinishedItems,
+                disabled: finishedCount === 0,
+                className: "bg-danger text-white",
+              },
+            ]}
+          >
+            <PlusIcon className="h-6 w-6" />
+          </FabMenu>
+        </div>
       </div>
     </div>
   );

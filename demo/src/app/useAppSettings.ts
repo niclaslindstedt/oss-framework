@@ -11,6 +11,11 @@ import { useCallback, useEffect, useState } from "react";
 
 export type MenuMode = "swipe" | "button";
 
+/** Where the add-item composer drops a new item — the start or the end of the
+ *  list. The list screen's composer reads this; "Enter on a row" always lands
+ *  the next item directly below the one you're on, regardless. */
+export type AddItemPosition = "top" | "bottom";
+
 export type AppSettings = {
   menuMode: MenuMode;
   disableAchievements: boolean;
@@ -19,6 +24,7 @@ export type AppSettings = {
   // Editor tab.
   spellCheck: boolean;
   monospace: boolean;
+  addItemPosition: AddItemPosition;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -33,6 +39,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   captureLogs: false,
   spellCheck: true,
   monospace: true,
+  // New items append to the end of the list by default.
+  addItemPosition: "bottom",
 };
 
 const STORAGE_KEY = "oss-demo:checklist:settings";

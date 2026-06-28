@@ -122,6 +122,10 @@ export function EditorTab({
   update: Update;
 }) {
   const t = useT();
+  const positionOptions = [
+    { value: "top" as const, label: t("settings.editor.optionTop") },
+    { value: "bottom" as const, label: t("settings.editor.optionBottom") },
+  ];
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.editor.intro")}</p>
@@ -138,6 +142,23 @@ export function EditorTab({
           checked={settings.monospace}
           onChange={(next) => update("monospace", next)}
         />
+      </Section>
+
+      <Section title={t("settings.editor.listTitle")}>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-fg-bright">
+            {t("settings.editor.addItemPosition")}
+          </span>
+          <SegmentedControl
+            value={settings.addItemPosition}
+            options={positionOptions}
+            onChange={(next) => update("addItemPosition", next)}
+            ariaLabel={t("settings.editor.addItemPosition")}
+          />
+          <p className="text-xs text-muted">
+            {t("settings.editor.addItemPositionHint")}
+          </p>
+        </div>
       </Section>
     </div>
   );
