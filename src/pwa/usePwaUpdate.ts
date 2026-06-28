@@ -100,6 +100,32 @@ let started = false;
 // The first `usePwaUpdate(config)` call wins — the singleton can only register
 // one service worker, so later callers inherit the first config.
 let config: PwaUpdateConfig | null = null;
+// Set the moment the user applies the waiting build (taps "Update" →
+// `reload()`). The `controlling` listener reloads the page once the new worker
+// takes over — but only when this is set OR workbox reports `isUpdate`. Workbox
+// derives `isUpdate` from whether a worker was *already controlling the page at
+// registration time*, which is false on the session that first installs the SW
+// (and, in practice, on iOS where the controller often isn't attached to the
+// load that registered it). Gating the reload on `isUpdate` alone therefore
+// leaves an explicit "Update" tap sending SKIP_WAITING — the worker activates —
+// but the page never reloading, so the toast just lingers. A user-initiated
+// apply must always reload.
+let applyingUpdate = false;
+// Reload only once: messageSkipWaiting → activate → `clients.claim()` fires a
+// single `controllerchange`, but guard anyway against a second source (another
+// tab, a re-entrant event) double-reloading mid-navigation.
+let reloaded = false;
+
+function applyUpdate() {
+  applyingUpdate = true;
+  wb?.messageSkipWaiting();
+}
+
+function reloadOnce() {
+  if (reloaded) return;
+  reloaded = true;
+  window.location.reload();
+}
 
 function emit() {
   for (const listener of listeners) listener();
@@ -286,7 +312,11 @@ function start() {
     instance.addEventListener(
       "controlling",
       (event: { isUpdate?: boolean }) => {
-        if (event.isUpdate) window.location.reload();
+        // Reload when the user applied the update (`applyingUpdate`) or when an
+        // update that was controlling at registration takes over — e.g. another
+        // tab applied it (`isUpdate`). NOT on a first install's `clients.claim()`
+        // (no prior controller, no user apply): there is nothing to reload to.
+        if (applyingUpdate || event.isUpdate) reloadOnce();
       },
     );
 
@@ -412,7 +442,7 @@ export function usePwaUpdate(updateConfig: PwaUpdateConfig): PwaUpdate {
   );
   return {
     ...snapshot,
-    reload: () => wb?.messageSkipWaiting(),
+    reload: applyUpdate,
     dismiss: () => setState({ needRefresh: false, progress: null }),
     checkForUpdate: () => checkForUpdate(config?.base ?? updateConfig.base),
   };
