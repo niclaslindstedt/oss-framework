@@ -26,13 +26,27 @@ import { docKey } from "./useChecklistStore.ts";
 const LIST_KEY = "oss-demo:checklist:namespaces";
 const ACTIVE_KEY = "oss-demo:checklist:namespace:active";
 
-// First-run registry: a renamed default ("Privat") plus a second workspace
-// ("Jobb") so the switcher is meaningful out of the box. The default keeps the
-// reserved `default` slug, so its document is the seeded household lists; Jobb
-// starts from an empty starter document (see `useChecklistStore`).
+// First-run registry: a renamed default ("Privat") plus a set of work
+// workspaces so the switcher is meaningful out of the box. The default keeps the
+// reserved `default` slug, so its document is the seeded household lists; each
+// work namespace boots from its own lived-in document (see `NAMESPACE_SEEDS` in
+// `useChecklistStore`/`seed`). A namespace the user creates themselves still
+// starts from the empty starter document.
 const SEED_NAMESPACES: Namespace[] = normalizeNamespaces([
   { slug: DEFAULT_NAMESPACE_SLUG, name: "Privat" },
   { slug: "jobb", name: "Jobb", glyph: "briefcase", color: "#61afef" },
+  {
+    slug: "kunduppdrag",
+    name: "Kunduppdrag",
+    glyph: "users",
+    color: "#c678dd",
+  },
+  {
+    slug: "tjansteresa",
+    name: "Tjänsteresa",
+    glyph: "plane",
+    color: "#e5c07b",
+  },
 ]);
 
 function loadList(): Namespace[] {

@@ -17,7 +17,7 @@ import {
   migrator,
   toAppData,
 } from "./migrations.ts";
-import { SEED } from "./seed.ts";
+import { NAMESPACE_SEEDS, SEED } from "./seed.ts";
 import type { AppData, Folder, Item, List } from "./types.ts";
 
 // Set / clear the app's own `archived` flag on an item — the swipe-to-archive
@@ -88,7 +88,11 @@ function load(slug: string): AppData {
   } catch {
     // Corrupt or unavailable storage — fall back to the seed / a blank doc.
   }
-  return slug === DEFAULT_NAMESPACE_SLUG ? SEED : emptyDoc();
+  // Boot each namespace from its own starter document: the household `SEED` for
+  // the default, a lived-in work document for the seeded work namespaces, and a
+  // blank starter for any namespace the user creates themselves.
+  if (slug === DEFAULT_NAMESPACE_SLUG) return SEED;
+  return NAMESPACE_SEEDS[slug] ?? emptyDoc();
 }
 
 /** Write a namespace's document to its localStorage key, stamping the latest
