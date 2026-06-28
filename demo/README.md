@@ -17,8 +17,10 @@ tree, the `/components` primitives, the `/theme` appearance projection, the
 `/storage` adapter, and the `/logging` buffer.
 
 > **Adopting this as your own app?** The demo carries demo-only scaffolding
-> (mock sync, a simulated PWA update, source-build aliases) you must replace, not
-> copy. [`ADOPTION.md`](./ADOPTION.md) is the seam manifest — every stand-in and
+> (mock sync, source-build aliases, a "simulate update" dev toggle) you must
+> replace or rename, not copy — though its PWA shell (manifest, icons, a real
+> service worker driving `usePwaUpdate`) is genuine and lift-ready.
+> [`ADOPTION.md`](./ADOPTION.md) is the seam manifest — every stand-in and
 > what to do with it — and the [`adopt-app`](../.agent/skills/adopt-app/SKILL.md)
 > skill runs the whole transform.
 
@@ -93,3 +95,32 @@ The slot's base path is injected as `VITE_BASE`, so the same build works at any
 of the three. The `/branch/` build is persisted in the `branch-deploy` orphan
 branch and rehydrated on every run, so it survives later deploys until the next
 dispatch overwrites it.
+
+### Installable PWA
+
+The demo is a **real, installable PWA** — it dogfoods the framework's
+[`pwa`](../src/pwa/README.md) module rather than faking it. The build plugin
+[`pwa-plugin.ts`](./pwa-plugin.ts) emits a precaching service worker plus the
+`version.json` and `precache-manifest.json` files `usePwaUpdate` reads, and
+[`src/App.tsx`](./src/App.tsx) drives the `UpdateToast` from the hook. Deploy a
+new build and an installed client surfaces the "a new version is ready" prompt
+once the fresh worker reaches `waiting`; the Developer tab's "simulate update"
+still stages the prompt on demand (it works in dev, where no worker registers).
+
+Because all three slots share one origin, each gets its own service-worker
+**scope** (`/`, `/preview/`, `/branch/`) and — via
+[`cacheIdForBase`](./src/app/pwa.ts) — its own precache id (`oss-demo`,
+`oss-demo-preview`, `oss-demo-branch`), so the slots never clobber each other's
+caches. The `manifest.webmanifest` uses relative URLs (and a relative `id`), so
+the one static file is correct at every base and each slot installs as a
+distinct app.
+
+The easy-to-miss part: the **release** worker's scope is `/`, which also covers
+`/preview/` and `/branch/`. If you land on `/` first, its worker controls the
+whole origin — so without a guard, a later navigation to `/preview/` would be
+answered with the _release_ shell. Each worker therefore carries a **navigation
+denylist** of the sibling slots nested under its scope (`DEPLOY_SLOTS` in
+[`pwa-plugin.ts`](./pwa-plugin.ts)) and defers those navigations to the network,
+letting each slot boot its own shell and register its own worker. The release
+worker denies `/preview/` + `/branch/`; the nested slots need no denylist (their
+scope already excludes the others).

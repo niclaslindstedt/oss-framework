@@ -5,16 +5,29 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import { demoPwa } from "./pwa-plugin.ts";
+
 // The GitHub Pages base path is injected by the `pages.yml` workflow via
 // VITE_BASE so the same bundle works at `/` (release), `/preview/` (main), or
 // `/branch/` (a dispatched feature branch). Defaults to `/` for local dev.
 const base = process.env.VITE_BASE ?? "/";
 
+// The label the PWA update toast shows for the incoming build. Prefer the
+// deploying commit (the workflow exposes GITHUB_SHA); fall back to a build
+// timestamp for a local `build:demo`. It also lands in the generated `sw.js`,
+// so the worker's bytes change every deploy and the browser reliably discovers
+// the update.
+const version = process.env.GITHUB_SHA
+  ? process.env.GITHUB_SHA.slice(0, 7)
+  : new Date().toISOString();
+
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss()],
+  // `demoPwa` only applies on build, so dev keeps registering no worker (the
+  // app passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).
+  plugins: [react(), tailwindcss(), demoPwa({ base, version })],
   resolve: {
     // Resolve the framework against its TypeScript source (not the built
     // `dist/`) so the preview always reflects the current commit — the whole
@@ -95,13 +108,6 @@ export default defineConfig({
       {
         find: /^@fontsource\/.+/,
         replacement: here("../tests/stubs/fontsource.ts"),
-      },
-      // `workbox-window` is an optional peer dependency of the PWA update hook,
-      // not installed here; stub it so a build that pulls the pwa graph resolves
-      // (the demo never registers a service worker, so it never runs).
-      {
-        find: "workbox-window",
-        replacement: here("../tests/stubs/workbox-window.ts"),
       },
     ],
   },

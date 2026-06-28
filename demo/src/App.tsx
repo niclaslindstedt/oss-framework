@@ -13,6 +13,7 @@ import {
 } from "@niclaslindstedt/oss-framework/sidebar";
 import {
   UpdateToast,
+  usePwaUpdate,
   type PwaUpdateCheckResult,
 } from "@niclaslindstedt/oss-framework/pwa";
 import { SyncDetailsModal } from "@niclaslindstedt/oss-framework/sync";
@@ -53,6 +54,7 @@ import { useAppSettings } from "./app/useAppSettings.ts";
 import { useChecklistStore } from "./app/useChecklistStore.ts";
 import { useMockSync } from "./app/useMockSync.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
+import { cacheIdForBase } from "./app/pwa.ts";
 
 // The demo *is* a fully-fledged app: a local-first nested-checklist PWA built
 // entirely from the framework's shared surface, in the apps' own black/green
@@ -127,29 +129,38 @@ export function App() {
     enabled: achievementsEnabled,
     record: ach.record,
   });
-  // A simulated PWA-update lifecycle. A real installed PWA would drive these
-  // from `usePwaUpdate()` (its service worker reaching the `waiting` state);
-  // this static demo has no service worker, so the Developer tab lets you stage
-  // a waiting build. We split "a build is waiting" (`pendingBuild`) from "the
-  // prompt is visible" (`updateReady`) so dismissing the toast leaves the build
-  // pending — the footer's "Check for updates" row then reads "Update
-  // available" and re-surfaces it, exactly as the real hook behaves.
-  const [updateReady, setUpdateReady] = useState(false);
-  const [pendingBuild, setPendingBuild] = useState(false);
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  // The real PWA update lifecycle, driven by the demo's own service worker
+  // (built by `demo/pwa-plugin.ts`). In a deployed install this raises the
+  // prompt when a freshly-deployed build reaches the `waiting` state; in dev
+  // (`enabled: false`) it stays idle and registers nothing. The cache id is
+  // derived from the deploy-slot base so each of `/`, `/preview/`, `/branch/`
+  // owns a distinct precache on the shared origin (see `./app/pwa.ts`).
+  const pwa = usePwaUpdate({
+    base: import.meta.env.BASE_URL,
+    cacheId: cacheIdForBase(import.meta.env.BASE_URL),
+    enabled: !import.meta.env.DEV,
+  });
 
-  // Stand-in for `usePwaUpdate().checkForUpdate` — same contract, simulated
-  // network probe. A waiting build re-raises the prompt; otherwise the demo is
-  // "up to date" (a static deploy has nothing newer to fetch).
+  // The Settings → Developer tab can also STAGE a fake waiting build, so the
+  // prompt is demoable on demand — including in local dev, where no service
+  // worker registers. We split "a build is waiting" (`simPending`) from "the
+  // prompt is visible" (`simReady`) so dismissing leaves the build pending and
+  // the footer's "Check for updates" row re-surfaces it, exactly as the real
+  // hook behaves. Both OR into the real hook's state below.
+  const [simReady, setSimReady] = useState(false);
+  const [simPending, setSimPending] = useState(false);
+
+  const needRefresh = pwa.needRefresh || simReady;
+  const updateAvailable = pwa.needRefresh || simPending;
+
+  // Probe for a newer build. A staged demo build re-raises the prompt without
+  // touching the network; otherwise defer to the real hook's check.
   const checkForUpdate = async (): Promise<PwaUpdateCheckResult> => {
-    if (pendingBuild) {
-      setUpdateReady(true);
+    if (simPending) {
+      setSimReady(true);
       return "update-found";
     }
-    setCheckingUpdate(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    setCheckingUpdate(false);
-    return "up-to-date";
+    return pwa.checkForUpdate();
   };
 
   // "Open sidebar with" (Settings → General): on phones, the user picks between
@@ -248,8 +259,8 @@ export function App() {
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
-          checkingUpdate={checkingUpdate}
-          updateAvailable={pendingBuild}
+          checkingUpdate={pwa.checking}
+          updateAvailable={updateAvailable}
           onCheckUpdate={checkForUpdate}
         />
       </Sidebar>
@@ -287,29 +298,37 @@ export function App() {
         // behind the dialog — the prompt is a page-level overlay.
         onSimulateUpdate={() => {
           setSettingsOpen(false);
-          setPendingBuild(true);
-          setUpdateReady(true);
+          setSimPending(true);
+          setSimReady(true);
         }}
         // Drop a legacy document on disk and let the store's migrator upgrade it
         // live — the upgrade lands in the Logs tab as "migrated v0 → v2".
         onLoadLegacy={() => store.simulateLegacyDoc()}
       />
 
-      {/* The framework's PWA "a new version is ready" prompt. An installed app
-          would feed this from `usePwaUpdate()`; here it's driven by the
-          simulated flag the Developer tab toggles. Applying it just clears the
-          prompt (a real app reloads onto the new build). */}
+      {/* The framework's PWA "a new version is ready" prompt, fed from the real
+          `usePwaUpdate()` state above. A deployed install drives it from its
+          service worker reaching `waiting`; a staged demo build (Developer tab)
+          drives it through `simReady`. */}
       <UpdateToast
-        needRefresh={updateReady}
-        incomingVersion="2.0.0-demo"
+        needRefresh={needRefresh}
+        incomingVersion={
+          pwa.incomingVersion ?? (simReady ? "demo build" : null)
+        }
         onReload={() => {
-          // Applying clears the waiting build (a real app reloads onto it).
-          setUpdateReady(false);
-          setPendingBuild(false);
+          // A real waiting build reloads the page onto itself; clear any staged
+          // demo build alongside it.
+          if (pwa.needRefresh) pwa.reload();
+          setSimReady(false);
+          setSimPending(false);
         }}
-        // Dismissing only hides the prompt — the build stays waiting, so the
-        // footer's "Check for updates" row keeps reading "Update available".
-        onDismiss={() => setUpdateReady(false)}
+        // Dismissing only hides the prompt — a real build stays waiting and a
+        // staged one stays pending, so the footer's "Check for updates" row
+        // keeps reading "Update available" and can re-surface it.
+        onDismiss={() => {
+          if (pwa.needRefresh) pwa.dismiss();
+          setSimReady(false);
+        }}
       />
 
       {/* The sync command centre — opened by the list header's `SyncStatus`
