@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // @vitest-environment jsdom
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,11 +12,13 @@ import {
   findNode,
   flattenForDisplay,
   flattenNodes,
+  insertNode,
   isComplete,
   moveNode,
   removeNode,
   renameNode,
   setAllChecked,
+  setNodeArchived,
   setNodeChecked,
   sortCheckedToBottom,
   subtreeState,
@@ -227,6 +229,51 @@ describe("checklist tree", () => {
     const collapsed = flattenForDisplay(tree(), new Set(["fruit"]));
     expect(collapsed.map((r) => r.node.id)).toEqual(["fruit", "milk"]);
   });
+
+  it("setNodeArchived flags and clears a node, leaving the rest", () => {
+    const arch = setNodeArchived(tree(), "milk", true);
+    expect(findNode(arch, "milk")!.archived).toBe(true);
+    expect(findNode(arch, "apple")!.archived).toBeUndefined();
+    // Clearing deletes the flag so the node round-trips byte-for-byte.
+    const live = setNodeArchived(arch, "milk", false);
+    expect("archived" in findNode(live, "milk")!).toBe(false);
+    // A miss returns the same reference.
+    const t = tree();
+    expect(setNodeArchived(t, "nope", true)).toBe(t);
+  });
+
+  it("insertNode drops a node at top / bottom / after a sibling", () => {
+    const node: ChecklistNode = { id: "x", label: "X", checked: false };
+    expect(insertNode(tree(), node, { at: "top" }).map((n) => n.id)).toEqual([
+      "x",
+      "fruit",
+      "milk",
+    ]);
+    expect(insertNode(tree(), node, { at: "bottom" }).map((n) => n.id)).toEqual(
+      ["fruit", "milk", "x"],
+    );
+    // After a nested node lands as its sibling, at that node's own depth.
+    const within = insertNode(tree(), node, { after: "apple" });
+    expect(findNode(within, "fruit")!.children!.map((n) => n.id)).toEqual([
+      "apple",
+      "x",
+      "pear",
+    ]);
+    // A missing `after` target falls back to appending at the root.
+    expect(
+      insertNode(tree(), node, { after: "nope" }).map((n) => n.id),
+    ).toEqual(["fruit", "milk", "x"]);
+  });
+
+  it("flattenForDisplay and countProgress skip archived nodes", () => {
+    const arch = setNodeArchived(tree(), "milk", true);
+    expect(flattenForDisplay(arch, new Set()).map((r) => r.node.id)).toEqual([
+      "fruit",
+      "apple",
+      "pear",
+    ]);
+    expect(countProgress(arch)).toEqual({ checked: 0, total: 3 });
+  });
 });
 
 // --- Checklist component ------------------------------------------------
@@ -363,6 +410,122 @@ describe("Checklist component", () => {
     fireEvent.pointerCancel(window);
     expect(document.querySelector('[data-dragging="true"]')).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("bares an Archive backdrop on right-swipe, keeping Delete on the left", () => {
+    const rowCount = flattenForDisplay(tree(), new Set()).length;
+    render(
+      <Checklist
+        items={tree()}
+        onChange={() => {}}
+        onDelete={() => {}}
+        onArchive={() => {}}
+      />,
+    );
+    // The archive backdrop (caption) per row, plus the left-swipe Delete strip.
+    expect(screen.getAllByText("Archive").length).toBe(rowCount);
+    expect(
+      screen.getAllByRole("button", { name: "Delete", hidden: true }).length,
+    ).toBe(rowCount);
+  });
+
+  it("places the caret at the end when editing a row (no select-all)", () => {
+    function Editable() {
+      const [items, setItems] = useState(tree());
+      return <Checklist items={items} onChange={setItems} editable />;
+    }
+    render(<Editable />);
+    fireEvent.click(screen.getByRole("button", { name: "Milk" }));
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.selectionStart).toBe("Milk".length);
+    expect(input.selectionEnd).toBe("Milk".length);
+  });
+
+  it("adds via the composer and stays open on Enter", () => {
+    function Composer() {
+      const [items, setItems] = useState<ChecklistNode[]>([
+        { id: "a", label: "A", checked: false },
+      ]);
+      const [composing, setComposing] = useState(true);
+      const seq = useRef(0);
+      return (
+        <Checklist
+          items={items}
+          onChange={setItems}
+          editable
+          composing={composing}
+          onComposingChange={setComposing}
+          onAdd={(label, position) => {
+            const id = `new-${(seq.current += 1)}`;
+            setItems((cur) =>
+              insertNode(cur, { id, label, checked: false }, position),
+            );
+            return id;
+          }}
+        />
+      );
+    }
+    render(<Composer />);
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "Buy milk" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    // The item landed and the composer stayed open for the next entry.
+    expect(screen.getByRole("button", { name: "Buy milk" })).toBeDefined();
+    expect(screen.getByRole("textbox")).toBeDefined();
+  });
+
+  it("opens a draft below a row when Enter commits its edit", () => {
+    function Editable() {
+      const [items, setItems] = useState<ChecklistNode[]>([
+        { id: "a", label: "A", checked: false },
+      ]);
+      const seq = useRef(0);
+      return (
+        <Checklist
+          items={items}
+          onChange={setItems}
+          editable
+          onAdd={(label, position) => {
+            const id = `new-${(seq.current += 1)}`;
+            setItems((cur) =>
+              insertNode(cur, { id, label, checked: false }, position),
+            );
+            return id;
+          }}
+        />
+      );
+    }
+    render(<Editable />);
+    fireEvent.click(screen.getByRole("button", { name: "A" }));
+    const editor = screen.getByRole("textbox");
+    fireEvent.change(editor, { target: { value: "A!" } });
+    fireEvent.keyDown(editor, { key: "Enter" });
+    // The rename committed and a fresh draft opened below it.
+    expect(screen.getByRole("button", { name: "A!" })).toBeDefined();
+    const draft = screen.getByRole("textbox");
+    fireEvent.change(draft, { target: { value: "B" } });
+    fireEvent.keyDown(draft, { key: "Enter" });
+    expect(screen.getByRole("button", { name: "B" })).toBeDefined();
+  });
+
+  it("backspacing an empty row removes it and edits the row above at the end", () => {
+    function Editable() {
+      const [items, setItems] = useState<ChecklistNode[]>([
+        { id: "a", label: "Alpha", checked: false },
+        { id: "b", label: "Beta", checked: false },
+      ]);
+      return <Checklist items={items} onChange={setItems} editable />;
+    }
+    render(<Editable />);
+    fireEvent.click(screen.getByRole("button", { name: "Beta" }));
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Backspace" });
+    // "Beta" is gone and "Alpha" is now being edited, caret at its end.
+    expect(screen.queryByRole("button", { name: "Beta" })).toBeNull();
+    const prev = screen.getByRole("textbox") as HTMLInputElement;
+    expect(prev.value).toBe("Alpha");
+    expect(prev.selectionStart).toBe("Alpha".length);
   });
 });
 

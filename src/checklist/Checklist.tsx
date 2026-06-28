@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { Checkbox } from "../components/Checkbox.tsx";
 import { InlineEditField } from "../components/InlineEditField.tsx";
 import {
+  ArchiveIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   GripIcon,
@@ -13,11 +18,13 @@ import { useLongPress, type LongPressHandlers } from "../hooks/useLongPress.ts";
 import { useRowSwipe } from "../hooks/useRowSwipe.ts";
 import {
   flattenForDisplay,
+  removeNode,
   renameNode,
   sortCheckedToBottom,
   toggleNode,
   type ChecklistNode,
   type DisplayRow,
+  type InsertPosition,
 } from "./tree.ts";
 import {
   useChecklistReorder,
@@ -40,8 +47,18 @@ import {
 // `onCollapsedChange`.
 //
 // Pass `editable` to make a row's text editable in place: tapping a string label
-// swaps it for an inline field (focus + select, Enter/blur commits, Escape
-// cancels) and fires `onChange` with the relabelled tree.
+// swaps it for an inline field (focus + caret-at-end, Enter/blur commits, Escape
+// cancels) and fires `onChange` with the relabelled tree. Pressing Enter on a
+// row's editor commits it and — when `onAdd` is wired — opens a fresh draft row
+// directly below it, so finishing one item flows straight into the next; and
+// Backspace on an emptied row removes it and backs editing up into the line
+// above, so holding Backspace walks up the list erasing blank rows.
+//
+// Pass `onAdd` (plus the controlled `composing` / `onComposingChange`) to give
+// the list its own add-item composer: a draft row, rendered at the top or bottom
+// per `addItemPosition`, that inserts via `onAdd` and stays open for the next
+// entry on Enter. `onAdd` performs the insert (the caller owns the store) and
+// returns the new node's id so the "Enter chains a new row" flow can re-anchor.
 //
 // Pass `reorderable` to make rows draggable: long-press a row (touch) or press
 // its grip (`showGrips`) to lift it, drag it over the list, and drop it before
@@ -49,10 +66,12 @@ import {
 // `onChange`. The drop reparents into the target's sibling list, so a row can
 // move between child checklists too.
 //
-// Pass `onDelete` to make rows swipeable (the {@link useRowSwipe} gesture both
-// source apps grew): swipe a row left to latch a Delete button open, or right
-// to flick it away — either fires `onDelete` with the row's id. The caller owns
-// the removal (e.g. `removeNode`), so it can stack it on its own undo history.
+// Pass `onDelete` and/or `onArchive` to make rows swipeable (the
+// {@link useRowSwipe} gesture both source apps grew): with both wired, swipe a
+// row left to latch a Delete button open and right to flick it to the archive;
+// with only `onDelete`, a right flick deletes too. Each fires the matching
+// callback with the row's id, so the caller owns the removal / shelving (e.g.
+// `removeNode` / `setNodeArchived`) and stacks it on its own undo history.
 //
 // Pass `onRowContextMenu` to give desktop pointers a right-click handle on a
 // row — the affordance touch users reach via the swipe. It fires with the
@@ -88,12 +107,33 @@ type Props = {
   // caller driving its own drag. Ignored when `reorderable` owns the grip.
   onReorderStart?: (id: string, e: ReactPointerEvent) => void;
   // When set, rows become swipeable and this fires with a row's id once the
-  // user confirms a delete (taps the revealed Delete button, or flicks the row
-  // off to the right). The caller performs the actual removal.
+  // user confirms a delete (taps the revealed Delete button, or — when no
+  // `onArchive` is wired — flicks the row off to the right). The caller
+  // performs the actual removal.
   onDelete?: (id: string) => void;
+  // When set, a right swipe flicks the row off to the archive, firing this with
+  // the row's id; the caller shelves it (e.g. `setNodeArchived`). With
+  // `onDelete` also wired, the left swipe still reveals Delete.
+  onArchive?: (id: string) => void;
+  // Caption on the archive backdrop bared by a right swipe (English default).
+  archiveLabel?: string;
   // Label on the revealed Delete button (English default; pass a translated
   // string). Unused unless `onDelete` is set.
   deleteLabel?: string;
+  // Insert a new item into the tree at `position`, returning its id (or null
+  // when nothing was added). The caller owns the store; wiring this turns on
+  // the list's own composer and the "Enter on a row chains a new row" flow.
+  onAdd?: (label: string, position: InsertPosition) => string | null;
+  // Where the toolbar composer (the one `composing` opens) drops its items —
+  // the top or the bottom of the list. Default "bottom".
+  addItemPosition?: "top" | "bottom";
+  // Placeholder + accessible label for the composer field (English default).
+  addPlaceholder?: string;
+  // Controlled open state of the toolbar composer (toggled by an app's add FAB).
+  composing?: boolean;
+  // Notified when the toolbar composer should close (a blur / Escape / an empty
+  // Backspace). The caller flips `composing` off.
+  onComposingChange?: (open: boolean) => void;
   // Called when a row is right-clicked (`contextmenu`), with the row's id and
   // the native event. The caller positions/opens its own menu and decides
   // whether to `preventDefault` the browser's. Best gated on a desktop pointer.
@@ -109,6 +149,18 @@ type Props = {
 
 const INDENT_PER_LEVEL = 22;
 
+// Where a composer anchored to `anchorId` splices into the flattened rows: the
+// index just past the anchor's whole subtree, so the new sibling lands below
+// the anchor and any children it carries. -1 when the anchor isn't visible.
+function indexPastSubtree(rows: DisplayRow[], anchorId: string): number {
+  const idx = rows.findIndex((r) => r.node.id === anchorId);
+  if (idx === -1) return -1;
+  const depth = rows[idx]!.depth;
+  let i = idx + 1;
+  while (i < rows.length && rows[i]!.depth > depth) i++;
+  return i;
+}
+
 export function Checklist({
   items,
   onChange,
@@ -119,7 +171,14 @@ export function Checklist({
   showGrips = false,
   onReorderStart,
   onDelete,
+  onArchive,
+  archiveLabel = "Archive",
   deleteLabel = "Delete",
+  onAdd,
+  addItemPosition = "bottom",
+  addPlaceholder = "Add item",
+  composing = false,
+  onComposingChange,
   onRowContextMenu,
   checkboxLabel,
   collapsed,
@@ -133,7 +192,22 @@ export function Checklist({
   // Which row is being edited in place — one at a time, owned here so opening a
   // new editor closes the last.
   const [editingId, setEditingId] = useState<string | null>(null);
+  // The row a "type the next item right below this one" composer is anchored to
+  // (opened by pressing Enter on a row's editor), or null when none is open.
+  const [afterId, setAfterId] = useState<string | null>(null);
+  // Bumped on every composer add so the draft field remounts empty and
+  // refocused for the next entry.
+  const [composerSeq, setComposerSeq] = useState(0);
   const reorder = useChecklistReorder(items, onChange, reorderable);
+
+  // Opening the toolbar composer (the add FAB) stands down any in-place editor
+  // or after-composer so only one draft is ever live.
+  useEffect(() => {
+    if (composing) {
+      setEditingId(null);
+      setAfterId(null);
+    }
+  }, [composing]);
 
   function toggleCollapsed(id: string) {
     const next = new Set(collapsedSet);
@@ -143,47 +217,164 @@ export function Checklist({
     else setInternalCollapsed(next);
   }
 
+  function startEdit(id: string) {
+    setEditingId(id);
+    setAfterId(null);
+    if (composing) onComposingChange?.(false);
+  }
+
+  // Enter committed a row edit: open a fresh draft directly below it so a run of
+  // entries walks straight down the list.
+  function openAfter(id: string) {
+    setEditingId(null);
+    setAfterId(id);
+    setComposerSeq((s) => s + 1);
+    if (composing) onComposingChange?.(false);
+  }
+
+  // Backspace on an emptied editable row: remove it and move editing into the
+  // row above (cursor at its end). Returns false at the top of the list.
+  function backspaceEmpty(rows: DisplayRow[], id: string): boolean {
+    const idx = rows.findIndex((r) => r.node.id === id);
+    if (idx <= 0) return false;
+    const prev = rows[idx - 1]!;
+    if (typeof prev.node.label !== "string") return false;
+    onChange(removeNode(items, id));
+    setEditingId(prev.node.id);
+    return true;
+  }
+
   const display = sinkChecked ? sortCheckedToBottom(items) : items;
   const rows = flattenForDisplay(display, collapsedSet);
 
+  // Resolve the single live composer (after-anchored wins; else the toolbar
+  // one) to a splice index and depth among the rows.
+  let composerIndex = -1;
+  let composerDepth = 0;
+  let composerCommit: ((value: string, via: "enter" | "blur") => void) | null =
+    null;
+  let composerCancel: (() => void) | null = null;
+  if (onAdd && afterId) {
+    const idx = indexPastSubtree(rows, afterId);
+    if (idx !== -1) {
+      composerIndex = idx;
+      composerDepth = rows.find((r) => r.node.id === afterId)?.depth ?? 0;
+      composerCommit = (value, via) => {
+        const newId = onAdd(value, { after: afterId });
+        if (via === "enter") {
+          if (newId) setAfterId(newId);
+          setComposerSeq((s) => s + 1);
+        } else {
+          setAfterId(null);
+        }
+      };
+      composerCancel = () => setAfterId(null);
+    }
+  } else if (onAdd && composing) {
+    composerIndex = addItemPosition === "top" ? 0 : rows.length;
+    composerCommit = (value, via) => {
+      onAdd(value, { at: addItemPosition });
+      if (via === "enter") setComposerSeq((s) => s + 1);
+      else onComposingChange?.(false);
+    };
+    composerCancel = () => onComposingChange?.(false);
+  }
+
+  const rowEls = rows.map((row) => (
+    <ChecklistRow
+      key={row.node.id}
+      row={row}
+      isCollapsed={collapsedSet.has(row.node.id)}
+      label={
+        checkboxLabel?.(row.node) ??
+        (typeof row.node.label === "string" ? row.node.label : "Toggle item")
+      }
+      editable={editable && typeof row.node.label === "string"}
+      editPlaceholder={editPlaceholder}
+      isEditing={editingId === row.node.id}
+      onStartEdit={() => startEdit(row.node.id)}
+      onCommitEdit={(text, via) => {
+        onChange(renameNode(items, row.node.id, text));
+        if (via === "enter" && onAdd) openAfter(row.node.id);
+        else setEditingId(null);
+      }}
+      onCancelEdit={() => setEditingId(null)}
+      onBackspaceEmpty={() => backspaceEmpty(rows, row.node.id)}
+      reorderable={reorderable}
+      reorder={reorder}
+      showGrips={showGrips}
+      onReorderStart={onReorderStart}
+      onToggle={() => onChange(toggleNode(items, row.node.id))}
+      onToggleCollapsed={() => toggleCollapsed(row.node.id)}
+      onDelete={onDelete ? () => onDelete(row.node.id) : undefined}
+      onArchive={onArchive ? () => onArchive(row.node.id) : undefined}
+      archiveLabel={archiveLabel}
+      deleteLabel={deleteLabel}
+      onContextMenu={
+        onRowContextMenu
+          ? (e: React.MouseEvent) => onRowContextMenu(row.node.id, e)
+          : undefined
+      }
+    />
+  ));
+
+  if (composerIndex >= 0 && composerCommit && composerCancel) {
+    rowEls.splice(
+      composerIndex,
+      0,
+      <ComposerRow
+        key={`composer-${composerSeq}`}
+        depth={composerDepth}
+        placeholder={addPlaceholder}
+        onCommit={composerCommit}
+        onCancel={composerCancel}
+      />,
+    );
+  }
+
+  return <ul className={`flex flex-col ${className}`.trim()}>{rowEls}</ul>;
+}
+
+// The add-item composer's draft row — a row-shaped shell (caret slot + an inert
+// preview checkbox) around an empty {@link InlineEditField}. Keyed on a sequence
+// the list bumps after each add, so it remounts blank and refocused for the next
+// entry. Caret-at-end (it's empty anyway), Enter commits and keeps it open via
+// the `via` argument, blur / Escape / empty-Backspace close it.
+function ComposerRow({
+  depth,
+  placeholder,
+  onCommit,
+  onCancel,
+}: {
+  depth: number;
+  placeholder: string;
+  onCommit: (value: string, via: "enter" | "blur") => void;
+  onCancel: () => void;
+}) {
   return (
-    <ul className={`flex flex-col ${className}`.trim()}>
-      {rows.map((row) => (
-        <ChecklistRow
-          key={row.node.id}
-          row={row}
-          isCollapsed={collapsedSet.has(row.node.id)}
-          label={
-            checkboxLabel?.(row.node) ??
-            (typeof row.node.label === "string"
-              ? row.node.label
-              : "Toggle item")
-          }
-          editable={editable && typeof row.node.label === "string"}
-          editPlaceholder={editPlaceholder}
-          isEditing={editingId === row.node.id}
-          onStartEdit={() => setEditingId(row.node.id)}
-          onCommitEdit={(text) => {
-            onChange(renameNode(items, row.node.id, text));
-            setEditingId(null);
-          }}
-          onCancelEdit={() => setEditingId(null)}
-          reorderable={reorderable}
-          reorder={reorder}
-          showGrips={showGrips}
-          onReorderStart={onReorderStart}
-          onToggle={() => onChange(toggleNode(items, row.node.id))}
-          onToggleCollapsed={() => toggleCollapsed(row.node.id)}
-          onDelete={onDelete ? () => onDelete(row.node.id) : undefined}
-          deleteLabel={deleteLabel}
-          onContextMenu={
-            onRowContextMenu
-              ? (e: React.MouseEvent) => onRowContextMenu(row.node.id, e)
-              : undefined
-          }
-        />
-      ))}
-    </ul>
+    <li
+      className="relative flex items-center gap-3 border-b border-line py-2.5"
+      style={{ paddingLeft: depth ? depth * INDENT_PER_LEVEL : undefined }}
+    >
+      <span aria-hidden className="w-5 shrink-0" />
+      <span
+        aria-hidden
+        className="flex h-5 w-5 shrink-0 rounded-sm border-2 border-muted opacity-60"
+      />
+      <InlineEditField
+        initial=""
+        placeholder={placeholder}
+        ariaLabel={placeholder}
+        selectOnFocus={false}
+        onCommit={onCommit}
+        onCancel={onCancel}
+        onBackspaceEmpty={() => {
+          onCancel();
+          return true;
+        }}
+        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg outline-none placeholder:text-muted/60"
+      />
+    </li>
   );
 }
 
@@ -195,8 +386,9 @@ type RowProps = {
   editPlaceholder: string;
   isEditing: boolean;
   onStartEdit: () => void;
-  onCommitEdit: (text: string) => void;
+  onCommitEdit: (text: string, via: "enter" | "blur") => void;
   onCancelEdit: () => void;
+  onBackspaceEmpty?: () => boolean;
   reorderable: boolean;
   reorder: ChecklistReorder;
   showGrips: boolean;
@@ -204,6 +396,8 @@ type RowProps = {
   onToggle: () => void;
   onToggleCollapsed: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
+  archiveLabel: string;
   deleteLabel: string;
   onContextMenu?: (e: React.MouseEvent) => void;
 };
@@ -212,7 +406,7 @@ type RowProps = {
 // Lives as its own component so it can call the per-row hooks (`useLongPress`)
 // the list can't call in a loop.
 function ChecklistRow(props: RowProps) {
-  const { row, reorder, reorderable, isEditing, onDelete, deleteLabel } = props;
+  const { row, reorder, reorderable, isEditing, onDelete, onArchive } = props;
   const id = row.node.id;
   // Long-press lifts the row — but only while reordering is on and we're not
   // editing its text (a held caret in the field must not start a drag).
@@ -244,12 +438,14 @@ function ChecklistRow(props: RowProps) {
   );
   const dragClass = dragging ? "opacity-60" : "";
 
-  if (onDelete) {
+  if (onDelete || onArchive) {
     return (
       <SwipeRow
         depth={row.depth}
         onDelete={onDelete}
-        deleteLabel={deleteLabel}
+        onArchive={onArchive}
+        archiveLabel={props.archiveLabel}
+        deleteLabel={props.deleteLabel}
         onContextMenu={props.onContextMenu}
         registerRef={reorder.register(id)}
         liftHandlers={liftHandlers}
@@ -290,6 +486,7 @@ function RowInner({
   onStartEdit,
   onCommitEdit,
   onCancelEdit,
+  onBackspaceEmpty,
   reorderable,
   reorder,
   showGrips,
@@ -326,23 +523,28 @@ function RowInner({
           initial={typeof node.label === "string" ? node.label : ""}
           placeholder={editPlaceholder}
           ariaLabel={editPlaceholder}
+          // Tap-to-edit continues the existing text — drop the caret at the end
+          // rather than selecting the whole label.
+          selectOnFocus={false}
           onCommit={onCommitEdit}
           onCancel={onCancelEdit}
+          onBackspaceEmpty={onBackspaceEmpty}
           className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg outline-none placeholder:text-muted/60"
         />
       ) : editable ? (
         // Tap-to-edit: a button so it's keyboard-reachable and announces as
         // actionable; a long press (lift) suppresses its click, so dragging
-        // never opens the editor.
+        // never opens the editor. `select-none` keeps a tap from selecting the
+        // label text (and, on mobile, popping the platform selection / zoom).
         <button
           type="button"
           onClick={onStartEdit}
-          className={`min-w-0 flex-1 truncate text-left text-sm ${labelTone}`}
+          className={`min-w-0 flex-1 truncate text-left text-sm select-none ${labelTone}`}
         >
           {node.label}
         </button>
       ) : (
-        <span className={`flex-1 truncate text-sm ${labelTone}`}>
+        <span className={`flex-1 truncate text-sm select-none ${labelTone}`}>
           {node.label}
         </span>
       )}
@@ -404,13 +606,16 @@ function composeHandlers(
   };
 }
 
-// Swipeable row shell. A Delete action strip sits behind a sliding foreground;
-// `useRowSwipe` drives the transform and both outcomes (latch-open / flick-off)
-// land on `onDelete`. The foreground carries an opaque background so the strip
-// stays hidden until the row is swiped its way.
+// Swipeable row shell. A left swipe latches a Delete strip open behind the
+// sliding foreground; a right swipe flicks the row off — to the archive when
+// `onArchive` is wired (an "Archive" backdrop bared as it slides), else firing
+// `onDelete` (the legacy right-flick delete). The foreground carries an opaque
+// background so the strips stay hidden until the row is swiped their way.
 function SwipeRow({
   depth,
   onDelete,
+  onArchive,
+  archiveLabel,
   deleteLabel,
   onContextMenu,
   registerRef,
@@ -420,7 +625,9 @@ function SwipeRow({
   children,
 }: {
   depth: number;
-  onDelete: () => void;
+  onDelete?: () => void;
+  onArchive?: () => void;
+  archiveLabel: string;
   deleteLabel: string;
   onContextMenu?: (e: React.MouseEvent) => void;
   // Registers the measurable row element with the reorder hit-test.
@@ -433,11 +640,22 @@ function SwipeRow({
   indicator?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  // Swipe-to-delete is a touch affordance; a desktop pointer deletes through
-  // the right-click menu the caller wires via `onRowContextMenu`. Gate the
-  // gesture off there so a mouse drag never latches the Delete strip open.
+  // Swipe-to-act is a touch affordance; a desktop pointer reaches the same
+  // actions through the right-click menu the caller wires via
+  // `onRowContextMenu`. Gate the gesture off there so a mouse drag never latches
+  // a row open.
   const desktop = useDesktopPointer();
-  const swipe = useRowSwipe(onDelete, { enabled: !desktop });
+  // Right swipe (leading) flicks to archive when offered, else deletes; left
+  // swipe (trailing) reveals the Delete button when a delete is offered.
+  const swipe = useRowSwipe(undefined, {
+    enabled: !desktop,
+    leading: onArchive
+      ? { intent: "commit", onCommit: onArchive }
+      : onDelete
+        ? { intent: "commit", onCommit: onDelete }
+        : undefined,
+    trailing: onDelete ? { intent: "reveal", width: 96 } : undefined,
+  });
   const paddingLeft = depth ? depth * INDENT_PER_LEVEL : undefined;
   if (desktop) {
     return (
@@ -456,22 +674,37 @@ function SwipeRow({
   return (
     <li className="relative overflow-hidden border-b border-line">
       {indicator}
-      {/* Delete strip, uncovered as the foreground slides left. Hidden while
-          the row sits closed so it's never bared mid-gesture the other way. */}
-      <div
-        aria-hidden={swipe.offset >= 0}
-        className={`absolute inset-0 flex items-center justify-end ${
-          swipe.offset < 0 ? "" : "invisible"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={onDelete}
-          className="h-full w-24 bg-danger text-xs font-semibold tracking-wide text-white uppercase"
+      {/* Archive backdrop, bared as the foreground slides right. Only present
+          when an archive action is wired; hidden until the row is swiped its
+          way so it never flashes the wrong direction. */}
+      {onArchive && (
+        <div
+          aria-hidden={swipe.offset <= 0}
+          className={`absolute inset-0 flex items-center justify-start gap-2 bg-accent px-4 text-xs font-semibold tracking-wide text-page-bg uppercase ${
+            swipe.offset > 0 ? "" : "invisible"
+          }`}
         >
-          {deleteLabel}
-        </button>
-      </div>
+          <ArchiveIcon className="h-5 w-5" />
+          <span>{archiveLabel}</span>
+        </div>
+      )}
+      {/* Delete strip, uncovered as the foreground slides left. */}
+      {onDelete && (
+        <div
+          aria-hidden={swipe.offset >= 0}
+          className={`absolute inset-0 flex items-center justify-end ${
+            swipe.offset < 0 ? "" : "invisible"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={onDelete}
+            className="h-full w-24 bg-danger text-xs font-semibold tracking-wide text-white uppercase"
+          >
+            {deleteLabel}
+          </button>
+        </div>
+      )}
 
       <div
         ref={registerRef}

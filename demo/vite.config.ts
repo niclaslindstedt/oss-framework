@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -23,8 +24,20 @@ const version = process.env.GITHUB_SHA
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+// The framework package's released version (e.g. "0.2.0"), surfaced in the
+// About dropdown as the "Source code" row's subtitle. Read from the library's
+// own `package.json` so it tracks every release without a second edit.
+const appVersion = (
+  JSON.parse(readFileSync(here("../package.json"), "utf8")) as {
+    version: string;
+  }
+).version;
+
 export default defineConfig({
   base,
+  // Inline the package version at build time so the side menu can show it
+  // without importing `package.json` into the bundle.
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   // `demoPwa` only applies on build, so dev keeps registering no worker (the
   // app passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).
   plugins: [react(), tailwindcss(), demoPwa({ base, version })],

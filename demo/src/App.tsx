@@ -286,6 +286,7 @@ export function App() {
             store={store}
             sync={sync}
             onOpenSyncDetails={() => setSyncDetailsOpen(true)}
+            addItemPosition={settings.addItemPosition}
             trophy={
               achievementsEnabled ? (
                 <TrophyButton

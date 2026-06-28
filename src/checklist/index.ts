@@ -14,10 +14,12 @@ export {
   findNode,
   toggleNode,
   setNodeChecked,
+  setNodeArchived,
   setAllChecked,
   removeNode,
   renameNode,
   moveNode,
+  insertNode,
   countProgress,
   isComplete,
   subtreeState,
@@ -25,4 +27,5 @@ export {
   flattenForDisplay,
   type ChecklistNode,
   type DisplayRow,
+  type InsertPosition,
 } from "./tree.ts";

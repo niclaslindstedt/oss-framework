@@ -11,6 +11,7 @@
 export { Button, type ButtonVariant } from "./Button.tsx";
 export { Badge, type BadgeTone } from "./Badge.tsx";
 export { Fab } from "./Fab.tsx";
+export { FabMenu, type FabMenuAction } from "./FabMenu.tsx";
 export {
   CopyButton,
   type CopyButtonProps,

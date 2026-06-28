@@ -4,8 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   countProgress,
   flattenNodes,
+  insertNode,
   removeNode,
+  setNodeArchived,
   type ChecklistNode,
+  type InsertPosition,
 } from "@niclaslindstedt/oss-framework/checklist";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
@@ -82,9 +85,11 @@ function persistDoc(slug: string, doc: AppData): void {
   );
 }
 
-/** Count of still-unchecked nodes in a list — the side menu's row badge. */
+/** Count of still-unchecked, live (non-archived) nodes in a list — the side
+ *  menu's row badge. */
 export function remaining(list: List): number {
-  return flattenNodes(list.items).filter((n) => !n.checked).length;
+  return flattenNodes(list.items).filter((n) => !n.checked && !n.archived)
+    .length;
 }
 
 /** Pick the active list after a delete/archive: keep the current one if it's
@@ -214,21 +219,25 @@ export function useChecklistStore(slug: string) {
     [commit, data],
   );
 
+  // Add an item to the active list at `position` (top / bottom of the list, or
+  // as a sibling after a given node — the composer's "type the next row below
+  // this one" flow). Returns the new node's id so the composer can re-anchor,
+  // or null when the label was blank. Defaults to appending at the bottom.
   const addItem = useCallback(
-    (label: string) => {
+    (label: string, position: InsertPosition = { at: "bottom" }) => {
       const text = label.trim();
-      if (!text) return;
-      const item: ChecklistNode = {
-        id: freshId("item"),
-        label: text,
-        checked: false,
-      };
+      if (!text) return null;
+      const id = freshId("item");
+      const item: ChecklistNode = { id, label: text, checked: false };
       commit({
         ...data,
         lists: data.lists.map((l) =>
-          l.id === data.activeListId ? { ...l, items: [...l.items, item] } : l,
+          l.id === data.activeListId
+            ? { ...l, items: insertNode(l.items, item, position) }
+            : l,
         ),
       });
+      return id;
     },
     [commit, data],
   );
@@ -246,6 +255,87 @@ export function useChecklistStore(slug: string) {
         ),
       }),
     [commit, data],
+  );
+
+  // Archive an item in the active list — the swipe-right outcome. Shelves it out
+  // of the live list (the Archive page lists it) without dropping it; an Undo
+  // brings it straight back.
+  const archiveItem = useCallback(
+    (id: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === data.activeListId
+            ? { ...l, items: setNodeArchived(l.items, id, true) }
+            : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Restore an archived item back into the list that owns it — the Archive
+  // page's "restore". The list id is supplied because items restore into their
+  // own list, not whichever one is active.
+  const unarchiveItem = useCallback(
+    (listId: string, id: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId
+            ? { ...l, items: setNodeArchived(l.items, id, false) }
+            : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Permanently delete an archived item from its list — the Archive page's
+  // "delete". Undoable.
+  const deleteArchivedItem = useCallback(
+    (listId: string, id: string) =>
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId ? { ...l, items: removeNode(l.items, id) } : l,
+        ),
+      }),
+    [commit, data],
+  );
+
+  // Sweep every finished (checked, still-live) item in the active list — the
+  // bulk actions the add FAB reveals on a long press. `archive` shelves them;
+  // otherwise they're deleted outright. Both fold the per-item transform across
+  // the matched ids and land as one undoable commit.
+  const sweepFinished = useCallback(
+    (archive: boolean) => {
+      const list = data.lists.find((l) => l.id === data.activeListId);
+      if (!list) return;
+      const ids = flattenNodes(list.items)
+        .filter((n) => n.checked && !n.archived)
+        .map((n) => n.id);
+      if (ids.length === 0) return;
+      let items = list.items;
+      for (const id of ids) {
+        items = archive
+          ? setNodeArchived(items, id, true)
+          : removeNode(items, id);
+      }
+      commit({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === data.activeListId ? { ...l, items } : l,
+        ),
+      });
+    },
+    [commit, data],
+  );
+  const archiveFinishedItems = useCallback(
+    () => sweepFinished(true),
+    [sweepFinished],
+  );
+  const deleteFinishedItems = useCallback(
+    () => sweepFinished(false),
+    [sweepFinished],
   );
 
   // Create a checklist under a user-picked title and open it, returning its id.
@@ -525,6 +615,11 @@ export function useChecklistStore(slug: string) {
     setActiveItems,
     addItem,
     deleteItem,
+    archiveItem,
+    unarchiveItem,
+    deleteArchivedItem,
+    archiveFinishedItems,
+    deleteFinishedItems,
     addList,
     addFolder,
     renameFolder,

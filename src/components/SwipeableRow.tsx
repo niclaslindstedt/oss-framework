@@ -106,6 +106,14 @@ export type SwipeableRowProps = {
 
   /** Forwarded swipe thresholds (axis lock, latch / commit distances, …). */
   options?: RowSwipeOptions;
+  /**
+   * Paint a drop-target highlight over the row — a tinted overlay and accent
+   * ring drawn *on top* of the (opaque) sliding foreground. A row hovered by a
+   * drag-and-drop gesture sets this so it reads as the landing spot; the
+   * overlay sits above the row's own `bg-surface`, which would otherwise hide a
+   * tint set on an ancestor drop-zone element.
+   */
+  highlighted?: boolean;
   className?: string;
   /** The row content — the opaque sliding foreground. */
   children: ReactNode;
@@ -132,6 +140,7 @@ export function SwipeableRow({
   archiveIcon,
   actionButtonWidth = DEFAULT_BUTTON_WIDTH,
   options,
+  highlighted = false,
   className = "",
   children,
 }: SwipeableRowProps) {
@@ -178,11 +187,25 @@ export function SwipeableRow({
     leading: toHookSide(leadingSide, leadingWidth),
   });
 
+  // The drop-target highlight — a tinted, accent-ringed overlay painted above
+  // the (opaque) foreground so it shows through the row's own background.
+  const overlay = highlighted ? (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 bg-accent/15 ring-2 ring-accent ring-inset"
+    />
+  ) : null;
+
   // Nothing to swipe — a bare row, or one whose swipe is gated off (desktop) —
   // renders its content plainly, carrying no gesture, no extra DOM, and no
   // phantom latch.
   if ((!trailingSide && !leadingSide) || !swipeEnabled) {
-    return <div className={className || undefined}>{children}</div>;
+    return (
+      <div className={`relative ${className}`.trim()}>
+        {overlay}
+        {children}
+      </div>
+    );
   }
 
   return (
@@ -226,6 +249,7 @@ export function SwipeableRow({
           swipe.animating ? "transition-transform duration-200" : ""
         }`}
       >
+        {overlay}
         {children}
       </div>
     </div>

@@ -57,8 +57,10 @@ export const en = {
       "Nothing archived. Swipe a list or folder right — or drag it onto Archive — to shelve it here.",
     folders: "Archived folders",
     checklists: "Archived checklists",
+    items: "Archived items",
     restoreFolder: "Restore folder",
     restoreChecklist: "Restore checklist",
+    restoreItem: "Restore item",
     delete: "Delete",
     rowActions: "Archive actions",
   },
@@ -104,6 +106,10 @@ export const en = {
     clear: "Clear",
     copyList: "Copy list",
     copied: "Copied",
+    archive: "Archive",
+    moreActions: "More actions",
+    archiveFinished: "Archive finished items",
+    deleteFinished: "Delete finished items",
   },
   sync: {
     // The header status glyph (`SyncStatus`).
@@ -191,6 +197,12 @@ export const en = {
       spellCheckHint: "Underline misspelled words while editing an item.",
       monospace: "Monospace items",
       monospaceHint: "Render item text in the monospace UI font.",
+      listTitle: "New items",
+      addItemPosition: "Add new items at",
+      addItemPositionHint:
+        "Where the add button drops a new item. Pressing Enter on an item always adds the next one right below it.",
+      optionTop: "Start of list",
+      optionBottom: "End of list",
     },
     storage: {
       documentTitle: "Document",
