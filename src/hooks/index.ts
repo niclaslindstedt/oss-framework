@@ -32,3 +32,12 @@ export {
   type UseClipboardResult,
 } from "./useClipboard.ts";
 export { useTypeahead, matchPrefixRange } from "./useTypeahead.ts";
+export {
+  useRovingTabindex,
+  useGridRovingTabindex,
+  type RovingOrientation,
+  type RovingTabindexOptions,
+  type RovingTabindex,
+  type GridRovingTabindexOptions,
+  type GridRovingTabindex,
+} from "./useRovingTabindex.ts";

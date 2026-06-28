@@ -92,6 +92,8 @@ Today:
 | `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |
 | `useClipboard`           | `.` and `./hooks`        | Copy-to-clipboard with a self-resetting `copied` flag; `copyTextToClipboard` is the pure, React-free write.                |
 | `useTypeahead`           | `.` and `./hooks`        | List-box "type to select": printable keys jump to a matching option; `matchPrefixRange` marks the matched characters.      |
+| `useRovingTabindex`      | `.` and `./hooks`        | WAI-ARIA roving tabindex for a 1-D listbox / radiogroup / menu — one Tab stop, arrow keys navigate, optional type-ahead.   |
+| `useGridRovingTabindex`  | `.` and `./hooks`        | Roving tabindex for a 2-D grid picker — arrows walk rows/columns, Home/End jump to the corners.                            |
 | `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                             |
 | theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
 | `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |
