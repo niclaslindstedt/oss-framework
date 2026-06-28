@@ -322,8 +322,12 @@ export function SideMenuContent({
         >
           <SwipeableRow
             actions={actions}
-            onArchive={() => archiveList(list.id)}
-            archiveLabel={t("menu.archive")}
+            leading={{
+              kind: "commit",
+              onCommit: () => archiveList(list.id),
+              label: t("menu.archive"),
+              icon: <ArchiveIcon className="h-5 w-5" />,
+            }}
           >
             <NavRow
               indent={indent}
@@ -476,8 +480,12 @@ export function SideMenuContent({
                 >
                   <SwipeableRow
                     actions={folderActions}
-                    onArchive={() => archiveFolder(folder.id)}
-                    archiveLabel={t("menu.archive")}
+                    leading={{
+                      kind: "commit",
+                      onCommit: () => archiveFolder(folder.id),
+                      label: t("menu.archive"),
+                      icon: <ArchiveIcon className="h-5 w-5" />,
+                    }}
                     highlighted={folderZone.isOver}
                   >
                     <FolderRow

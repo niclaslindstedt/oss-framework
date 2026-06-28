@@ -257,7 +257,8 @@ side is either
   natural home for rename / delete); or
 - a **commit** — flick the row off past the threshold to fire one action, with a
   labelled, coloured backdrop bared as the row slides so the outcome reads before
-  release (the natural home for archive).
+  release (e.g. a delete-by-flick, or a caller-named action like archive). The
+  framework names nothing: the caller supplies the backdrop's `label` / `icon`.
 
 Glyphs, labels, and the background / foreground **colours** are configurable on
 both the reveal buttons and the commit backdrop:
@@ -302,12 +303,13 @@ import {
 </SwipeableRow>;
 ```
 
-The classic shape stays a one-liner via back-compat sugar: `actions` (a
-`RowAction[]`) maps to a `trailing` reveal and `onArchive` (+ `archiveLabel` /
-`archiveIcon`) to a `leading` commit, so existing call sites need no change.
-Either side can be omitted (the row simply doesn't act that way), and the same
-`RowAction` shape feeds `RowActionMenu`, so a row offers identical actions
-through a desktop long-press menu and a touch swipe from one declaration. The
+The common left-reveal shape stays a one-liner via the `actions` sugar (a
+`RowAction[]`), which maps to a `trailing` reveal. A commit side is always
+spelled out — the framework ships no default caption or glyph, so the caller
+labels what the flick means (the demo wires `archive` this way). Either side can
+be omitted (the row simply doesn't act that way), and the same `RowAction` shape
+feeds `RowActionMenu`, so a row offers identical actions through a desktop
+long-press menu and a touch swipe from one declaration. The
 component tags itself `data-drawer-swipe-ignore` so an enclosing `Sidebar`'s
 swipe-to-close stands down while a finger is on the row.
 

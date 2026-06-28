@@ -7,7 +7,6 @@ import {
   type RowSwipeOptions,
   type RowSwipeSide,
 } from "../hooks/useRowSwipe.ts";
-import { ArchiveIcon } from "./icons.tsx";
 import type { RowAction } from "./RowActionMenu.tsx";
 
 // A list row with the two-handed swipe gesture both source apps grew, lifted off
@@ -21,13 +20,14 @@ import type { RowAction } from "./RowActionMenu.tsx";
 //     delete, …) for a deliberate tap, so a destructive action is never a
 //     single flick; or
 //   • a "commit" — drag the row off past the threshold to fire one action
-//     (archive, delete-by-flick, …), with a labelled, coloured backdrop bared
+//     (delete-by-flick, file-away, …), with a labelled, coloured backdrop bared
 //     as the row slides so the user reads the outcome before releasing.
 //
 // Every visible part is configurable: the button glyphs / labels and their
 // background + text colours, and the commit backdrop's glyph, caption, and
-// colours. Defaults match the classic shape — a left reveal of icon buttons, a
-// right "Archive" commit on the accent — so the common case stays a one-liner.
+// colours. A side renders only what the caller declares — the framework names
+// no action and ships no default caption or glyph (the accent backdrop colour
+// is the one default), so a row stays domain-agnostic.
 //
 // The component owns everything the gesture needs to look right: the strips
 // uncovered on each swipe, an opaque sliding foreground (the `children`) so a
@@ -70,9 +70,9 @@ export type SwipeSide =
       kind: "commit";
       /** Fired once the row is dragged past the threshold and released. */
       onCommit: () => void;
-      /** Caption on the backdrop bared as the row slides. Default "Archive". */
+      /** Caption on the backdrop bared as the row slides. Omitted ⇒ none. */
       label?: string;
-      /** Glyph on the backdrop. Defaults to the framework archive box. */
+      /** Glyph on the backdrop. Omitted ⇒ none. */
       icon?: ReactNode;
       /** Tailwind background class for the backdrop. Default `bg-accent`. */
       background?: string;
@@ -86,21 +86,12 @@ export type SwipeableRowProps = {
   /** The left-swipe side (revealed / committed as the row slides left). */
   trailing?: SwipeSide;
 
-  // --- Back-compat sugar for the classic left-reveal / right-archive shape ---
+  // --- Sugar for the common left-reveal shape ---
   /**
    * Buttons revealed by a left swipe. Shorthand for a `trailing` reveal; ignored
    * when `trailing` is set. Leave empty to offer no left action.
    */
   actions?: RowAction[];
-  /**
-   * Fired when the row is dragged right past the threshold — the archive
-   * outcome. Shorthand for a `leading` commit; ignored when `leading` is set.
-   */
-  onArchive?: () => void;
-  /** Caption for the archive backdrop. Default "Archive". */
-  archiveLabel?: string;
-  /** Glyph for the archive backdrop. Defaults to the framework archive box. */
-  archiveIcon?: ReactNode;
   /** Width (px) of each `actions` button. Default 56. */
   actionButtonWidth?: number;
 
@@ -135,31 +126,19 @@ export function SwipeableRow({
   leading,
   trailing,
   actions,
-  onArchive,
-  archiveLabel = "Archive",
-  archiveIcon,
   actionButtonWidth = DEFAULT_BUTTON_WIDTH,
   options,
   highlighted = false,
   className = "",
   children,
 }: SwipeableRowProps) {
-  // Resolve the back-compat sugar onto the two sides.
+  // Resolve the `actions` sugar onto the trailing reveal.
   const trailingSide: SwipeSide | undefined =
     trailing ??
     (actions && actions.length > 0
       ? { kind: "reveal", buttons: actions, buttonWidth: actionButtonWidth }
       : undefined);
-  const leadingSide: SwipeSide | undefined =
-    leading ??
-    (onArchive
-      ? {
-          kind: "commit",
-          onCommit: onArchive,
-          label: archiveLabel,
-          icon: archiveIcon,
-        }
-      : undefined);
+  const leadingSide: SwipeSide | undefined = leading;
 
   // A reveal strip latches open exactly wide enough to seat every button.
   const trailingWidth =
@@ -283,8 +262,8 @@ function SideLayer({
           side.background ?? "bg-accent"
         } ${side.color ?? "text-page-bg"} ${hidden}`}
       >
-        {side.icon ?? <ArchiveIcon className="h-5 w-5" />}
-        <span>{side.label ?? "Archive"}</span>
+        {side.icon}
+        {side.label && <span>{side.label}</span>}
       </div>
     );
   }
