@@ -29,3 +29,7 @@ export {
   type NamespaceFaviconOptions,
 } from "./favicon.ts";
 export { NamespacesModal, type NamespacesLabels } from "./NamespacesModal.tsx";
+export {
+  NamespaceSwitcher,
+  type NamespaceSwitcherLabels,
+} from "./NamespaceSwitcher.tsx";

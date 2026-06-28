@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import {
   ArchiveIcon,
   ChecklistIcon,
-  ChevronDownIcon,
   CogIcon,
   ExternalLinkIcon,
   FloatingPanel,
@@ -28,7 +27,10 @@ import {
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 import { Glyph } from "@niclaslindstedt/oss-framework/glyphs";
-import type { Namespace } from "@niclaslindstedt/oss-framework/namespaces";
+import {
+  NamespaceSwitcher,
+  type Namespace,
+} from "@niclaslindstedt/oss-framework/namespaces";
 import {
   CheckForUpdatesItem,
   type PwaUpdateCheckResult,
@@ -36,7 +38,6 @@ import {
 import {
   useDragDrop,
   type DragHandleProps,
-  type DropZoneProps,
 } from "@niclaslindstedt/oss-framework/sidebar";
 
 import { useT } from "./i18n/index.ts";
@@ -111,12 +112,15 @@ const BUILD_LABEL = `v${__APP_VERSION__}`;
 
 type Props = {
   store: ChecklistStore;
-  // The workspace the menu's lists belong to — its glyph + name head the menu,
-  // and tapping the header (or the cog) opens the namespaces manager.
+  // The workspace the menu's lists belong to — heads the framework
+  // `NamespaceSwitcher`, which highlights its row as active.
   activeNamespace: Namespace;
-  // Every workspace — the *other* ones surface as drop targets mid-drag, so a
-  // checklist or folder can be dragged across into another namespace.
+  // Every workspace — the switcher lists them all (tap to switch), and the
+  // *other* ones double as drop targets so a checklist or folder can be dragged
+  // across into another namespace.
   namespaces: Namespace[];
+  // Make a namespace active (tap a switcher row).
+  onSwitchNamespace: (slug: string) => void;
   onOpenNamespaces: () => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
@@ -141,6 +145,7 @@ export function SideMenuContent({
   store,
   activeNamespace,
   namespaces,
+  onSwitchNamespace,
   onOpenNamespaces,
   onOpenSettings,
   onOpenSearch,
@@ -393,42 +398,34 @@ export function SideMenuContent({
   const archivedCount =
     data.folders.filter((f) => f.archived).length +
     data.lists.filter((l) => l.archived).length;
-  // The workspaces a drag can be moved into — every namespace but this one.
-  const otherNamespaces = namespaces.filter(
-    (n) => n.slug !== activeNamespace.slug,
-  );
 
   return (
     <div className="flex h-full flex-col select-none">
-      {/* Namespace section — fixed. The header is a switcher: it shows the
-          active workspace's glyph + name and opens the namespaces manager
-          (create / switch / rename / restyle / delete). */}
-      <div className="shrink-0">
-        <SectionHeader
-          label={t("menu.namespace")}
-          addLabel={t("namespaces.open")}
-          addIcon={<CogIcon className="h-4 w-4" />}
-          onAdd={onOpenNamespaces}
-        />
-        <NavRow
-          active
-          onClick={onOpenNamespaces}
-          icon={
-            <Glyph
-              name={activeNamespace.glyph}
-              className="h-5 w-5"
-              style={
-                activeNamespace.color
-                  ? { color: activeNamespace.color }
-                  : undefined
-              }
-            />
-          }
-        >
-          <span className="flex-1 truncate">{activeNamespace.name}</span>
-          <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted" />
-        </NavRow>
-      </div>
+      {/* Namespace switcher — fixed. The framework component owns the
+          collapsible section, the switchable rows, and the per-row drop targets
+          (a checklist or folder dragged onto another workspace's row moves into
+          it). A live drag springs the section open so every workspace is
+          reachable; the cog opens the full namespaces manager. */}
+      <NamespaceSwitcher
+        namespaces={namespaces}
+        activeNamespace={activeNamespace.slug}
+        onSwitch={(slug) => {
+          onSwitchNamespace(slug);
+          onNavigate();
+        }}
+        onManage={onOpenNamespaces}
+        dragging={dnd.dragging !== null}
+        dropZone={(slug) =>
+          dnd.dropZone(`ns:${slug}`, { kind: "namespace", slug })
+        }
+        labels={{
+          heading: t("menu.namespaces"),
+          manage: t("namespaces.open"),
+          switchTo: (name) => t("menu.switchToNamespace", { name }),
+          expand: t("menu.showNamespaces"),
+          collapse: t("menu.hideNamespaces"),
+        }}
+      />
 
       <SectionHeader label={t("menu.checklists")} border />
 
@@ -574,31 +571,6 @@ export function SideMenuContent({
           />
         )}
       </div>
-
-      {/* Cross-namespace drop targets — only while a drag is live, and in a
-          fixed strip that shrinks the scroll region above rather than shoving
-          the folder targets around. Drop a checklist or folder onto a workspace
-          to move it into that namespace. */}
-      {dnd.dragging && otherNamespaces.length > 0 && (
-        <div className="shrink-0 border-t border-line px-3 pt-2 pb-1">
-          <p className="px-2 pb-1 text-xs font-semibold tracking-wide text-muted uppercase">
-            {t("menu.moveToWorkspace")}
-          </p>
-          <div className="flex flex-col gap-1">
-            {otherNamespaces.map((n) => (
-              <NamespaceDropRow
-                key={n.slug}
-                namespace={n}
-                zone={dnd.dropZone(`ns:${n.slug}`, {
-                  kind: "namespace",
-                  slug: n.slug,
-                })}
-                label={t("menu.moveToNamespace", { name: n.name })}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Action grid — fixed. */}
       <div className="shrink-0 px-3 pt-2 pb-3">
@@ -1053,39 +1025,6 @@ function DraggableRow({
         <GripIcon className="h-4 w-4" />
       </span>
       {children}
-    </div>
-  );
-}
-
-// A workspace shown as a drop target while a drag is live. Lights up when the
-// dragged item hovers it; dropping hands the item to that namespace.
-function NamespaceDropRow({
-  namespace,
-  zone,
-  label,
-}: {
-  namespace: Namespace;
-  zone: DropZoneProps;
-  label: string;
-}) {
-  return (
-    <div
-      ref={zone.ref}
-      aria-label={label}
-      className={`flex items-center gap-3 rounded-md border border-dashed px-3 py-[var(--density-row-py)] text-sm transition-colors ${
-        zone.isOver
-          ? "border-accent bg-accent/30 text-fg-bright"
-          : "border-line/60 text-muted"
-      }`}
-    >
-      <span className="shrink-0">
-        <Glyph
-          name={namespace.glyph}
-          className="h-5 w-5"
-          style={namespace.color ? { color: namespace.color } : undefined}
-        />
-      </span>
-      <span className="flex-1 truncate">{namespace.name}</span>
     </div>
   );
 }

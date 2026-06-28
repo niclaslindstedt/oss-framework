@@ -265,6 +265,7 @@ export function App() {
           store={{ ...store, undo: undoWithTrophy }}
           activeNamespace={ns.activeNamespace}
           namespaces={ns.list}
+          onSwitchNamespace={ns.switchTo}
           onOpenNamespaces={() => setNamespacesOpen(true)}
           onOpenSettings={() => {
             setDrawerOpen(false);
