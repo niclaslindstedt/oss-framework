@@ -43,7 +43,7 @@ describe("SwipeableRow", () => {
             onSelect: onDelete,
           },
         ]}
-        onArchive={vi.fn()}
+        leading={{ kind: "commit", onCommit: vi.fn() }}
       >
         <button type="button">Groceries</button>
       </SwipeableRow>,
@@ -68,11 +68,11 @@ describe("SwipeableRow", () => {
     expect(container.querySelector("[data-drawer-swipe-ignore]")).toBeTruthy();
   });
 
-  it("archives on a right swipe past the threshold", () => {
+  it("commits a right swipe past the threshold", () => {
     vi.useFakeTimers();
-    const onArchive = vi.fn();
+    const onCommit = vi.fn();
     render(
-      <SwipeableRow actions={[]} onArchive={onArchive}>
+      <SwipeableRow leading={{ kind: "commit", onCommit }}>
         <button type="button">Groceries</button>
       </SwipeableRow>,
     );
@@ -84,12 +84,12 @@ describe("SwipeableRow", () => {
     up(fg, 210);
 
     // Deferred until the slide-off animation completes.
-    expect(onArchive).not.toHaveBeenCalled();
+    expect(onCommit).not.toHaveBeenCalled();
     vi.advanceTimersByTime(180);
-    expect(onArchive).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("does not archive when no onArchive is given (snaps back)", () => {
+  it("does not commit when no leading side is wired (snaps back)", () => {
     vi.useFakeTimers();
     render(
       <SwipeableRow actions={[{ label: "Rename", onSelect: vi.fn() }]}>
@@ -100,19 +100,19 @@ describe("SwipeableRow", () => {
 
     down(fg, 100);
     move(fg, 116);
-    move(fg, 210); // far right swipe — no archive wired
+    move(fg, 210); // far right swipe — no leading commit wired
     up(fg, 210);
     vi.advanceTimersByTime(200);
 
     // The foreground settles back to its closed position.
     expect(fg.style.transform).toBe("translateX(0px)");
-    // With no archive there is no archive backdrop in the row at all.
-    expect(screen.queryByText("Archive")).toBeNull();
   });
 
-  it("renders the archive backdrop with a custom label", () => {
+  it("captions the commit backdrop with the caller's label (no default)", () => {
     render(
-      <SwipeableRow actions={[]} onArchive={vi.fn()} archiveLabel="Stash">
+      <SwipeableRow
+        leading={{ kind: "commit", onCommit: vi.fn(), label: "Stash" }}
+      >
         <button type="button">Groceries</button>
       </SwipeableRow>,
     );
@@ -218,7 +218,7 @@ describe("SwipeableRow", () => {
     const { container } = render(
       <SwipeableRow
         actions={[{ label: "Rename", onSelect }]}
-        onArchive={vi.fn()}
+        leading={{ kind: "commit", onCommit: vi.fn() }}
       >
         <button type="button">Groceries</button>
       </SwipeableRow>,

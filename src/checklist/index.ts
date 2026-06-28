@@ -12,9 +12,9 @@ export { ChecklistProgress } from "./ChecklistProgress.tsx";
 export {
   flattenNodes,
   findNode,
+  updateNode,
   toggleNode,
   setNodeChecked,
-  setNodeArchived,
   setAllChecked,
   removeNode,
   renameNode,

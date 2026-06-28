@@ -6,8 +6,7 @@ import {
   flattenNodes,
   insertNode,
   removeNode,
-  setNodeArchived,
-  type ChecklistNode,
+  updateNode,
   type InsertPosition,
 } from "@niclaslindstedt/oss-framework/checklist";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
@@ -19,7 +18,25 @@ import {
   toAppData,
 } from "./migrations.ts";
 import { SEED } from "./seed.ts";
-import type { AppData, Folder, List } from "./types.ts";
+import type { AppData, Folder, Item, List } from "./types.ts";
+
+// Set / clear the app's own `archived` flag on an item — the swipe-to-archive
+// (and restore) outcome. The framework owns no archived concept, so the demo
+// drives the generic `updateNode` with its own field; clearing deletes the flag
+// so a restored item round-trips byte-for-byte. No cascade: archiving shelves a
+// single item, leaving any sub-items in place.
+function setItemArchived(items: Item[], id: string, archived: boolean): Item[] {
+  return updateNode<Item>(items, id, (n) => {
+    if (archived) return { ...n, archived: true };
+    const next = { ...n };
+    delete next.archived;
+    return next;
+  });
+}
+
+// An item is "live" (shown, counted) unless the app archived it — the predicate
+// the screen hands `Checklist`/`countProgress` to drop archived rows from view.
+const isArchived = (n: Item): boolean => n.archived === true;
 
 // The app's data store. Holds one namespace's document in state, persists it to
 // a per-namespace localStorage key, and exposes the edit actions the screens
@@ -209,7 +226,7 @@ export function useChecklistStore(slug: string) {
 
   // Replace the active list's items (toggles, check-all, …).
   const setActiveItems = useCallback(
-    (items: ChecklistNode[]) =>
+    (items: Item[]) =>
       commit({
         ...data,
         lists: data.lists.map((l) =>
@@ -228,7 +245,7 @@ export function useChecklistStore(slug: string) {
       const text = label.trim();
       if (!text) return null;
       const id = freshId("item");
-      const item: ChecklistNode = { id, label: text, checked: false };
+      const item: Item = { id, label: text, checked: false };
       commit({
         ...data,
         lists: data.lists.map((l) =>
@@ -266,7 +283,7 @@ export function useChecklistStore(slug: string) {
         ...data,
         lists: data.lists.map((l) =>
           l.id === data.activeListId
-            ? { ...l, items: setNodeArchived(l.items, id, true) }
+            ? { ...l, items: setItemArchived(l.items, id, true) }
             : l,
         ),
       }),
@@ -282,7 +299,7 @@ export function useChecklistStore(slug: string) {
         ...data,
         lists: data.lists.map((l) =>
           l.id === listId
-            ? { ...l, items: setNodeArchived(l.items, id, false) }
+            ? { ...l, items: setItemArchived(l.items, id, false) }
             : l,
         ),
       }),
@@ -317,7 +334,7 @@ export function useChecklistStore(slug: string) {
       let items = list.items;
       for (const id of ids) {
         items = archive
-          ? setNodeArchived(items, id, true)
+          ? setItemArchived(items, id, true)
           : removeNode(items, id);
       }
       commit({
@@ -600,7 +617,9 @@ export function useChecklistStore(slug: string) {
 
   const progress = useMemo(
     () =>
-      activeList ? countProgress(activeList.items) : { checked: 0, total: 0 },
+      activeList
+        ? countProgress(activeList.items, isArchived)
+        : { checked: 0, total: 0 },
     [activeList],
   );
 

@@ -179,8 +179,15 @@ export function ChecklistScreen({
           items={activeList.items}
           onChange={setActiveItems}
           onDelete={deleteItem}
-          onArchive={archiveItem}
-          archiveLabel={t("screen.archive")}
+          // The app names the right-swipe commit and supplies its glyph; the
+          // framework defaults nothing. `isHidden` drops archived rows from the
+          // live list (the Archive screen surfaces them).
+          swipeAction={{
+            onCommit: archiveItem,
+            label: t("screen.archive"),
+            icon: <ArchiveIcon className="h-5 w-5" />,
+          }}
+          isHidden={(n) => n.archived === true}
           onAdd={addItem}
           addItemPosition={addItemPosition}
           addPlaceholder={t("screen.addItem")}

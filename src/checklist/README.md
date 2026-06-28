@@ -167,10 +167,13 @@ In degree-of-match order:
   / `countProgress`, and render `<Checklist>`. Sub-items come for free the day
   you populate `children`.
 - **You store richer items** (notes, archived, a template id). Keep them:
-  intersect the type — `type Item = ChecklistNode & { notes?: string }` — and
-  the tree functions ignore the extra fields (they're pure spreads). Render the
-  richer label via the `label` node; archived-ness is a filter you apply before
-  handing `items` in.
+  intersect the type — `type Item = ChecklistNode & { archived?: boolean }` —
+  and the tree functions, generic over your node type, carry the extra fields
+  through with their types intact (`removeNode(items, id)` returns `Item[]`, not
+  a bare `ChecklistNode[]`). Render the richer label via the `label` node;
+  hiding a subset (an archived flag, say) is the `isHidden` predicate you hand
+  `Checklist` / `flattenForDisplay` / `countProgress` — the framework owns no
+  such flag.
 - **Your toggle didn't cascade, or cascaded differently.** This one always
   cascades the full subtree. If you stored a parent's checked state independently
   of its children, `subtreeState(node)` gives you the `checked` / `unchecked` /
@@ -180,11 +183,12 @@ In degree-of-match order:
 - **You had drag-to-reorder.** `Checklist` renders the grip (`showGrips`) and
   fires `onReorderStart(id, event)` on grip press; wire it to your own drag
   (the framework ships the affordance, not a DnD engine).
-- **You had swipe-to-delete (or -archive).** Wire `onDelete` and delete via
-  `removeNode`. The framework's gesture reveals a single trailing Delete; if your
-  row swiped **both** ways (e.g. archive one way, delete the other), keep that
-  richer row app-side over the bare `useRowSwipe` hook — `Checklist`'s `onDelete`
-  is the common single-action case, not the two-action one.
+- **You had swipe-to-delete (or a second flick-off action).** Wire `onDelete`
+  (delete via `removeNode`) for the left-swipe Delete reveal, and `swipeAction`
+  for a right-swipe commit you name yourself — the demo flicks a row to its
+  archive that way, passing `swipeAction.label` / `.icon`; the framework names
+  neither the action nor its caption. For anything richer than these two sides,
+  drop to the bare `useRowSwipe` hook app-side.
 
 ## Verification
 

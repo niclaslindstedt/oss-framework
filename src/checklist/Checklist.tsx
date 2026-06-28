@@ -3,12 +3,12 @@ import {
   useEffect,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 
 import { Checkbox } from "../components/Checkbox.tsx";
 import { InlineEditField } from "../components/InlineEditField.tsx";
 import {
-  ArchiveIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   GripIcon,
@@ -66,12 +66,18 @@ import {
 // `onChange`. The drop reparents into the target's sibling list, so a row can
 // move between child checklists too.
 //
-// Pass `onDelete` and/or `onArchive` to make rows swipeable (the
+// Pass `onDelete` and/or `swipeAction` to make rows swipeable (the
 // {@link useRowSwipe} gesture both source apps grew): with both wired, swipe a
-// row left to latch a Delete button open and right to flick it to the archive;
-// with only `onDelete`, a right flick deletes too. Each fires the matching
-// callback with the row's id, so the caller owns the removal / shelving (e.g.
-// `removeNode` / `setNodeArchived`) and stacks it on its own undo history.
+// row left to latch a Delete button open and right to flick it off to the
+// caller-named commit (the `swipeAction` — an app might shelve/archive, defer,
+// or file the row); with only `onDelete`, a right flick deletes too. Each fires
+// with the row's id, so the caller owns the outcome (e.g. `removeNode`, or its
+// own `updateNode`-based flag) and stacks it on its own undo history. The
+// framework never names the commit — `swipeAction.label`/`.icon` caption it.
+//
+// Pass `isHidden` to drop a node (and its subtree) from the rendered rows while
+// it stays in the tree — an app's "shelved"/archived flag, say, surfaced by a
+// separate view. It's the caller's predicate; the framework owns no such flag.
 //
 // Pass `onRowContextMenu` to give desktop pointers a right-click handle on a
 // row — the affordance touch users reach via the swipe. It fires with the
@@ -80,11 +86,13 @@ import {
 // a real secondary click yourself (`useDesktopPointer`) — `Checklist` only
 // forwards the event.
 
-type Props = {
-  items: ChecklistNode[];
+type Props<T extends ChecklistNode> = {
+  items: T[];
   // Receives the next tree after any in-place edit — a check toggle (cascade
-  // applied), an inline label rename, or a drag-to-reorder.
-  onChange: (next: ChecklistNode[]) => void;
+  // applied), an inline label rename, or a drag-to-reorder. The app's node type
+  // round-trips: the next tree carries the same `T` (with any app fields), not a
+  // bare `ChecklistNode`.
+  onChange: (next: T[]) => void;
   // Sort checked items to the bottom of each sub-list for display (the
   // ordering is view-only — `onChange` never persists it).
   sinkChecked?: boolean;
@@ -108,15 +116,23 @@ type Props = {
   onReorderStart?: (id: string, e: ReactPointerEvent) => void;
   // When set, rows become swipeable and this fires with a row's id once the
   // user confirms a delete (taps the revealed Delete button, or — when no
-  // `onArchive` is wired — flicks the row off to the right). The caller
+  // `swipeAction` is wired — flicks the row off to the right). The caller
   // performs the actual removal.
   onDelete?: (id: string) => void;
-  // When set, a right swipe flicks the row off to the archive, firing this with
-  // the row's id; the caller shelves it (e.g. `setNodeArchived`). With
-  // `onDelete` also wired, the left swipe still reveals Delete.
-  onArchive?: (id: string) => void;
-  // Caption on the archive backdrop bared by a right swipe (English default).
-  archiveLabel?: string;
+  // When set, a right swipe flicks the row off to a caller-named commit, firing
+  // `onCommit` with the row's id; the caller owns the outcome (shelve, defer,
+  // file, …). `label`/`icon` caption the backdrop bared as the row slides — the
+  // framework supplies no default (it doesn't name the action). With `onDelete`
+  // also wired, the left swipe still reveals Delete.
+  swipeAction?: {
+    onCommit: (id: string) => void;
+    label?: string;
+    icon?: ReactNode;
+  };
+  // Drop a node (and its whole subtree) from the rendered rows and the progress
+  // counts while it stays in the tree — e.g. an app's archived/shelved flag.
+  // Omitted, every node shows.
+  isHidden?: (node: T) => boolean;
   // Label on the revealed Delete button (English default; pass a translated
   // string). Unused unless `onDelete` is set.
   deleteLabel?: string;
@@ -140,7 +156,7 @@ type Props = {
   onRowContextMenu?: (id: string, e: React.MouseEvent) => void;
   // Accessible-label builder for a row's checkbox; defaults to the node's
   // label when it is a string, else `"Toggle item"`.
-  checkboxLabel?: (node: ChecklistNode) => string;
+  checkboxLabel?: (node: T) => string;
   // Controlled collapse: the set of collapsed (children-hidden) node ids.
   collapsed?: ReadonlySet<string>;
   onCollapsedChange?: (next: Set<string>) => void;
@@ -161,7 +177,7 @@ function indexPastSubtree(rows: DisplayRow[], anchorId: string): number {
   return i;
 }
 
-export function Checklist({
+export function Checklist<T extends ChecklistNode = ChecklistNode>({
   items,
   onChange,
   sinkChecked = false,
@@ -171,8 +187,8 @@ export function Checklist({
   showGrips = false,
   onReorderStart,
   onDelete,
-  onArchive,
-  archiveLabel = "Archive",
+  swipeAction,
+  isHidden,
   deleteLabel = "Delete",
   onAdd,
   addItemPosition = "bottom",
@@ -184,7 +200,7 @@ export function Checklist({
   collapsed,
   onCollapsedChange,
   className = "",
-}: Props) {
+}: Props<T>) {
   const [internalCollapsed, setInternalCollapsed] = useState<Set<string>>(
     () => new Set(),
   );
@@ -245,7 +261,7 @@ export function Checklist({
   }
 
   const display = sinkChecked ? sortCheckedToBottom(items) : items;
-  const rows = flattenForDisplay(display, collapsedSet);
+  const rows = flattenForDisplay(display, collapsedSet, isHidden);
 
   // Resolve the single live composer (after-anchored wins; else the toolbar
   // one) to a splice index and depth among the rows.
@@ -307,8 +323,15 @@ export function Checklist({
       onToggle={() => onChange(toggleNode(items, row.node.id))}
       onToggleCollapsed={() => toggleCollapsed(row.node.id)}
       onDelete={onDelete ? () => onDelete(row.node.id) : undefined}
-      onArchive={onArchive ? () => onArchive(row.node.id) : undefined}
-      archiveLabel={archiveLabel}
+      swipeAction={
+        swipeAction
+          ? {
+              onCommit: () => swipeAction.onCommit(row.node.id),
+              label: swipeAction.label,
+              icon: swipeAction.icon,
+            }
+          : undefined
+      }
       deleteLabel={deleteLabel}
       onContextMenu={
         onRowContextMenu
@@ -396,17 +419,24 @@ type RowProps = {
   onToggle: () => void;
   onToggleCollapsed: () => void;
   onDelete?: () => void;
-  onArchive?: () => void;
-  archiveLabel: string;
+  swipeAction?: RowSwipeAction;
   deleteLabel: string;
   onContextMenu?: (e: React.MouseEvent) => void;
+};
+
+// A right-swipe "flick-off" commit on a row, already bound to the row's id —
+// the caller names it (`label`/`icon`); the framework supplies no default.
+type RowSwipeAction = {
+  onCommit: () => void;
+  label?: string;
+  icon?: ReactNode;
 };
 
 // One row — the shell (plain or swipeable) plus its lift gesture and drop cue.
 // Lives as its own component so it can call the per-row hooks (`useLongPress`)
 // the list can't call in a loop.
 function ChecklistRow(props: RowProps) {
-  const { row, reorder, reorderable, isEditing, onDelete, onArchive } = props;
+  const { row, reorder, reorderable, isEditing, onDelete, swipeAction } = props;
   const id = row.node.id;
   // Long-press lifts the row — but only while reordering is on and we're not
   // editing its text (a held caret in the field must not start a drag).
@@ -438,13 +468,12 @@ function ChecklistRow(props: RowProps) {
   );
   const dragClass = dragging ? "opacity-60" : "";
 
-  if (onDelete || onArchive) {
+  if (onDelete || swipeAction) {
     return (
       <SwipeRow
         depth={row.depth}
         onDelete={onDelete}
-        onArchive={onArchive}
-        archiveLabel={props.archiveLabel}
+        swipeAction={swipeAction}
         deleteLabel={props.deleteLabel}
         onContextMenu={props.onContextMenu}
         registerRef={reorder.register(id)}
@@ -607,15 +636,15 @@ function composeHandlers(
 }
 
 // Swipeable row shell. A left swipe latches a Delete strip open behind the
-// sliding foreground; a right swipe flicks the row off — to the archive when
-// `onArchive` is wired (an "Archive" backdrop bared as it slides), else firing
-// `onDelete` (the legacy right-flick delete). The foreground carries an opaque
-// background so the strips stay hidden until the row is swiped their way.
+// sliding foreground; a right swipe flicks the row off — to the caller-named
+// `swipeAction` commit when wired (its `label`/`icon` captioning the backdrop
+// bared as it slides), else firing `onDelete` (the right-flick delete). The
+// foreground carries an opaque background so the strips stay hidden until the
+// row is swiped their way.
 function SwipeRow({
   depth,
   onDelete,
-  onArchive,
-  archiveLabel,
+  swipeAction,
   deleteLabel,
   onContextMenu,
   registerRef,
@@ -626,8 +655,7 @@ function SwipeRow({
 }: {
   depth: number;
   onDelete?: () => void;
-  onArchive?: () => void;
-  archiveLabel: string;
+  swipeAction?: RowSwipeAction;
   deleteLabel: string;
   onContextMenu?: (e: React.MouseEvent) => void;
   // Registers the measurable row element with the reorder hit-test.
@@ -645,12 +673,13 @@ function SwipeRow({
   // `onRowContextMenu`. Gate the gesture off there so a mouse drag never latches
   // a row open.
   const desktop = useDesktopPointer();
-  // Right swipe (leading) flicks to archive when offered, else deletes; left
-  // swipe (trailing) reveals the Delete button when a delete is offered.
+  // Right swipe (leading) flicks to the caller-named commit when offered, else
+  // deletes; left swipe (trailing) reveals the Delete button when a delete is
+  // offered.
   const swipe = useRowSwipe(undefined, {
     enabled: !desktop,
-    leading: onArchive
-      ? { intent: "commit", onCommit: onArchive }
+    leading: swipeAction
+      ? { intent: "commit", onCommit: swipeAction.onCommit }
       : onDelete
         ? { intent: "commit", onCommit: onDelete }
         : undefined,
@@ -674,18 +703,19 @@ function SwipeRow({
   return (
     <li className="relative overflow-hidden border-b border-line">
       {indicator}
-      {/* Archive backdrop, bared as the foreground slides right. Only present
-          when an archive action is wired; hidden until the row is swiped its
-          way so it never flashes the wrong direction. */}
-      {onArchive && (
+      {/* Commit backdrop, bared as the foreground slides right. Only present
+          when a `swipeAction` is wired; hidden until the row is swiped its way
+          so it never flashes the wrong direction. The caller supplies its
+          glyph / caption — the framework names nothing here. */}
+      {swipeAction && (
         <div
           aria-hidden={swipe.offset <= 0}
           className={`absolute inset-0 flex items-center justify-start gap-2 bg-accent px-4 text-xs font-semibold tracking-wide text-page-bg uppercase ${
             swipe.offset > 0 ? "" : "invisible"
           }`}
         >
-          <ArchiveIcon className="h-5 w-5" />
-          <span>{archiveLabel}</span>
+          {swipeAction.icon}
+          {swipeAction.label && <span>{swipeAction.label}</span>}
         </div>
       )}
       {/* Delete strip, uncovered as the foreground slides left. */}

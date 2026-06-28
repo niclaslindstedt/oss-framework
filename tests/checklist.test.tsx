@@ -18,13 +18,18 @@ import {
   removeNode,
   renameNode,
   setAllChecked,
-  setNodeArchived,
   setNodeChecked,
   sortCheckedToBottom,
   subtreeState,
   toggleNode,
+  updateNode,
   type ChecklistNode,
 } from "../src/checklist/index.ts";
+
+// An app's richer node — the framework owns no "archived" flag, so a consumer
+// layers its own and drives the generic helpers with it. Exercised below to
+// prove the node type round-trips through the tree transforms.
+type Item = ChecklistNode & { archived?: boolean };
 
 afterEach(() => {
   document.body.style.overflow = "";
@@ -230,16 +235,22 @@ describe("checklist tree", () => {
     expect(collapsed.map((r) => r.node.id)).toEqual(["fruit", "milk"]);
   });
 
-  it("setNodeArchived flags and clears a node, leaving the rest", () => {
-    const arch = setNodeArchived(tree(), "milk", true);
+  it("updateNode sets and clears an app-defined field, leaving the rest", () => {
+    const arch = updateNode<Item>(tree(), "milk", (n) => ({
+      ...n,
+      archived: true,
+    }));
+    // The flag — and its type — survive the transform.
     expect(findNode(arch, "milk")!.archived).toBe(true);
     expect(findNode(arch, "apple")!.archived).toBeUndefined();
-    // Clearing deletes the flag so the node round-trips byte-for-byte.
-    const live = setNodeArchived(arch, "milk", false);
+    // The app clears its own flag however it likes — here deleting it so the
+    // node round-trips byte-for-byte.
+    const live = updateNode<Item>(arch, "milk", (n) => {
+      const next = { ...n };
+      delete next.archived;
+      return next;
+    });
     expect("archived" in findNode(live, "milk")!).toBe(false);
-    // A miss returns the same reference.
-    const t = tree();
-    expect(setNodeArchived(t, "nope", true)).toBe(t);
   });
 
   it("insertNode drops a node at top / bottom / after a sibling", () => {
@@ -265,14 +276,18 @@ describe("checklist tree", () => {
     ).toEqual(["fruit", "milk", "x"]);
   });
 
-  it("flattenForDisplay and countProgress skip archived nodes", () => {
-    const arch = setNodeArchived(tree(), "milk", true);
-    expect(flattenForDisplay(arch, new Set()).map((r) => r.node.id)).toEqual([
-      "fruit",
-      "apple",
-      "pear",
-    ]);
-    expect(countProgress(arch)).toEqual({ checked: 0, total: 3 });
+  it("flattenForDisplay and countProgress honour the isHidden predicate", () => {
+    const arch = updateNode<Item>(tree(), "milk", (n) => ({
+      ...n,
+      archived: true,
+    }));
+    const hidden = (n: Item) => n.archived === true;
+    expect(
+      flattenForDisplay(arch, new Set(), hidden).map((r) => r.node.id),
+    ).toEqual(["fruit", "apple", "pear"]);
+    expect(countProgress(arch, hidden)).toEqual({ checked: 0, total: 3 });
+    // With no predicate, nothing is hidden — every node counts.
+    expect(countProgress(arch)).toEqual({ checked: 0, total: 4 });
   });
 });
 
@@ -412,18 +427,19 @@ describe("Checklist component", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("bares an Archive backdrop on right-swipe, keeping Delete on the left", () => {
+  it("bares a caller-named commit backdrop on right-swipe, keeping Delete on the left", () => {
     const rowCount = flattenForDisplay(tree(), new Set()).length;
     render(
       <Checklist
         items={tree()}
         onChange={() => {}}
         onDelete={() => {}}
-        onArchive={() => {}}
+        // The app names the right-swipe commit; the framework defaults nothing.
+        swipeAction={{ onCommit: () => {}, label: "Shelve" }}
       />,
     );
-    // The archive backdrop (caption) per row, plus the left-swipe Delete strip.
-    expect(screen.getAllByText("Archive").length).toBe(rowCount);
+    // The commit backdrop (caption) per row, plus the left-swipe Delete strip.
+    expect(screen.getAllByText("Shelve").length).toBe(rowCount);
     expect(
       screen.getAllByRole("button", { name: "Delete", hidden: true }).length,
     ).toBe(rowCount);

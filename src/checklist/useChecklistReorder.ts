@@ -37,9 +37,9 @@ export interface ChecklistReorder {
 // level — so the move/up stream survives the pointer leaving the lifted row —
 // and suppresses text selection while a drag is live. Disabled it is inert
 // (`start` no-ops), so a caller can gate reordering off without unwiring it.
-export function useChecklistReorder(
-  items: ChecklistNode[],
-  onChange: (next: ChecklistNode[]) => void,
+export function useChecklistReorder<T extends ChecklistNode>(
+  items: T[],
+  onChange: (next: T[]) => void,
   enabled: boolean,
 ): ChecklistReorder {
   const [draggingId, setDraggingId] = useState<string | null>(null);

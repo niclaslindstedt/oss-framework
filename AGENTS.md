@@ -91,13 +91,13 @@ src/
   add a second copy. Keep runtime deps minimal; prefer zero.
 - Code flows one way: leaf modules (`hooks`) must not import from feature
   modules (`storage`, `theme`). Shared types live next to their contract.
-- **No domain / business naming in `src/`.** The framework names the *mechanism*,
-  never an app's *use* of it. A specific app's vocabulary — `archive`, `note`,
+- **No domain / business naming in `src/`.** The framework names the _mechanism_,
+  never an app's _use_ of it. A specific app's vocabulary — `archive`, `note`,
   `budget`, `transaction`, `recipe`, … — must not appear in a published API:
   not in a prop (`onArchive`), a type field (`archived`), a function
   (`setNodeArchived`), an exported name, a default string (`label = "Archive"`),
   or a comment that frames a generic part as that feature. Name the capability
-  for what it *does*: a row flick-off is a `commit` action the caller labels; a
+  for what it _does_: a row flick-off is a `commit` action the caller labels; a
   node that drops out of a view is driven by a caller-supplied predicate
   (`isHidden`), not a built-in `archived` flag. The litmus test: could a second,
   unrelated app reuse this without inheriting the first app's concept? If the
@@ -105,7 +105,7 @@ src/
   adopter, not here. **Only `demo/` (and downstream apps) may carry such names**;
   the demo is where "archive" lives, layered on the framework's generic seam via
   its own types, strings, and store. This is the same seam the `refactor` skill
-  guards: lift generic responsibility *in*, never drag the store, domain types,
+  guards: lift generic responsibility _in_, never drag the store, domain types,
   business rules, or their **names** across it.
 - Every public entry point is wired in `src/index.ts` (and, for a subpath
   export, in `tsup.config.ts` + the `exports` map in `package.json`).
