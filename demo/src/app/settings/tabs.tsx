@@ -6,6 +6,7 @@ import {
   CipherGlyph,
   SegmentedControl,
   Section,
+  SelectPicker,
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 import {
@@ -31,7 +32,11 @@ import { log, logStore } from "../log.ts";
 import { useT } from "../i18n/index.ts";
 import { LATEST_VERSION } from "../migrations.ts";
 import type { AppSettings } from "../useAppSettings.ts";
-import type { MockSync, SyncFault } from "../useMockSync.ts";
+import {
+  CLOUD_PROVIDERS,
+  type MockSync,
+  type SyncFault,
+} from "../useMockSync.ts";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -541,6 +546,33 @@ export function StorageTab({ sync }: { sync: MockSync }) {
             { value: "cloud", label: t("settings.storage.backendCloud") },
           ]}
         />
+        {/* Which cloud drive backs the document. Realistic local-first apps
+            offer a long, flat menu of providers — the natural home for the
+            framework's type-ahead `SelectPicker`: open it and type "one" to
+            jump to OneDrive. The pick flows straight into the header
+            `SyncStatus` glyph ("synced to …") and the command centre's folder
+            path. Only meaningful on the cloud backend. */}
+        {sync.backend === "cloud" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-fg-bright">
+              {t("settings.storage.cloudProviderTitle")}
+            </span>
+            <SelectPicker
+              value={sync.providerId}
+              onChange={sync.setProviderId}
+              ariaLabel={t("settings.storage.cloudProviderTitle")}
+              panelClassName="max-h-64 overflow-y-auto"
+              options={CLOUD_PROVIDERS.map((p) => ({
+                value: p.id,
+                label: p.name,
+                hint: `${p.folder}/…`,
+              }))}
+            />
+            <p className="text-xs text-muted">
+              {t("settings.storage.cloudProviderHint")}
+            </p>
+          </div>
+        )}
         <ToggleRow
           label={t("settings.storage.encryptSync")}
           hint={t("settings.storage.encryptSyncHint")}

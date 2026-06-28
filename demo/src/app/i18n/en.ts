@@ -225,6 +225,9 @@ export const en = {
         "Pick a backend for the document. The header's cloud glyph reflects the save state; tap it for the sync command centre. The cloud here is simulated — no data leaves your device.",
       backendThisDevice: "This device",
       backendCloud: "Simulated cloud",
+      cloudProviderTitle: "Cloud drive",
+      cloudProviderHint:
+        'Which drive the simulated cloud syncs to. Open the menu and start typing — "one" jumps to OneDrive. Your pick shows up after "synced to …" on the header glyph and as the folder in the command centre.',
       encryptSync: "Encrypt at rest",
       encryptSyncHint:
         "Show the backend as encrypted in the command centre's details grid (On/Off).",

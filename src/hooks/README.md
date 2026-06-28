@@ -387,3 +387,56 @@ unmount. For the styled glyph button this backs, see
 The pure, React-free **`copyTextToClipboard(text)`** is exported alongside it for
 non-component callers (an event handler, a utility) that want the same best-effort
 write without the `copied` state.
+
+## `useTypeahead`
+
+List-box "type to select": while a menu is open, printable keystrokes jump to
+the first option whose label starts with what's been typed — the same behaviour
+a native `<select>` has. The buffer grows while keystrokes stay close together
+and resets after a pause, so "go" lands on _Google Drive_ and, after a beat,
+"on" starts fresh on _OneDrive_. Matching is case-insensitive and ignores
+surrounding whitespace.
+
+```tsx
+import {
+  useTypeahead,
+  matchPrefixRange,
+} from "@niclaslindstedt/oss-framework/hooks";
+
+// labels: one string per option, in option order ("" for a row that should
+// never match — a disabled item, a node-only label — so the index stays aligned).
+const { onKeyDown, query, reset } = useTypeahead({
+  labels: options.map((o) => o.name),
+  onMatch: (i) => setHighlight(i), // move your own cursor / focus there
+});
+
+<ul role="listbox" tabIndex={-1} onKeyDown={onKeyDown}>
+  {options.map((o, i) => (
+    <li key={o.id} aria-selected={i === highlight}>
+      {/* Emphasise the matched characters on the active row */}
+      {i === highlight ? <Marked text={o.name} query={query} /> : o.name}
+    </li>
+  ))}
+</ul>;
+```
+
+`onKeyDown` only consumes printable keys; arrows, Enter, Tab, and Escape fall
+through untouched, so forward them to your own handlers (and call `reset()` when
+arrow navigation takes over, or the surface closes, so a stale highlight never
+lingers). The live `query` is reactive state for highlighting; **`matchPrefixRange(text, query)`** returns the `{ start, end }` slice of `text` the
+query matched (or `null`), so you can wrap those characters in a `<mark>`.
+
+The framework's [`SelectPicker`](../components/README.md) already wires this in —
+reach for `useTypeahead` directly when you build your own menu, combobox, or
+radiogroup and want the same "type to select".
+
+### Adapting to your app
+
+- **Node labels (icon + text, a styled preview).** Pass the plain text you want
+  matched as the label string for that option (`SelectPicker` exposes this as a
+  per-option `typeaheadLabel`); the visible markup stays whatever you render.
+- **A different reset cadence.** `timeoutMs` (default `3000`) sets how long the
+  buffer survives between keystrokes — lower it for a snappier "starts over",
+  raise it for long labels.
+- **You don't want highlighting.** Ignore `query` / `matchPrefixRange` and just
+  use `onMatch` to move the cursor; the hook works either way.

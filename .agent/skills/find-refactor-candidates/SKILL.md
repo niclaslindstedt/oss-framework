@@ -351,6 +351,37 @@ If the run **also extracted** a candidate, additionally:
 - [ ] Updated top-level `README.md` API + a `.changes/unreleased/` fragment, and recorded any new demo screen / model / settings area in this skill's notes.
 - [ ] Ran the gates green (`lint`, `test`, `build`, `fmt:check`) and confirmed asset imports stayed external in `dist/`.
 
+## Notes — donor layout & demo scope
+
+Kept current per the self-improvement rule. Skim before a run so coverage
+surprises aren't re-discovered.
+
+- **The coverage report's "closest framework file" column lies about overlap.**
+  It names the nearest file by line-multiset, not a semantic twin — `SelectPicker`
+  showed `App.tsx` as its closest while the framework _already ships_
+  `components/SelectPicker.tsx`. Always confirm a candidate against the framework
+  by **basename / module**, not the report's "closest" column.
+- **Already shipped from budget (skip):** `components/FloatingPanel`,
+  `components/SelectPicker`, `components/useFloatingPosition`, the theme
+  `FontFamilyRow`/`FONT_FAMILIES` font picker, `search/*` highlighting
+  (`segmentMatches` + `Highlighted`). budget's `i18n/locales/**` and `data/**`
+  dominate the top of the report but are **app-domain data, not extractable** —
+  filter them out (skip `i18n/`, `data/`, `seo/`) before ranking.
+- **Type-ahead cluster (`hooks/useTypeahead`, `hooks/useRovingTabindex`,
+  `utils/highlight`):** net-new in budget. **Extracted so far:** `useTypeahead`
+  - `matchPrefixRange` (re-homed from `utils/highlight.ts`) into `src/hooks/`,
+    and wired into `SelectPicker` (type-ahead is on by default when an option has a
+    string label / `typeaheadLabel`). **Still unextracted (next candidates):**
+    `useRovingTabindex` / `useGridRovingTabindex` — foundational WAI-ARIA roving
+    tabindex hooks many menus/grids want; they need a real demo consumer (a
+    keyboard-navigable menu or glyph grid) to land honestly.
+- **Demo scope added this run:** the Storage tab's "Where your data lives" section
+  now has a **Cloud drive `SelectPicker`** (shown only on the simulated-cloud
+  backend), backed by `CLOUD_PROVIDERS` in `demo/src/app/useMockSync.ts`. The
+  chosen provider's name flows into the header `SyncStatus` ("synced to …") and
+  the `SyncDetailsModal` folder path. This is `SelectPicker`'s first demo seat —
+  before this it was a shipped-but-unexercised export.
+
 ## Verification
 
 Confirm the report is trustworthy before acting on it:
