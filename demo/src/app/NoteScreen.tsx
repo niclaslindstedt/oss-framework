@@ -18,12 +18,10 @@ export function NoteScreen({
   store,
   sync,
   onOpenSyncDetails,
-  trophy,
 }: {
   store: ChecklistStore;
   sync: MockSync;
   onOpenSyncDetails: () => void;
-  trophy?: React.ReactNode;
 }) {
   const t = useT();
   const { activeList, setListBody, setListAppearance } = store;
@@ -41,7 +39,6 @@ export function NoteScreen({
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-wide text-fg-bright">
           {activeList.title}
         </h1>
-        {trophy}
         {/* Copy the note's verbatim Markdown source. */}
         <CopyButton
           value={() => body}

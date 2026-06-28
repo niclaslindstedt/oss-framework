@@ -39,7 +39,6 @@ export function ChecklistScreen({
   sync,
   onOpenSyncDetails,
   addItemPosition,
-  trophy,
 }: {
   store: ChecklistStore;
   // The app's simulated sync engine — drives the header `SyncStatus` glyph.
@@ -49,10 +48,6 @@ export function ChecklistScreen({
   // Where the composer drops a new item (Settings → Lists). "Enter on a row"
   // always lands the next item directly below the one you're on.
   addItemPosition: AddItemPosition;
-  // The framework `TrophyButton`, slotted into the header by the app shell (or
-  // nothing when achievements are switched off). The screen owns the layout;
-  // App owns what the button opens.
-  trophy?: React.ReactNode;
 }) {
   const t = useT();
   const {
@@ -147,7 +142,6 @@ export function ChecklistScreen({
           }
           labels={{ progress: (c, total) => `${c}/${total}` }}
         />
-        {trophy}
         <CopyButton
           value={listMarkdown}
           labels={{ copy: t("screen.copyList"), copied: t("screen.copied") }}
