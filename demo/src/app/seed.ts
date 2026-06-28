@@ -143,6 +143,41 @@ export const SEED: AppData = {
         leaf("bv-regnklader", "Regnkläder"),
       ],
     },
+    // A standalone note — the live-preview Markdown editor's home in the demo.
+    // A `note` list stores a Markdown `body` instead of checklist `items`;
+    // opening it swaps the checklist screen for the editor.
+    {
+      id: "anteckning-recept",
+      title: "Pannkakssmet",
+      folderId: null,
+      kind: "note",
+      glyph: "book",
+      color: "#e5c07b",
+      items: [],
+      body: [
+        "# Pannkakssmet",
+        "",
+        "En enkel smet till **fredagspannkakor** — räcker till hela familjen.",
+        "",
+        "## Ingredienser",
+        "",
+        "- 3 dl vetemjöl",
+        "- 6 dl mjölk",
+        "- 3 ägg",
+        "- 1 krm salt",
+        "- 2 msk smör till stekning",
+        "",
+        "## Gör så här",
+        "",
+        "1. Vispa mjöl och *halva* mjölken slät.",
+        "2. Rör ner resten av mjölken, äggen och saltet.",
+        "3. Låt smeten svälla i ~30 min.",
+        "",
+        "> Tips: stek i rikligt med smör för krispiga kanter.",
+        "",
+        "Mer inspiration: https://www.ica.se/recept/",
+      ].join("\n"),
+    },
   ],
 };
 

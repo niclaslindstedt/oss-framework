@@ -42,6 +42,7 @@ import {
 
 import { ArchiveScreen } from "./app/ArchiveScreen.tsx";
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
+import { NoteScreen } from "./app/NoteScreen.tsx";
 import { RELEASES, FEATURE_DOCS } from "./app/changelog.ts";
 import { SearchOverlay } from "./app/SearchOverlay.tsx";
 import { SettingsModal } from "./app/SettingsModal.tsx";
@@ -200,6 +201,19 @@ export function App() {
   // window when the menu is pinned on a wide screen.
   useSidebarInset(pinned, position.side);
 
+  // The header trophy, shared by the checklist and note screens (or nothing when
+  // achievements are switched off). The screens own the layout; App owns what
+  // the button opens.
+  const trophyButton = achievementsEnabled ? (
+    <TrophyButton
+      unseenCount={ach.unseen.length}
+      onClick={() =>
+        ach.unseen.length > 0 ? setUnlockOpen(true) : setTourOpen(true)
+      }
+      className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
+    />
+  ) : null;
+
   useEffect(() => {
     seedLogsOnce();
   }, []);
@@ -281,25 +295,20 @@ export function App() {
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {view === "archive" ? (
           <ArchiveScreen store={store} />
+        ) : store.activeList?.kind === "note" ? (
+          <NoteScreen
+            store={store}
+            sync={sync}
+            onOpenSyncDetails={() => setSyncDetailsOpen(true)}
+            trophy={trophyButton}
+          />
         ) : (
           <ChecklistScreen
             store={store}
             sync={sync}
             onOpenSyncDetails={() => setSyncDetailsOpen(true)}
             addItemPosition={settings.addItemPosition}
-            trophy={
-              achievementsEnabled ? (
-                <TrophyButton
-                  unseenCount={ach.unseen.length}
-                  onClick={() =>
-                    ach.unseen.length > 0
-                      ? setUnlockOpen(true)
-                      : setTourOpen(true)
-                  }
-                  className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
-                />
-              ) : null
-            }
+            trophy={trophyButton}
           />
         )}
       </main>

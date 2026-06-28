@@ -112,6 +112,10 @@ export default defineConfig({
         replacement: here("../src/search/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/markdown",
+        replacement: here("../src/markdown/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

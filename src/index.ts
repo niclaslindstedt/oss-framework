@@ -23,6 +23,7 @@
 //   namespaces/ — named buckets (profiles/workspaces) + favicon + management UI
 //   sync/       — header status glyph + command-centre modal over a sync engine
 //   search/     — progressive-query matcher + highlighting + generic SearchModal
+//   markdown/   — live-preview Markdown editor + dependency-free parser
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -40,3 +41,4 @@ export * from "./i18n/index.ts";
 export * from "./namespaces/index.ts";
 export * from "./sync/index.ts";
 export * from "./search/index.ts";
+export * from "./markdown/index.ts";

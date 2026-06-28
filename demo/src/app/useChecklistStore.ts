@@ -18,7 +18,7 @@ import {
   toAppData,
 } from "./migrations.ts";
 import { NAMESPACE_SEEDS, SEED } from "./seed.ts";
-import type { AppData, Folder, Item, List } from "./types.ts";
+import type { AppData, Folder, Item, List, ListKind } from "./types.ts";
 
 // Set / clear the app's own `archived` flag on an item — the swipe-to-archive
 // (and restore) outcome. The framework owns no archived concept, so the demo
@@ -359,18 +359,42 @@ export function useChecklistStore(slug: string) {
     [sweepFinished],
   );
 
-  // Create a checklist under a user-picked title and open it, returning its id.
-  // Like `addFolder`, the title is collected inline before this fires — an empty
-  // draft never reaches the store, so a list is never born unnamed.
+  // Create a list under a user-picked title and open it, returning its id. The
+  // `kind` decides what the list holds: a checklist of `items` (the default) or
+  // a `note` whose Markdown lives in `body`. Like `addFolder`, the title is
+  // collected inline before this fires — an empty draft never reaches the store,
+  // so a list is never born unnamed.
   const addList = useCallback(
-    (folderId: string | null, title: string): string => {
+    (
+      folderId: string | null,
+      title: string,
+      kind: ListKind = "checklist",
+    ): string => {
       const id = freshId("list");
-      const list: List = { id, title, folderId, items: [] };
+      const list: List =
+        kind === "note"
+          ? { id, title, folderId, kind: "note", body: "", items: [] }
+          : { id, title, folderId, items: [] };
       commit({ ...data, lists: [...data.lists, list], activeListId: id });
       return id;
     },
     [commit, data],
   );
+
+  // Replace a note's Markdown body — the live-preview editor's `onChange`.
+  // Unlike a checklist edit this does *not* push to undo history (per-keystroke
+  // commits would flood it); it replaces the present and bumps the edit counter
+  // so the document still persists and the sync glyph still flags it dirty.
+  const setListBody = useCallback((id: string, body: string) => {
+    setState((prev) => ({
+      ...prev,
+      data: {
+        ...prev.data,
+        lists: prev.data.lists.map((l) => (l.id === id ? { ...l, body } : l)),
+      },
+    }));
+    setVersion((v) => v + 1);
+  }, []);
 
   // Create a folder under a user-picked name and return its id, so the caller
   // can act on the fresh folder (expand it, focus it). The name is collected
@@ -644,6 +668,7 @@ export function useChecklistStore(slug: string) {
     archiveFinishedItems,
     deleteFinishedItems,
     addList,
+    setListBody,
     addFolder,
     renameFolder,
     deleteFolder,

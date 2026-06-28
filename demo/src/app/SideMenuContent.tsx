@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -15,6 +15,7 @@ import {
   HeartIcon,
   HelpCircleIcon,
   InlineEditRow,
+  NoteIcon,
   PencilIcon,
   PlusIcon,
   RedoIcon,
@@ -40,7 +41,7 @@ import {
 
 import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
-import type { List } from "./types.ts";
+import type { List, ListKind } from "./types.ts";
 
 // What a side-menu drag carries (a checklist or a whole folder) and where it
 // can land. The framework's `useDragDrop` owns the gesture; these app types are
@@ -53,11 +54,18 @@ type DropTarget =
   | { kind: "archive" };
 
 // A list's menu icon: its picked glyph tinted by its accent colour, or the
-// neutral checklist mark when it carries no custom appearance. The active row
-// already paints its icon `text-accent`, so only an *inactive* row wears the
-// list's own colour — keeping the selected row's accent consistent.
+// neutral default mark for its kind (a checklist tick, or a note document) when
+// it carries no custom appearance. The active row already paints its icon
+// `text-accent`, so only an *inactive* row wears the list's own colour — keeping
+// the selected row's accent consistent.
 function listIcon(list: List, active: boolean) {
-  if (!list.glyph) return <ChecklistIcon className="h-4 w-4" />;
+  if (!list.glyph) {
+    return list.kind === "note" ? (
+      <NoteIcon className="h-4 w-4" />
+    ) : (
+      <ChecklistIcon className="h-4 w-4" />
+    );
+  }
   return (
     <Glyph
       name={list.glyph}
@@ -72,6 +80,15 @@ function listIcon(list: List, active: boolean) {
 // below at the foot of the drawer) and widens it to at least the trigger.
 const ABOUT_PLACEMENT: FloatingPlacement = {
   width: { kind: "min", minPx: 200 },
+  anchor: "left",
+  coordinateSpace: "viewport",
+};
+
+// The "New…" dropdown opens above its action-grid button (there's no room
+// below at the foot of the menu) — `FloatingPanel` flips it up automatically —
+// and widens to at least the trigger.
+const NEW_ITEM_PLACEMENT: FloatingPlacement = {
+  width: { kind: "min", minPx: 180 },
   anchor: "left",
   coordinateSpace: "viewport",
 };
@@ -207,13 +224,19 @@ export function SideMenuContent({
   // A new folder isn't created until it's named: the "New folder" action drops
   // an inline editor into the list, and only a non-empty name commits it.
   const [creatingFolder, setCreatingFolder] = useState(false);
-  // A new checklist follows the same pattern: the "New checklist" action (root,
+  // A new list follows the same pattern: the "New" dropdown (root,
   // `folderId: null`) or a folder's "+" (its id) drops an inline editor in the
-  // spot the list will land, and only a non-empty name commits it. `null` when
-  // no list is being created.
+  // spot the list will land, and only a non-empty name commits it. `kind`
+  // carries which the dropdown picked — a checklist or a note. `null` when no
+  // list is being created.
   const [creatingListIn, setCreatingListIn] = useState<{
     folderId: string | null;
+    kind: ListKind;
   } | null>(null);
+  // The action-grid "New" dropdown (checklist / note), anchored to `newRef` and
+  // flipped upward by `FloatingPanel`.
+  const [newOpen, setNewOpen] = useState(false);
+  const newRef = useRef<HTMLButtonElement>(null);
   // The folder whose name is being edited in place (via its action menu's
   // Rename), or `null` when none is.
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
@@ -239,10 +262,10 @@ export function SideMenuContent({
     onNavigate();
   }
 
-  // Open the inline "name your new checklist" editor. A list created inside a
-  // folder needs that folder expanded so the editor is visible, so un-collapse
-  // it first.
-  function beginCreateList(folderId: string | null) {
+  // Open the inline "name your new list" editor for the given kind. A list
+  // created inside a folder needs that folder expanded so the editor is visible,
+  // so un-collapse it first.
+  function beginCreateList(folderId: string | null, kind: ListKind) {
     if (folderId !== null) {
       setCollapsedFolders((prev) => {
         if (!prev.has(folderId)) return prev;
@@ -251,15 +274,33 @@ export function SideMenuContent({
         return next;
       });
     }
-    setCreatingListIn({ folderId });
+    setCreatingListIn({ folderId, kind });
   }
 
-  // Commit the inline editor: create the named list, open it, and close the
-  // editor. An empty name is handled by `InlineEditRow` (it cancels instead).
-  function commitCreateList(folderId: string | null, title: string) {
-    addList(folderId, title);
+  // Commit the inline editor: create the named list of its kind, open it, and
+  // close the editor. An empty name is handled by `InlineEditRow` (it cancels
+  // instead).
+  function commitCreateList(
+    folderId: string | null,
+    kind: ListKind,
+    title: string,
+  ) {
+    addList(folderId, title, kind);
     setCreatingListIn(null);
     onNavigate();
+  }
+
+  // The inline draft editor's icon and placeholder, keyed off which kind the
+  // "New" dropdown picked.
+  function draftIcon(kind: ListKind) {
+    return kind === "note" ? (
+      <NoteIcon className="h-4 w-4" />
+    ) : (
+      <ChecklistIcon className="h-4 w-4" />
+    );
+  }
+  function draftPlaceholder(kind: ListKind) {
+    return kind === "note" ? t("menu.noteName") : t("menu.checklistName");
   }
 
   // One checklist row, in a folder (`indent`) or at the root. Renaming swaps it
@@ -493,7 +534,7 @@ export function SideMenuContent({
                       count={lists.length}
                       expanded={expanded}
                       onToggle={() => toggleFolder(folder.id)}
-                      onAdd={() => beginCreateList(folder.id)}
+                      onAdd={() => beginCreateList(folder.id, "checklist")}
                     />
                   </SwipeableRow>
                 </RowActionMenu>
@@ -505,9 +546,11 @@ export function SideMenuContent({
                     <ListEditRow
                       indent
                       initial=""
-                      icon={<ChecklistIcon className="h-4 w-4" />}
-                      placeholder={t("menu.checklistName")}
-                      onCommit={(title) => commitCreateList(folder.id, title)}
+                      icon={draftIcon(creatingListIn.kind)}
+                      placeholder={draftPlaceholder(creatingListIn.kind)}
+                      onCommit={(title) =>
+                        commitCreateList(folder.id, creatingListIn.kind, title)
+                      }
                       onCancel={() => setCreatingListIn(null)}
                     />
                   )}
@@ -522,9 +565,11 @@ export function SideMenuContent({
           <ListEditRow
             indent={false}
             initial=""
-            icon={<ChecklistIcon className="h-4 w-4" />}
-            placeholder={t("menu.checklistName")}
-            onCommit={(title) => commitCreateList(null, title)}
+            icon={draftIcon(creatingListIn.kind)}
+            placeholder={draftPlaceholder(creatingListIn.kind)}
+            onCommit={(title) =>
+              commitCreateList(null, creatingListIn.kind, title)
+            }
             onCancel={() => setCreatingListIn(null)}
           />
         )}
@@ -560,8 +605,9 @@ export function SideMenuContent({
         <div className="divide-y divide-line overflow-hidden rounded-md border border-line">
           <div className="flex divide-x divide-line">
             <BarButton
-              label={t("menu.newChecklist")}
-              onClick={() => beginCreateList(null)}
+              buttonRef={newRef}
+              label={t("menu.newItem")}
+              onClick={() => setNewOpen((v) => !v)}
             >
               <PlusIcon className="h-5 w-5" />
             </BarButton>
@@ -686,6 +732,36 @@ export function SideMenuContent({
         >
           {t("menu.source")}
         </FooterLink>
+      </FloatingPanel>
+
+      {/* The "New" dropdown — pressing the action-grid "+" opens this above the
+          button (`FloatingPanel` flips it up), offering a checklist or a note.
+          Picking one drops the inline name editor for that kind in place. */}
+      <FloatingPanel
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        triggerRef={newRef}
+        placement={NEW_ITEM_PLACEMENT}
+        className="py-1"
+      >
+        <FooterRow
+          icon={<ChecklistIcon className="h-5 w-5" />}
+          onClick={() => {
+            setNewOpen(false);
+            beginCreateList(null, "checklist");
+          }}
+        >
+          {t("menu.newChecklist")}
+        </FooterRow>
+        <FooterRow
+          icon={<NoteIcon className="h-5 w-5" />}
+          onClick={() => {
+            setNewOpen(false);
+            beginCreateList(null, "note");
+          }}
+        >
+          {t("menu.newNote")}
+        </FooterRow>
       </FloatingPanel>
 
       {/* The cursor-following label of whatever's mid-drag — portalled to the
@@ -896,6 +972,7 @@ function BarButton({
   dropRef,
   over,
   active,
+  buttonRef,
 }: {
   children: ReactNode;
   label: string;
@@ -910,6 +987,8 @@ function BarButton({
   dropRef?: (el: HTMLElement | null) => void;
   over?: boolean;
   active?: boolean;
+  // Anchors a `FloatingPanel` to this button (the "New" dropdown trigger).
+  buttonRef?: RefObject<HTMLButtonElement | null>;
 }) {
   // A live drag's drop-zone feedback wins over the resting "current view" tint
   // so the user can see where a dropped item will land.
@@ -922,7 +1001,7 @@ function BarButton({
         : "";
   return (
     <button
-      ref={dropRef}
+      ref={buttonRef ?? dropRef}
       type="button"
       aria-label={label}
       aria-pressed={current}

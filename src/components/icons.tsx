@@ -477,3 +477,15 @@ export function AlertTriangleIcon({ className }: IconProps) {
     </Glyph>
   );
 }
+
+/** A document with text lines — a free-form note / Markdown document, the twin
+ *  of {@link ChecklistIcon} for a list that holds prose rather than checkboxes. */
+export function NoteIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M14 3v4h4" />
+      <path d="M8 12h7M8 16h7" />
+    </Glyph>
+  );
+}

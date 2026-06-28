@@ -15,7 +15,9 @@ export const sv: Catalog = {
   menu: {
     namespace: "Namnrymd",
     checklists: "Checklistor",
+    newItem: "Ny",
     newChecklist: "Ny checklista",
+    newNote: "Ny anteckning",
     newFolder: "Ny mapp",
     folderName: "Mappnamn",
     renameFolder: "Byt namn på mapp",
@@ -23,6 +25,7 @@ export const sv: Catalog = {
     folderActions: "Mappåtgärder",
     newChecklistIn: "Ny checklista i {name}",
     checklistName: "Checklistnamn",
+    noteName: "Anteckningsnamn",
     renameChecklist: "Byt namn",
     deleteChecklist: "Ta bort",
     checklistActions: "Checklisteåtgärder",
@@ -109,6 +112,10 @@ export const sv: Catalog = {
     moreActions: "Fler åtgärder",
     archiveFinished: "Arkivera klara rader",
     deleteFinished: "Ta bort klara rader",
+  },
+  note: {
+    startWriting: "Börja skriva…",
+    copyNote: "Kopiera anteckning",
   },
   sync: {
     saving: "Sparar…",

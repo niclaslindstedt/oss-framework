@@ -16,7 +16,9 @@ export const en = {
   menu: {
     namespace: "Namespace",
     checklists: "Checklists",
+    newItem: "New",
     newChecklist: "New checklist",
+    newNote: "New note",
     newFolder: "New folder",
     folderName: "Folder name",
     renameFolder: "Rename folder",
@@ -24,6 +26,7 @@ export const en = {
     folderActions: "Folder actions",
     newChecklistIn: "New checklist in {name}",
     checklistName: "Checklist name",
+    noteName: "Note name",
     renameChecklist: "Rename",
     deleteChecklist: "Delete",
     checklistActions: "Checklist actions",
@@ -110,6 +113,10 @@ export const en = {
     moreActions: "More actions",
     archiveFinished: "Archive finished items",
     deleteFinished: "Delete finished items",
+  },
+  note: {
+    startWriting: "Start writing…",
+    copyNote: "Copy note",
   },
   sync: {
     // The header status glyph (`SyncStatus`).
