@@ -40,6 +40,7 @@ import {
   useAchievementWatcher,
 } from "@niclaslindstedt/oss-framework/achievements";
 
+import { ArchiveScreen } from "./app/ArchiveScreen.tsx";
 import { ChecklistScreen } from "./app/ChecklistScreen.tsx";
 import { RELEASES, FEATURE_DOCS } from "./app/changelog.ts";
 import { SearchOverlay } from "./app/SearchOverlay.tsx";
@@ -76,6 +77,10 @@ export function App() {
   const store = useChecklistStore(ns.activeSlug);
   const [namespacesOpen, setNamespacesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // The top-level view the main area shows: the active checklist, or the Archive
+  // page (reached from the side menu's Archive button). Selecting or creating a
+  // list from the menu drops back to the checklist view.
+  const [view, setView] = useState<"checklist" | "archive">("checklist");
   // The "What's new" dialog, opened from the side menu's About dropdown.
   const [changelogOpen, setChangelogOpen] = useState(false);
   const { settings, setSettings } = useAppSettings();
@@ -257,6 +262,14 @@ export function App() {
             setChangelogOpen(true);
           }}
           onNavigate={() => {
+            // Selecting or creating a list always lands on the checklist view —
+            // a tap in the menu navigates away from the Archive page.
+            setView("checklist");
+            if (!pinned) setDrawerOpen(false);
+          }}
+          view={view}
+          onShowArchive={() => {
+            setView("archive");
             if (!pinned) setDrawerOpen(false);
           }}
           checkingUpdate={pwa.checking}
@@ -266,24 +279,28 @@ export function App() {
       </Sidebar>
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <ChecklistScreen
-          store={store}
-          sync={sync}
-          onOpenSyncDetails={() => setSyncDetailsOpen(true)}
-          trophy={
-            achievementsEnabled ? (
-              <TrophyButton
-                unseenCount={ach.unseen.length}
-                onClick={() =>
-                  ach.unseen.length > 0
-                    ? setUnlockOpen(true)
-                    : setTourOpen(true)
-                }
-                className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
-              />
-            ) : null
-          }
-        />
+        {view === "archive" ? (
+          <ArchiveScreen store={store} />
+        ) : (
+          <ChecklistScreen
+            store={store}
+            sync={sync}
+            onOpenSyncDetails={() => setSyncDetailsOpen(true)}
+            trophy={
+              achievementsEnabled ? (
+                <TrophyButton
+                  unseenCount={ach.unseen.length}
+                  onClick={() =>
+                    ach.unseen.length > 0
+                      ? setUnlockOpen(true)
+                      : setTourOpen(true)
+                  }
+                  className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
+                />
+              ) : null
+            }
+          />
+        )}
       </main>
 
       <SettingsModal
