@@ -267,8 +267,9 @@ grips, checked items struck through and optionally sunk to the bottom, plus
 swipe-to-delete when `onDelete` is wired — the `useRowSwipe` gesture in action —
 and a per-row right-click handle via `onRowContextMenu` for desktop pointers).
 Switch on `editable` to rename a row's text in place (tap to edit), and
-`reorderable` to drag rows — a long press or a grip press lifts one to drop
-before/after another, even into a child checklist.
+`reorderable` to drag rows — a grip press lifts one (a shrunken copy follows the
+finger, a dashed ghost marks where it lands) to drop before/after another or, by
+dragging onto its middle, _into_ it as a sub-item.
 `ChecklistProgress` is the header ring badge with a bulk check/uncheck menu; and
 `tree.ts` is the pure, DOM-free core — `toggleNode` (cascades a check down the
 whole subtree), `setAllChecked`, `removeNode`, `renameNode`, `moveNode`,

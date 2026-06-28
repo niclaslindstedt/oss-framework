@@ -27,5 +27,6 @@ export {
   flattenForDisplay,
   type ChecklistNode,
   type DisplayRow,
+  type DropMode,
   type InsertPosition,
 } from "./tree.ts";

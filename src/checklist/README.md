@@ -16,17 +16,17 @@ node tree (`tree.ts`) and the components that render it. Your app owns the
 carries (notes, tags, a template id, archived-ness), and the i18n. The node type
 is deliberately minimal; an app intersects it to layer its own fields on.
 
-| Export                                                                    | Kind      | What it is                                                         |
-| ------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
-| `Checklist`                                                               | component | The nested list: depth-indented checkable rows + collapse + grips. |
-| `ChecklistProgress`                                                       | component | The header ring badge (`checked / total`) with optional bulk menu. |
-| `ChecklistNode`                                                           | type      | `{ id; label; checked; checkedAt?; children? }`.                   |
-| `toggleNode` / `setNodeChecked` / `setAllChecked`                         | fn        | Check operations — **cascade** the new state down the subtree.     |
-| `removeNode`                                                              | fn        | Drop a node (and its subtree) from anywhere in the tree.           |
-| `renameNode`                                                              | fn        | Replace a node's label, leaving the rest of the tree shared.       |
-| `moveNode`                                                                | fn        | Move a node (and its subtree) before/after another, reparenting.   |
-| `countProgress` / `isComplete` / `subtreeState`                           | fn        | Tallies and the indeterminate cue.                                 |
-| `sortCheckedToBottom` / `flattenForDisplay` / `flattenNodes` / `findNode` | fn        | View ordering and tree walks.                                      |
+| Export                                                                    | Kind      | What it is                                                            |
+| ------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------- |
+| `Checklist`                                                               | component | The nested list: depth-indented checkable rows + collapse + grips.    |
+| `ChecklistProgress`                                                       | component | The header ring badge (`checked / total`) with optional bulk menu.    |
+| `ChecklistNode`                                                           | type      | `{ id; label; checked; checkedAt?; children? }`.                      |
+| `toggleNode` / `setNodeChecked` / `setAllChecked`                         | fn        | Check operations — **cascade** the new state down the subtree.        |
+| `removeNode`                                                              | fn        | Drop a node (and its subtree) from anywhere in the tree.              |
+| `renameNode`                                                              | fn        | Replace a node's label, leaving the rest of the tree shared.          |
+| `moveNode`                                                                | fn        | Move a node (and its subtree) before/into/after another, reparenting. |
+| `countProgress` / `isComplete` / `subtreeState`                           | fn        | Tallies and the indeterminate cue.                                    |
+| `sortCheckedToBottom` / `flattenForDisplay` / `flattenNodes` / `findNode` | fn        | View ordering and tree walks.                                         |
 
 ## The model
 
@@ -131,22 +131,31 @@ the same `onChange`, with the relabelled tree (`renameNode` under the hood):
 
 A non-string label (a rich `ReactNode`) stays read-only.
 
-### Drag to reorder
+### Drag to reorder (and nest)
 
-Pass `reorderable` and rows lift to drag: a **long press** (touch) or a press on
-the **grip** (`showGrips`) picks a row up, and dropping it before/after another
-row reorders the tree (`moveNode`) through `onChange`. The drop reparents the
-dragged node — subtree and all — into the target's sibling list, so a row can
-move between child checklists, not just within its own level:
+Pass `reorderable` (with `showGrips`) and a press on a row's **grip** lifts it:
+a shrunken, translucent copy follows the finger while a dashed **ghost** preview
+snaps into the spot it will land. The row the finger is over is split into three
+zones — the **top edge** drops the dragged row as that row's sibling _before_ it,
+the **bottom edge** _after_ it, and the **middle band** _into_ it as a sub-item.
+So reordering and nesting are one gesture: dragging onto a row's middle nests it,
+and the ghost indents and shrinks to the child it will become while the target
+row is ringed, so a drop-to-nest is unmistakable before you let go. On release
+the tree is reordered (`moveNode`) through `onChange`. The drop reparents the
+dragged node — subtree and all — so a row can move between child checklists, not
+just within its own level:
 
 ```tsx
 <Checklist items={items} onChange={setItems} reorderable showGrips />
 ```
 
-The gesture rides Pointer Events (touch + mouse + pen) and a held drag suppresses
-the row's own tap, so dragging never toggles or opens the editor. Driving your
-own store? `moveNode(tree, dragId, targetId, "before" | "after")` and
-`renameNode(tree, id, label)` are the pure transforms behind both.
+The gesture rides Pointer Events (touch + mouse + pen) off the grip handle — kept
+off the row body so it never collides with the horizontal swipe — and a small
+axis-lock means a stationary press never nudges the list. Driving your own store?
+`moveNode(tree, dragId, targetId, "before" | "into" | "after")` and
+`renameNode(tree, id, label)` are the pure transforms behind both. Leave
+`reorderable` off and wire `onReorderStart(id, event)` to drive your own drag
+from the grip instead.
 
 Driving your **own store** instead of local state? Skip the components and use
 `tree.ts` directly — every function is a pure `(tree) => tree` transform, so it
@@ -180,9 +189,11 @@ In degree-of-match order:
   `mixed` cue to render an indeterminate parent.
 - **You persisted the sink-checked order.** Don't — pass `sinkChecked` and keep
   the document in authored order; the ordering is re-derived for display.
-- **You had drag-to-reorder.** `Checklist` renders the grip (`showGrips`) and
-  fires `onReorderStart(id, event)` on grip press; wire it to your own drag
-  (the framework ships the affordance, not a DnD engine).
+- **You had drag-to-reorder.** Pass `reorderable showGrips` and the framework
+  drives the whole gesture — lift, the finger-following float, the landing
+  ghost, before/into/after zones, and the `moveNode` commit — no app wiring
+  beyond `onChange`. Need your own engine instead? Leave `reorderable` off and
+  wire `onReorderStart(id, event)`, fired on grip press, to drive it yourself.
 - **You had swipe-to-delete (or a second flick-off action).** Wire `onDelete`
   (delete via `removeNode`) for the left-swipe Delete reveal, and `swipeAction`
   for a right-swipe commit you name yourself — the demo flicks a row to its
@@ -199,3 +210,7 @@ In degree-of-match order:
   (what `onChange` emits) is unchanged.
 - With `onDelete`, swiping a row left reveals Delete and tapping it (or flicking
   the row right) emits the row's id; the row leaves only after you `removeNode`.
+- With `reorderable showGrips`, pressing a grip lifts the row (a float follows
+  the pointer, a dashed ghost marks the landing); dropping on a row's edge
+  reorders it as a sibling and dropping on its middle nests it as a sub-item
+  (the ghost indents and shrinks, the target row is ringed).

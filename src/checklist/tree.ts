@@ -212,6 +212,14 @@ export function renameNode<T extends ChecklistNode>(
 export type InsertPosition = { at: "top" | "bottom" } | { after: string };
 
 /**
+ * Where a dragged node lands relative to the row it was dropped on:
+ * `"before"` / `"after"` place it as that row's sibling on the named side;
+ * `"into"` nests it as the row's last child (a sub-item). The three drop zones
+ * a drag-to-reorder gesture resolves to — see {@link moveNode}.
+ */
+export type DropMode = "before" | "into" | "after";
+
+/**
  * Insert `node` into the tree at a chosen spot — the add-item composer's drop:
  * at the `"top"` or `"bottom"` of the root list, or as a sibling immediately
  * `after` an existing node (wherever it sits, at that node's own depth). Falls
@@ -230,22 +238,29 @@ export function insertNode<T extends ChecklistNode>(
   return position.at === "top" ? [node, ...nodes] : [...nodes, node];
 }
 
-// Insert `node` immediately before / after the node with `targetId`, wherever
-// it sits in the tree, rebuilding only the path down to it (structural sharing
-// elsewhere). Assumes `targetId` is present — the caller checks.
+// Insert `node` relative to the node with `targetId`, wherever it sits in the
+// tree, rebuilding only the path down to it (structural sharing elsewhere).
+// `"into"` appends `node` to the target's own children (nesting it a level
+// deeper); `"before"` / `"after"` splice it in as the target's sibling. Assumes
+// `targetId` is present — the caller checks.
 function insertRelative<T extends ChecklistNode>(
   nodes: readonly T[],
   targetId: string,
   node: T,
-  position: "before" | "after",
+  position: DropMode,
 ): T[] {
   let changed = false;
   const out: T[] = [];
   for (const n of nodes) {
     if (n.id === targetId) {
       changed = true;
-      if (position === "before") out.push(node, n);
-      else out.push(n, node);
+      if (position === "into") {
+        out.push({ ...n, children: [...(n.children ?? []), node] } as T);
+      } else if (position === "before") {
+        out.push(node, n);
+      } else {
+        out.push(n, node);
+      }
       continue;
     }
     if (n.children) {
@@ -267,18 +282,21 @@ function insertRelative<T extends ChecklistNode>(
 }
 
 /**
- * Move the node with `dragId` to sit just `"before"` / `"after"` `targetId`,
- * wherever the target lives — reparenting the dragged node (and its whole
- * subtree) into the target's sibling list. The drop behind a drag-to-reorder
+ * Move the node with `dragId` to land relative to `targetId`, wherever the
+ * target lives — reparenting the dragged node (and its whole subtree). `"into"`
+ * nests it as the target's last child; `"before"` / `"after"` drop it into the
+ * target's sibling list on that side. The drop behind a drag-to-reorder
  * gesture. A no-op (same ref) when `dragId === targetId`, when either id is
- * missing, or when `targetId` sits inside `dragId`'s own subtree (which would
- * orphan the branch being relocated). Pure: never mutates the input.
+ * missing, when `targetId` sits inside `dragId`'s own subtree (which would
+ * orphan the branch being relocated), or when the move leaves the tree's shape
+ * unchanged (e.g. dropping after the sibling already ahead of it). Pure: never
+ * mutates the input.
  */
 export function moveNode<T extends ChecklistNode>(
   nodes: readonly T[],
   dragId: string,
   targetId: string,
-  position: "before" | "after",
+  position: DropMode,
 ): T[] {
   if (dragId === targetId) return nodes as T[];
   const dragged = findNode(nodes, dragId);
@@ -288,7 +306,29 @@ export function moveNode<T extends ChecklistNode>(
   if (dragged.children && findNode(dragged.children as T[], targetId)) {
     return nodes as T[];
   }
-  return insertRelative(removeNode(nodes, dragId), targetId, dragged, position);
+  const next = insertRelative(
+    removeNode(nodes, dragId),
+    targetId,
+    dragged,
+    position,
+  );
+  // A move that rearranges nothing (dropping before the node already after it,
+  // or into a parent it already ends) returns the original tree so the caller
+  // never records an empty undo step or triggers a spurious write.
+  return structureKey(next) === structureKey(nodes) ? (nodes as T[]) : next;
+}
+
+// A compact id + nesting signature of the tree, for detecting a positional
+// no-op move — two trees with the same key hold the same nodes in the same
+// places, regardless of array identity.
+function structureKey<T extends ChecklistNode>(nodes: readonly T[]): string {
+  return nodes
+    .map((n) =>
+      n.children && n.children.length > 0
+        ? `${n.id}(${structureKey(n.children as T[])})`
+        : n.id,
+    )
+    .join(",");
 }
 
 /**

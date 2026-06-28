@@ -24,7 +24,14 @@ import {
   toggleNode,
   updateNode,
   type ChecklistNode,
+  type DisplayRow,
 } from "../src/checklist/index.ts";
+import {
+  resolveDropTarget,
+  type Rect,
+} from "../src/checklist/useChecklistReorder.ts";
+import { ghostPlacement } from "../src/checklist/ghostPlacement.ts";
+import { DragGhostRow } from "../src/checklist/DragGhostRow.tsx";
 
 // An app's richer node — the framework owns no "archived" flag, so a consumer
 // layers its own and drives the generic helpers with it. Exercised below to
@@ -208,6 +215,28 @@ describe("checklist tree", () => {
     ]);
   });
 
+  it("moveNode nests a node into the target's children with into", () => {
+    // "milk" dropped into "fruit" becomes its last child.
+    const next = moveNode(tree(), "milk", "fruit", "into");
+    expect(next.map((n) => n.id)).toEqual(["fruit"]);
+    expect(findNode(next, "fruit")!.children!.map((n) => n.id)).toEqual([
+      "apple",
+      "pear",
+      "milk",
+    ]);
+    // Dropping into a node inside the dragged subtree is refused (would orphan).
+    const t = tree();
+    expect(moveNode(t, "fruit", "apple", "into")).toBe(t);
+  });
+
+  it("moveNode is a no-op (same ref) when the move rearranges nothing", () => {
+    const t = tree();
+    // "milk" is already right after "fruit" at the top level.
+    expect(moveNode(t, "milk", "fruit", "after")).toBe(t);
+    // "fruit" is already right before "milk".
+    expect(moveNode(t, "fruit", "milk", "before")).toBe(t);
+  });
+
   it("moveNode is a no-op for self, a miss, or a drop into its own subtree", () => {
     const t = tree();
     expect(moveNode(t, "fruit", "fruit", "before")).toBe(t);
@@ -288,6 +317,154 @@ describe("checklist tree", () => {
     expect(countProgress(arch, hidden)).toEqual({ checked: 0, total: 3 });
     // With no predicate, nothing is hidden — every node counts.
     expect(countProgress(arch)).toEqual({ checked: 0, total: 4 });
+  });
+});
+
+// --- drag-to-reorder helpers (pure) -------------------------------------
+
+describe("resolveDropTarget", () => {
+  // Three stacked rows, 40px tall each.
+  const rows: Rect[] = [
+    { id: "a", top: 0, height: 40 },
+    { id: "b", top: 40, height: 40 },
+    { id: "c", top: 80, height: 40 },
+  ];
+  const yes = () => true;
+
+  it("splits a row into before / into / after zones", () => {
+    // Top quarter → before; middle band → into; bottom quarter → after.
+    expect(resolveDropTarget(rows, "x", 4, yes)).toEqual({
+      id: "a",
+      mode: "before",
+    });
+    expect(resolveDropTarget(rows, "x", 20, yes)).toEqual({
+      id: "a",
+      mode: "into",
+    });
+    expect(resolveDropTarget(rows, "x", 38, yes)).toEqual({
+      id: "a",
+      mode: "after",
+    });
+  });
+
+  it("clamps past the ends to the first / last droppable row", () => {
+    expect(resolveDropTarget(rows, "x", -50, yes)).toEqual({
+      id: "a",
+      mode: "before",
+    });
+    expect(resolveDropTarget(rows, "x", 999, yes)).toEqual({
+      id: "c",
+      mode: "after",
+    });
+  });
+
+  it("never targets the dragged row, falling back to a neighbour", () => {
+    // Over "b" while dragging "b": above its midpoint drops before a neighbour.
+    expect(resolveDropTarget(rows, "b", 50, yes)).toEqual({
+      id: "a",
+      mode: "before",
+    });
+    // Below its midpoint drops after.
+    expect(resolveDropTarget(rows, "b", 70, yes)).toEqual({
+      id: "c",
+      mode: "after",
+    });
+  });
+
+  it("skips rows canDrop forbids", () => {
+    // "b" is forbidden (a descendant of the dragged row): a press in its middle
+    // resolves to a neighbour rather than nesting into it.
+    const canDrop = (_: string, targetId: string) => targetId !== "b";
+    const hit = resolveDropTarget(rows, "x", 60, canDrop);
+    expect(hit?.id).not.toBe("b");
+  });
+});
+
+describe("ghostPlacement", () => {
+  // A parent with one visible child, then a top-level leaf.
+  const rows: DisplayRow[] = [
+    {
+      node: { id: "p", label: "P", checked: false, children: [] },
+      depth: 0,
+      hasChildren: true,
+    },
+    {
+      node: { id: "c", label: "C", checked: false },
+      depth: 1,
+      hasChildren: false,
+    },
+    {
+      node: { id: "leaf", label: "L", checked: false },
+      depth: 0,
+      hasChildren: false,
+    },
+  ];
+
+  it("places a before drop above the target at its depth", () => {
+    expect(ghostPlacement(rows, { id: "p", mode: "before" })).toEqual({
+      index: 0,
+      depth: 0,
+    });
+  });
+
+  it("places an after drop below the target's whole subtree", () => {
+    // Past "p" and its child "c": index 2, still a sibling (depth 0).
+    expect(ghostPlacement(rows, { id: "p", mode: "after" })).toEqual({
+      index: 2,
+      depth: 0,
+    });
+  });
+
+  it("places an into drop below the subtree, indented a level", () => {
+    expect(ghostPlacement(rows, { id: "p", mode: "into" })).toEqual({
+      index: 2,
+      depth: 1,
+    });
+    // Into a leaf: right after it, one level deeper.
+    expect(ghostPlacement(rows, { id: "leaf", mode: "into" })).toEqual({
+      index: 3,
+      depth: 1,
+    });
+  });
+
+  it("returns null for no target or an off-screen one", () => {
+    expect(ghostPlacement(rows, null)).toBeNull();
+    expect(ghostPlacement(rows, { id: "gone", mode: "into" })).toBeNull();
+  });
+});
+
+describe("DragGhostRow", () => {
+  it("indents the dashed border and shrinks the ghost for a child drop", () => {
+    const { container } = render(
+      <ul>
+        <DragGhostRow label="Milk" depth={1} />
+      </ul>,
+    );
+    expect(screen.getByText("Milk")).toBeDefined();
+    const box = container.querySelector(
+      "[data-drag-ghost] > div",
+    ) as HTMLElement;
+    // The dashed border box itself is indented to the child's depth.
+    expect(box.style.marginLeft).toBe("22px");
+    // The label renders a size smaller (nested), matching the row it'll become.
+    expect(box.querySelector("span:last-child")!.className).toContain(
+      "text-xs",
+    );
+  });
+
+  it("spans full width at full size for a sibling drop", () => {
+    const { container } = render(
+      <ul>
+        <DragGhostRow label="Milk" depth={0} />
+      </ul>,
+    );
+    const box = container.querySelector(
+      "[data-drag-ghost] > div",
+    ) as HTMLElement;
+    expect(box.style.marginLeft).toBe("");
+    expect(box.querySelector("span:last-child")!.className).toContain(
+      "text-sm",
+    );
   });
 });
 
