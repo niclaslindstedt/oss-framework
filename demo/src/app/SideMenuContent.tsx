@@ -6,7 +6,6 @@ import {
   ArchiveIcon,
   ChecklistIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
   CogIcon,
   ExternalLinkIcon,
   FloatingPanel,
@@ -794,15 +793,8 @@ function FolderRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-[var(--density-row-py)] pr-1 pl-6 text-left text-fg hover:text-fg-bright"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-[var(--density-row-py)] pr-1 pl-5 text-left text-fg hover:text-fg-bright"
       >
-        <span className="text-muted">
-          {expanded ? (
-            <ChevronDownIcon className="h-4 w-4" />
-          ) : (
-            <ChevronRightIcon className="h-4 w-4" />
-          )}
-        </span>
         <span className={expanded ? "text-accent" : "text-muted"}>
           {expanded ? (
             <FolderOpenIcon className="h-5 w-5" />
@@ -828,10 +820,8 @@ function FolderRow({
 // The inline folder name editor, used both for creating a folder (empty) and
 // renaming one (seeded with its name). The framework's `InlineEditRow` owns the
 // focus-on-mount, the Enter/blur-commits-Escape-cancels semantics, and the
-// double-fire guard; this wrapper supplies only the folder chrome — a
-// chevron-sized leading spacer (no chevron — a brand-new folder can't be
-// expanded) that keeps the folder glyph aligned with the existing folders'
-// glyphs, plus the folder icon and the row's padding.
+// double-fire guard; this wrapper supplies only the folder chrome — the folder
+// icon and the row's padding, aligned with the live folder rows' glyphs.
 function FolderEditRow({
   initial = "",
   placeholder,
@@ -849,8 +839,7 @@ function FolderEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className="gap-2 pr-2 pl-6"
-      leading={<span className="h-4 w-4 shrink-0" aria-hidden="true" />}
+      className="gap-3 pr-2 pl-5"
       icon={<FolderIcon className="h-5 w-5" />}
       iconClassName="text-muted"
     />
