@@ -265,8 +265,10 @@ export function SideMenuContent({
 
   // One checklist row, in a folder (`indent`) or at the root. Renaming swaps it
   // for the inline editor; otherwise it's a swipeable nav row — swipe left for
-  // the pencil + trash strip (rename / delete), swipe right to archive — that
-  // also exposes the same actions to a desktop right-click via `RowActionMenu`.
+  // the pencil + trash strip (rename / delete), swipe right to archive — whose
+  // actions a desktop right-click / touch long press reach through
+  // `RowActionMenu`, where Archive joins them (the swipe-right commit has no
+  // pointer counterpart otherwise).
   function renderList(list: List, indent: boolean) {
     if (renamingListId === list.id) {
       return (
@@ -284,18 +286,29 @@ export function SideMenuContent({
         />
       );
     }
-    const actions = [
+    const renameAction = {
+      label: t("menu.renameChecklist"),
+      icon: <PencilIcon className="h-5 w-5" />,
+      onSelect: () => setRenamingListId(list.id),
+    };
+    const deleteAction = {
+      label: t("menu.deleteChecklist"),
+      icon: <TrashIcon className="h-5 w-5" />,
+      danger: true,
+      onSelect: () => deleteList(list.id),
+    };
+    // The swipe-left strip stays rename / delete (swipe-right commits archive);
+    // the long-press / right-click menu also carries Archive, since a pointer
+    // never gets the swipe-right gesture.
+    const actions = [renameAction, deleteAction];
+    const menuActions = [
+      renameAction,
       {
-        label: t("menu.renameChecklist"),
-        icon: <PencilIcon className="h-5 w-5" />,
-        onSelect: () => setRenamingListId(list.id),
+        label: t("menu.archive"),
+        icon: <ArchiveIcon className="h-5 w-5" />,
+        onSelect: () => archiveList(list.id),
       },
-      {
-        label: t("menu.deleteChecklist"),
-        icon: <TrashIcon className="h-5 w-5" />,
-        danger: true,
-        onSelect: () => deleteList(list.id),
-      },
+      deleteAction,
     ];
     return (
       <DraggableRow
@@ -303,7 +316,10 @@ export function SideMenuContent({
         handle={dnd.dragHandle({ kind: "list", id: list.id })}
         handleLabel={t("menu.dragToMove")}
       >
-        <RowActionMenu ariaLabel={t("menu.checklistActions")} actions={actions}>
+        <RowActionMenu
+          ariaLabel={t("menu.checklistActions")}
+          actions={menuActions}
+        >
           <SwipeableRow
             actions={actions}
             onArchive={() => archiveList(list.id)}
@@ -420,20 +436,29 @@ export function SideMenuContent({
             );
           }
           // Swipe left for the pencil + trash strip (rename / delete), swipe
-          // right to archive; the same actions back a desktop right-click / a
-          // touch long press through `RowActionMenu`.
-          const folderActions = [
+          // right to archive; a desktop right-click / a touch long press reach
+          // those through `RowActionMenu`, where Archive joins them (the
+          // swipe-right commit has no pointer counterpart otherwise).
+          const renameFolderAction = {
+            label: t("menu.renameFolder"),
+            icon: <PencilIcon className="h-5 w-5" />,
+            onSelect: () => setRenamingFolderId(folder.id),
+          };
+          const deleteFolderAction = {
+            label: t("menu.deleteFolder"),
+            icon: <TrashIcon className="h-5 w-5" />,
+            danger: true,
+            onSelect: () => deleteFolder(folder.id),
+          };
+          const folderActions = [renameFolderAction, deleteFolderAction];
+          const folderMenuActions = [
+            renameFolderAction,
             {
-              label: t("menu.renameFolder"),
-              icon: <PencilIcon className="h-5 w-5" />,
-              onSelect: () => setRenamingFolderId(folder.id),
+              label: t("menu.archive"),
+              icon: <ArchiveIcon className="h-5 w-5" />,
+              onSelect: () => archiveFolder(folder.id),
             },
-            {
-              label: t("menu.deleteFolder"),
-              icon: <TrashIcon className="h-5 w-5" />,
-              danger: true,
-              onSelect: () => deleteFolder(folder.id),
-            },
+            deleteFolderAction,
           ];
           const folderZone = dnd.dropZone(`folder:${folder.id}`, {
             kind: "folder",
@@ -447,7 +472,7 @@ export function SideMenuContent({
               >
                 <RowActionMenu
                   ariaLabel={t("menu.folderActions")}
-                  actions={folderActions}
+                  actions={folderMenuActions}
                 >
                   <SwipeableRow
                     actions={folderActions}
