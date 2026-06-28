@@ -136,6 +136,7 @@ Today:
 | `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs).                                       |
 | `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.                                         |
 | namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).                                           |
+| `NamespaceSwitcher`      | `.` and `./namespaces`   | In-drawer collapsible switcher — switch the active namespace, open the manager, drop items across namespaces.              |
 | `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.                                         |
 | `SyncStatus`             | `.` and `./sync`         | Header glyph that morphs over a `SaveStatus` + `dirty`/`offline`; opens the details.                                       |
 | `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.                                          |
@@ -378,8 +379,10 @@ The `namespaces` module models **named buckets that each hold their own
 document** — profiles, workspaces, categories. It ships the `Namespace` data
 shape, a set of **pure list transforms** over it (create with a unique slug,
 rename, restyle, remove, plus a connect-time `mergeNamespaceLists` reconcile), a
-favicon resolver that re-badges the tab to the active namespace, and the
-`NamespacesModal` management dialog (presentational, labels injected). The
+favicon resolver that re-badges the tab to the active namespace, the in-drawer
+`NamespaceSwitcher` (a collapsible switch-and-jump-to-manage section that doubles
+as a cross-namespace drop target), and the `NamespacesModal` management dialog
+(both presentational, labels injected). The
 registry and the active-namespace pointer stay in your app — the module is
 storage-free by design — so where the list lives and how a slug maps to a
 storage location remain yours. See
@@ -388,6 +391,7 @@ adoption guide.
 
 ```ts
 import {
+  NamespaceSwitcher,
   NamespacesModal,
   addNamespace,
   namespaceFaviconHref,

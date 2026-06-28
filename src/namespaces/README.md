@@ -23,6 +23,7 @@ import {
   removeNamespace,
   namespaceFaviconHref,
   applyFaviconHref,
+  NamespaceSwitcher,
   NamespacesModal,
 } from "@niclaslindstedt/oss-framework/namespaces";
 ```
@@ -37,13 +38,14 @@ location — those are coupled to the backend you chose and the keys your data
 already sits under, so they stay in your app. This is the same store seam every
 other module draws.
 
-| In the framework                                               | In your app                                                        |
-| -------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `Namespace` / `NamespaceAppearance` types, `DEFAULT_NAMESPACE` | the `Namespace[]` registry + active-slug pointer (where they live) |
-| pure list ops (`addNamespace`, `renameNamespace`, …)           | the store/hook that holds the list and persists it                 |
-| `parseNamespaces` / `serializeNamespaces`                      | reading/writing the persisted blob (localStorage, a synced file)   |
-| `namespaceFaviconHref` / `applyFaviconHref`                    | when to re-badge (e.g. on an active-namespace swap)                |
-| `NamespacesModal` (presentational)                             | mapping a slug → document, and removing a namespace's data         |
+| In the framework                                               | In your app                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `Namespace` / `NamespaceAppearance` types, `DEFAULT_NAMESPACE` | the `Namespace[]` registry + active-slug pointer (where they live)  |
+| pure list ops (`addNamespace`, `renameNamespace`, …)           | the store/hook that holds the list and persists it                  |
+| `parseNamespaces` / `serializeNamespaces`                      | reading/writing the persisted blob (localStorage, a synced file)    |
+| `namespaceFaviconHref` / `applyFaviconHref`                    | when to re-badge (e.g. on an active-namespace swap)                 |
+| `NamespaceSwitcher` (presentational)                           | the in-drawer switch UI; you supply the list, handlers, drag wiring |
+| `NamespacesModal` (presentational)                             | mapping a slug → document, and removing a namespace's data          |
 
 The favicon resolver leans on the [`glyphs`](../glyphs/README.md) module, and
 the dialog composes the framework's own `Modal` / `ConfirmDialog` / `Button` /
@@ -182,19 +184,53 @@ useEffect(() => {
 
 ### UI
 
+- `NamespaceSwitcher` — the in-drawer switcher: a collapsible "Namespaces"
+  section you head your navigation with. Tap a row to switch the active
+  namespace; the heading's cog opens the management dialog. Collapsed it shows
+  only the active namespace (the drawer leads with where you are); expanded it
+  lists them all (the toggle is dropped when there's only one). It doubles as the
+  cross-namespace drop target: wire `dropZone` to your `sidebar` `useDragDrop`
+  and each _other_ namespace's row accepts a dropped payload, so a drag lands on
+  the switcher itself rather than a separate drop strip — pass `dragging` so the
+  section springs open for the duration of a drag and every namespace is
+  reachable. Presentational; `labels` (English defaults) localise it.
 - `NamespacesModal` — the full create / switch / rename / restyle / delete
   surface. Presentational; `labels` (English defaults) localise it, and
   `glyphs` / `colors` override the picker catalogues (defaulting to the
   framework's `GLYPH_NAMES` / `GLYPH_COLORS`).
+
+The two compose: the switcher is the everyday "switch + jump to manage" surface
+inside the drawer; its cog opens the modal for the fuller create / rename /
+restyle / delete work.
+
+```tsx
+// Inside your sidebar content, above the rest of the navigation. The app owns
+// the drag-and-drop hook and decides what a namespace drop *means*; the switcher
+// owns the section, the rows, and lighting up a row as a drop target.
+const dnd = useDragDrop<DragItem, DropTarget>({ canDrop, onDrop });
+
+<NamespaceSwitcher
+  namespaces={ns.list}
+  activeNamespace={ns.activeSlug}
+  onSwitch={ns.switchTo}
+  onManage={() => setManageOpen(true)}
+  dragging={dnd.dragging !== null}
+  dropZone={(slug) => dnd.dropZone(`ns:${slug}`, { kind: "namespace", slug })}
+/>;
+```
 
 ## Adapting to your app
 
 A new app's needs rarely match a component exactly. The likely mismatches:
 
 - **You don't want appearance (icon/colour).** The fields are optional — never
-  set `glyph`/`color` and the rows render a plain default mark; you can pass a
-  trimmed `NamespacesModal` by leaving the pickers as-is (they're harmless) or
-  build your own switcher over the data helpers and skip the dialog entirely.
+  set `glyph`/`color` and the rows (in both `NamespaceSwitcher` and
+  `NamespacesModal`) render a plain default mark; you can pass a trimmed
+  `NamespacesModal` by leaving the pickers as-is (they're harmless) or build your
+  own switcher over the data helpers and skip the dialog entirely.
+- **You don't need cross-namespace drag.** Omit `dropZone`/`dragging` on
+  `NamespaceSwitcher` and the rows are switch-only — no drop targets, no
+  dependency on the `sidebar` drag hook.
 - **You sync the registry across devices.** Persist `serializeNamespaces(list)`
   to your synced store (a `namespaces.json` beside your settings), and on
   connect reconcile with `mergeNamespaceLists` / `hasLocalOnlyNamespaces`
@@ -220,7 +256,9 @@ A new app's needs rarely match a component exactly. The likely mismatches:
 ## Verification
 
 - `make test` covers the pure list ops and the favicon resolver
-  (`tests/namespaces.test.ts`).
+  (`tests/namespaces.test.ts`), the management dialog
+  (`tests/namespaces-modal.test.tsx`), and the in-drawer switcher
+  (`tests/namespace-switcher.test.tsx`).
 - In the running app: switch namespaces and confirm the document swaps and the
   tab favicon re-badges; create / rename / restyle / delete and confirm each
   persists across a reload; delete the active namespace and confirm it falls
