@@ -23,6 +23,7 @@ export default defineConfig({
     "namespaces/index": "src/namespaces/index.ts",
     "sync/index": "src/sync/index.ts",
     "search/index": "src/search/index.ts",
+    "markdown/index": "src/markdown/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

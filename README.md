@@ -141,6 +141,8 @@ Today:
 | `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.                                          |
 | search matcher           | `.` and `./search`       | `compileQuery` / `searchItems` / `segmentMatches` / `clipAround` — progressive query + ranges.                             |
 | `SearchModal`            | `.` and `./search`       | Generic search overlay (field + empty states); your rows via a render prop. `Highlighted` too.                             |
+| `MarkdownEditor`         | `.` and `./markdown`     | Live-preview Markdown editor (formats every line but the caret's); controlled via `body` + `onChange`.                     |
+| Markdown parser          | `.` and `./markdown`     | `classifyLines` / `parseInline` / `shortenUrl` — pure, DOM-free block + inline parse you can render yourself.              |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
@@ -431,6 +433,23 @@ import {
   Highlighted,
   SearchModal,
 } from "@niclaslindstedt/oss-framework/search";
+```
+
+The `markdown` module is a live-preview Markdown editor — the Obsidian-style
+"format every line except the one you're editing" experience — plus the
+dependency-free parser it renders from. `MarkdownEditor` is one self-contained,
+**controlled** widget (`body` + `onChange`): it owns the caret/selection/keyboard
+plumbing, the mobile soft-keyboard quirks, and copy-as-verbatim-source, while
+your app owns the document and where it lives. `classifyLines` / `parseInline` /
+`shortenUrl` are exported on their own for any app that wants to classify or
+render Markdown without the editor. See
+[`src/markdown/README.md`](src/markdown/README.md) for the full API and an
+adoption guide.
+
+```tsx
+import { MarkdownEditor } from "@niclaslindstedt/oss-framework/markdown";
+
+<MarkdownEditor body={body} onChange={setBody} />;
 ```
 
 ## Demo / preview site

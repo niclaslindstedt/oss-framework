@@ -23,12 +23,25 @@ export type Item = ChecklistNode & {
   archived?: boolean;
 };
 
-/** A single checklist: a titled tree of items, optionally inside a folder. */
+/** What a list holds: a checkable tree (`checklist`) or a Markdown document
+ *  (`note`). Absent means `checklist` — the historical shape, so existing
+ *  documents need no migration. This is the app's own domain split layered over
+ *  two generic framework surfaces: the `/checklist` tree and the `/markdown`
+ *  editor. */
+export type ListKind = "checklist" | "note";
+
+/** A single list: a checklist (a titled tree of items) or a note (a titled
+ *  Markdown document), optionally inside a folder. */
 export type List = {
   id: string;
   title: string;
   // `null` for a standalone (ungrouped) list shown at the menu's root.
   folderId: string | null;
+  // What this list holds. Absent is treated as `checklist`.
+  kind?: ListKind;
+  // The Markdown source of a `note` list — the live-preview editor's `body`.
+  // Absent on a checklist (which uses `items` instead).
+  body?: string;
   items: Item[];
   // The list's appearance — a glyph name (from the framework's catalogue) and
   // an accent colour. `null`/absent means "no custom icon" (the default glyph)

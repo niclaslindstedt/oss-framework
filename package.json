@@ -102,6 +102,11 @@
       "types": "./dist/search/index.d.ts",
       "import": "./dist/search/index.js",
       "require": "./dist/search/index.cjs"
+    },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "import": "./dist/markdown/index.js",
+      "require": "./dist/markdown/index.cjs"
     }
   },
   "scripts": {
