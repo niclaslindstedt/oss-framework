@@ -193,6 +193,59 @@ describe("Sidebar", () => {
     renderSidebar({ open: false, labels: { open: "Menu" } });
     expect(screen.getByRole("button", { name: "Menu" })).toBeTruthy();
   });
+
+  it("blurs a focused editable when the drawer opens (drops the soft keyboard)", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    const { rerender } = renderSidebar({ open: false });
+    // Still focused while closed.
+    expect(document.activeElement).toBe(input);
+
+    rerender(
+      <Sidebar
+        pinned={false}
+        open
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+        position={{ side: "left", y: 0.5 }}
+        onPositionChange={vi.fn()}
+      >
+        <a href="#home">Home link</a>
+      </Sidebar>,
+    );
+    // Opening the drawer blurred the field so the keyboard slides away.
+    expect(document.activeElement).not.toBe(input);
+
+    input.remove();
+  });
+
+  it("does not blur a focused non-editable element when the drawer opens", () => {
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+    expect(document.activeElement).toBe(button);
+
+    renderSidebar({ open: true });
+    // A non-editable focus (e.g. a keyboard user on the toggle) is left alone —
+    // it never raised a soft keyboard, so there is nothing to dismiss.
+    expect(document.activeElement).toBe(button);
+
+    button.remove();
+  });
+
+  it("leaves a focused editable alone when pinned (no drawer to open)", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    renderSidebar({ pinned: true });
+    expect(document.activeElement).toBe(input);
+
+    input.remove();
+  });
 });
 
 // --- useEdgeSwipeOpen ----------------------------------------------------
