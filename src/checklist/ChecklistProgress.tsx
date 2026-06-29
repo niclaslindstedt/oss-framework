@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 
 import { Button } from "../components/Button.tsx";
+import { CheckboxGlyph } from "../components/Checkbox.tsx";
 import { FloatingPanel } from "../components/FloatingPanel.tsx";
 import type { FloatingPlacement } from "../components/useFloatingPosition.ts";
 
@@ -125,22 +126,27 @@ export function ChecklistProgress({
       >
         <Button
           variant="ghost"
-          className="justify-start text-left"
+          className="flex items-center justify-start gap-2 text-left"
           onClick={() => {
             onCheckAll?.();
             setOpen(false);
           }}
         >
+          {/* The "check all" / "uncheck all" rows read as checklist items
+              themselves — a filled (accent) box and an empty (muted) one,
+              sized `sm` to sit with the menu's smaller text. */}
+          <CheckboxGlyph checked size="sm" />
           {labels?.checkAll ?? "Check all"}
         </Button>
         <Button
           variant="ghost"
-          className="justify-start text-left"
+          className="flex items-center justify-start gap-2 text-left"
           onClick={() => {
             onUncheckAll?.();
             setOpen(false);
           }}
         >
+          <CheckboxGlyph checked={false} size="sm" />
           {labels?.uncheckAll ?? "Uncheck all"}
         </Button>
       </FloatingPanel>

@@ -17,7 +17,7 @@ export {
   type CopyButtonProps,
   type CopyButtonLabels,
 } from "./CopyButton.tsx";
-export { Checkbox } from "./Checkbox.tsx";
+export { Checkbox, CheckboxGlyph } from "./Checkbox.tsx";
 export { ClearableInput } from "./ClearableInput.tsx";
 export { InlineEditRow } from "./InlineEditRow.tsx";
 export {

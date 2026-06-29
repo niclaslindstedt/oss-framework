@@ -5,10 +5,48 @@ import { CheckIcon } from "./icons.tsx";
 
 // Accessible custom checkbox. The native input is visually hidden
 // (`sr-only`) but still receives focus, fires change events, and is
-// announced by screen readers; a sibling <span> renders the visual, keyed
-// off the input's `:checked` state via Tailwind's `peer:` variant. The
-// native checkbox chrome is never shown — the drawn box follows the theme
-// (`accent` when checked, `muted` border otherwise).
+// announced by screen readers; a sibling {@link CheckboxGlyph} renders the
+// visual, driven by the controlled `checked` prop. The native checkbox
+// chrome is never shown — the drawn box follows the theme (`accent` when
+// checked, `muted` border otherwise).
+
+// The drawn box only — a purely presentational (`aria-hidden`) square that
+// fills with the `accent` and shows its tick when `checked`, and carries a
+// `muted` border otherwise. Split out from {@link Checkbox} so a non-interactive
+// caller can paint the same mark it does: a menu's "check all" / "uncheck all"
+// rows, a read-only summary, a disabled preview. The box follows the theme's
+// control corner (`--control-radius`) just like the interactive control.
+//
+// `size` shrinks only the drawn square (and its tick), not any touch target —
+// `"sm"` reads a notch smaller, e.g. against a row of smaller-font menu items.
+// Extra `className` layers on (the interactive control passes its focus ring).
+export function CheckboxGlyph({
+  checked,
+  size = "md",
+  className,
+}: {
+  checked: boolean;
+  size?: "md" | "sm";
+  className?: string;
+}) {
+  const boxSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const tickSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+  const tone = checked ? "border-accent bg-accent" : "border-muted";
+  return (
+    <span
+      aria-hidden
+      // Corner shape follows the theme's control style via `--control-radius`
+      // (square / rounded / circle); falls back to the rounded look when the
+      // theme engine isn't driving the var.
+      style={{ borderRadius: "var(--control-radius, 0.25rem)" }}
+      className={`flex ${boxSize} shrink-0 items-center justify-center border-2 ${tone} text-page-bg transition-colors ${className ?? ""}`.trim()}
+    >
+      <CheckIcon
+        className={`${tickSize} ${checked ? "opacity-100" : "opacity-0"}`}
+      />
+    </span>
+  );
+}
 
 type Props = {
   checked: boolean;
@@ -42,8 +80,6 @@ export function Checkbox({
   onMouseDown,
   size = "md",
 }: Props) {
-  const boxSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-  const tickSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
   return (
     // The label wraps a focusable checkbox, so it is interactive in
     // practice; the press hook keeps an open field focused (see `onMouseDown`).
@@ -58,18 +94,11 @@ export function Checkbox({
         aria-label={ariaLabel}
         className="peer sr-only"
       />
-      <span
-        aria-hidden
-        // Corner shape follows the theme's control style via `--control-radius`
-        // (square / rounded / circle); falls back to the rounded look when the
-        // theme engine isn't driving the var.
-        style={{ borderRadius: "var(--control-radius, 0.25rem)" }}
-        className={`flex ${boxSize} items-center justify-center border-2 border-muted text-page-bg transition-colors peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent`}
-      >
-        <CheckIcon
-          className={`${tickSize} ${checked ? "opacity-100" : "opacity-0"}`}
-        />
-      </span>
+      <CheckboxGlyph
+        checked={checked}
+        size={size}
+        className="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent"
+      />
     </label>
   );
 }
