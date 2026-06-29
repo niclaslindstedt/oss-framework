@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useId, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, type CSSProperties, type ReactNode } from "react";
 
 import { useEscapeKey } from "../hooks/useEscapeKey.ts";
 import { FloatingButton } from "./FloatingButton.tsx";
@@ -152,6 +152,28 @@ export function Sidebar({
   // Dismiss on Escape while the drawer is open (the backdrop handles pointer
   // dismissal). Never engaged when pinned — there is no drawer to close.
   useEscapeKey(open && !pinned, onClose);
+
+  // When the drawer opens on a phone (the non-pinned variant), drop focus from
+  // any editable element so the soft keyboard it raised slides away. Otherwise
+  // a drawer opened mid-type — most visibly via an inward edge swipe, which
+  // never moves focus the way a button tap does — slides in behind a keyboard
+  // still covering the lower half of the screen. Editable-only: a keyboard
+  // user who reached the toggle keeps their focus, and a non-editable element
+  // never summons a soft keyboard, so there is nothing to dismiss.
+  useEffect(() => {
+    if (!open || pinned) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (!active) return;
+    const tag = active.tagName;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      active.isContentEditable
+    ) {
+      active.blur();
+    }
+  }, [open, pinned]);
 
   // Pinned: a permanent docked sidebar beside the content. No floating button,
   // no backdrop, no open/close — it's simply always there. The host lays it
