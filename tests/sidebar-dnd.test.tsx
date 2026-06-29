@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // @vitest-environment jsdom
-import { fireEvent, render } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { useDragDrop } from "../src/sidebar/index.ts";
 
@@ -236,5 +236,116 @@ describe("useDragDrop", () => {
 
     expect(onDrop).not.toHaveBeenCalled();
     expect(queryByTestId("dragging")).toBeNull();
+  });
+});
+
+// The touch path picks the row up on a press-and-hold instead of dragging
+// straight from a press — so a finger can still scroll or swipe the row, and
+// only a deliberate hold starts a drag. The default hold is 400ms.
+describe("useDragDrop (touch)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function tdown(el: HTMLElement, x: number, y: number) {
+    fireEvent.pointerDown(el, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: x,
+      clientY: y,
+    });
+  }
+  function tmove(el: HTMLElement, x: number, y: number) {
+    fireEvent.pointerMove(el, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: x,
+      clientY: y,
+    });
+  }
+  function tup(el: HTMLElement, x: number, y: number) {
+    fireEvent.pointerUp(el, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: x,
+      clientY: y,
+    });
+  }
+
+  it("picks the row up after the hold, then drops it on release", () => {
+    vi.useFakeTimers();
+    const onDrop = vi.fn();
+    const { getByTestId, queryByTestId } = render(
+      <Host onDrop={onDrop} zones={["A"]} />,
+    );
+    setRect(getByTestId("zone-A"), {
+      left: 40,
+      top: 40,
+      right: 100,
+      bottom: 100,
+    });
+
+    const handle = getByTestId("handle");
+    tdown(handle, 50, 50); // inside zone A, but not picked up yet
+    expect(queryByTestId("dragging")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(400); // hold elapses — the row lifts
+    });
+    expect(getByTestId("dragging").textContent).toBe("item");
+    expect(getByTestId("zone-A").getAttribute("data-over")).toBe("true");
+
+    tmove(handle, 60, 60);
+    tup(handle, 60, 60);
+    expect(onDrop).toHaveBeenCalledWith({ id: "item" }, { id: "A" });
+  });
+
+  it("treats travel before the hold as a scroll / swipe, not a drag", () => {
+    vi.useFakeTimers();
+    const onDrop = vi.fn();
+    const { getByTestId, queryByTestId } = render(
+      <Host onDrop={onDrop} zones={["A"]} />,
+    );
+    setRect(getByTestId("zone-A"), {
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+    });
+
+    const handle = getByTestId("handle");
+    tdown(handle, 50, 50);
+    tmove(handle, 50, 70); // 20px — past the slop before the hold elapses
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(queryByTestId("dragging")).toBeNull();
+    tup(handle, 50, 70);
+    expect(onDrop).not.toHaveBeenCalled();
+  });
+
+  it("a quick tap (released before the hold) never starts a drag", () => {
+    vi.useFakeTimers();
+    const onDrop = vi.fn();
+    const { getByTestId, queryByTestId } = render(
+      <Host onDrop={onDrop} zones={["A"]} />,
+    );
+    setRect(getByTestId("zone-A"), {
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+    });
+
+    const handle = getByTestId("handle");
+    tdown(handle, 50, 50);
+    tup(handle, 50, 50);
+    act(() => {
+      vi.advanceTimersByTime(400); // the hold timer was cleared on release
+    });
+
+    expect(queryByTestId("dragging")).toBeNull();
+    expect(onDrop).not.toHaveBeenCalled();
   });
 });

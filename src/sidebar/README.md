@@ -53,7 +53,7 @@ function AppShell() {
 | The docked-vs-drawer framing, backdrop, slide-in, and Escape/swipe dismissal                 | The **nav content** (note / checklist list, action bars, footer) — `children` |
 | The draggable floating button (`FloatingButton`) + its snap-to-edge geometry (`position.ts`) | The **nav state store** (where `open` / `position` / `pinned` live & sync)    |
 | `useDraggableMenuButton`, `useDrawerSwipeClose`, `useEdgeSwipeOpen`, `useSidebarInset`       | Deciding `pinned` (a media query) and laying out the docked flex sibling      |
-| `useDragDrop` — the gesture + hit-testing behind dragging nav rows between targets           | What a drag _means_ (`canDrop` / `onDrop`) and the handle / highlight chrome  |
+| `useDragDrop` — the gesture + hit-testing behind dragging nav rows between targets           | What a drag _means_ (`canDrop` / `onDrop`) and the row / highlight chrome     |
 | The `MenuButtonPosition` shape (edge + 0..1 vertical fraction)                               | The CSS token values and the drawer keyframes (see below)                     |
 
 The **state is deliberately not part of this module.** An app's nav state is
@@ -257,18 +257,29 @@ whole window.
 A headless, pointer-driven (touch + mouse + pen) drag-and-drop primitive for the
 rows _inside_ the drawer — "drag a checklist into a folder", "drop a folder onto
 another workspace", "flick a row onto Archive". It owns only the gesture:
-tracking the pointer, hit-testing it against the drop zones you register, and
-firing `onDrop` with the dragged payload and the target under the pointer. Every
-domain decision (what a payload is, which drops are legal, what a drop _does_)
-and every pixel of chrome (the grab handle, the drop-zone highlight, the
-cursor-following preview) stay in your app.
+recognising it, tracking the pointer, hit-testing it against the drop zones you
+register, and firing `onDrop` with the dragged payload and the target under the
+pointer. Every domain decision (what a payload is, which drops are legal, what a
+drop _does_) and every pixel of chrome (the drop-zone highlight, the cursor-
+following preview) stay in your app.
+
+The **whole row is the drag source** — there's no grip to spend a column on.
+`dragHandle` splits the gesture by pointer the way the platform does, so the row
+needs no separate affordance:
+
+- **Mouse / pen** — a plain press-and-drag. Travel past `threshold` (default 6px)
+  turns the press into a drag; a press that never moves stays the row's click.
+- **Touch** — press-and-hold. A drag begins only after the finger is held in
+  place for `longPressMs` (default 400ms); any travel before then is a scroll or
+  the row's own swipe and abandons the press. Once the hold lifts the row, the
+  hook captures the pointer, blocks the panel from scrolling under the finger,
+  and swallows the trailing tap so the drop never also activates the row.
 
 It is deliberately **not** the HTML5 drag-and-drop API — that's mouse-only on the
 phones these PWAs target. Like the module's other gestures it rides Pointer
-Events, capturing the pointer on the handle so the move/up stream keeps flowing
-as it ranges across the panel; a press that never crosses `threshold` is left as
-a tap. Two generics keep your domain out of the framework: `TDrag` (what a source
-carries) and `TTarget` (what a zone represents).
+Events, capturing the pointer once a drag begins so the move/up stream keeps
+flowing as it ranges across the panel. Two generics keep your domain out of the
+framework: `TDrag` (what a source carries) and `TTarget` (what a zone represents).
 
 ```tsx
 type Drag = { kind: "list" | "folder"; id: string };
@@ -282,11 +293,11 @@ const dnd = useDragDrop<Drag, Target>({
   },
 });
 
-// A drag source: spread the handle onto a small grip (it owns the pointer, so
-// it won't trip the row's own tap / swipe).
-<span {...dnd.dragHandle({ kind: "list", id })} className="cursor-grab">
-  ⠿
-</span>;
+// A drag source: spread the handle onto the whole row (it owns the pointer once
+// a drag begins, so it rides over the row's tap / swipe without tripping them).
+<div {...dnd.dragHandle({ kind: "list", id })}>
+  <NavRow>…</NavRow>
+</div>;
 
 // A drop zone: attach the ref, light it up from `isOver` / `isActive`.
 const z = dnd.dropZone(`folder:${id}`, { kind: "folder", id });

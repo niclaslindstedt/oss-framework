@@ -10,7 +10,6 @@ import {
   FloatingPanel,
   FolderIcon,
   FolderOpenIcon,
-  GripIcon,
   HeartIcon,
   HelpCircleIcon,
   InlineEditRow,
@@ -321,10 +320,11 @@ export function SideMenuContent({
 
   // One checklist row, in a folder (`indent`) or at the root. Renaming swaps it
   // for the inline editor; otherwise it's a swipeable nav row — swipe left for
-  // the pencil + trash strip (rename / delete), swipe right to archive — whose
-  // actions a desktop right-click / touch long press reach through
-  // `RowActionMenu`, where Archive joins them (the swipe-right commit has no
-  // pointer counterpart otherwise).
+  // the pencil + trash strip (rename / delete), swipe right to archive. A
+  // desktop pointer, which has no swipe, reaches the same actions through the
+  // right-click `RowActionMenu` (where Archive joins them); on touch the press-
+  // and-hold instead picks the row up to drag, so the menu's touch path stands
+  // down.
   function renderList(list: List, indent: boolean) {
     if (renamingListId === list.id) {
       return (
@@ -354,7 +354,7 @@ export function SideMenuContent({
       onSelect: () => deleteList(list.id),
     };
     // The swipe-left strip stays rename / delete (swipe-right commits archive);
-    // the long-press / right-click menu also carries Archive, since a pointer
+    // the desktop right-click menu also carries Archive, since a desktop pointer
     // never gets the swipe-right gesture.
     const actions = [renameAction, deleteAction];
     const menuActions = [
@@ -370,11 +370,14 @@ export function SideMenuContent({
       <DraggableRow
         key={list.id}
         handle={dnd.dragHandle({ kind: "list", id: list.id })}
-        handleLabel={t("menu.dragToMove")}
       >
         <RowActionMenu
           ariaLabel={t("menu.checklistActions")}
           actions={menuActions}
+          // The touch hold drags the row; on touch these actions stay reachable
+          // through the swipe strip, so the menu opens only on a desktop
+          // right-click.
+          touchLongPress={false}
         >
           <SwipeableRow
             actions={actions}
@@ -483,9 +486,10 @@ export function SideMenuContent({
               );
             }
             // Swipe left for the pencil + trash strip (rename / delete), swipe
-            // right to archive; a desktop right-click / a touch long press reach
-            // those through `RowActionMenu`, where Archive joins them (the
-            // swipe-right commit has no pointer counterpart otherwise).
+            // right to archive. A desktop pointer reaches those through the
+            // right-click `RowActionMenu` (where Archive joins them); on touch
+            // the press-and-hold drags the row instead, so the menu's touch path
+            // stands down.
             const renameFolderAction = {
               label: t("menu.renameFolder"),
               icon: <PencilIcon className="h-5 w-5" />,
@@ -515,11 +519,14 @@ export function SideMenuContent({
               <div key={folder.id} ref={folderZone.ref}>
                 <DraggableRow
                   handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
-                  handleLabel={t("menu.dragToMove")}
                 >
                   <RowActionMenu
                     ariaLabel={t("menu.folderActions")}
                     actions={folderMenuActions}
+                    // The touch hold drags the row; on touch these actions stay
+                    // reachable through the swipe strip, so the menu opens only
+                    // on a desktop right-click.
+                    touchLongPress={false}
                   >
                     <SwipeableRow
                       actions={folderActions}
@@ -839,7 +846,7 @@ function NavRow({
       type="button"
       onClick={onClick}
       className={`flex w-full cursor-pointer items-center gap-3 py-[var(--density-row-py)] text-left text-sm ${
-        indent ? "pr-5 pl-14" : "pr-5 pl-10"
+        indent ? "pr-5 pl-9" : "pr-5 pl-5"
       } ${state}`}
     >
       <span className={`shrink-0 ${active ? "text-accent" : "text-muted"}`}>
@@ -871,7 +878,7 @@ function FolderRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-[var(--density-row-py)] pr-1 pl-10 text-left text-fg hover:text-fg-bright"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-[var(--density-row-py)] pr-1 pl-5 text-left text-fg hover:text-fg-bright"
       >
         <span className={expanded ? "text-accent" : "text-muted"}>
           {expanded ? (
@@ -917,7 +924,7 @@ function FolderEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className="gap-3 pr-2 pl-10"
+      className="gap-3 pr-2 pl-5"
       icon={<FolderIcon className="h-5 w-5" />}
       iconClassName="text-muted"
     />
@@ -949,7 +956,7 @@ function ListEditRow({
       placeholder={placeholder}
       onCommit={onCommit}
       onCancel={onCancel}
-      className={`gap-3 ${indent ? "pr-5 pl-14" : "pr-5 pl-10"}`}
+      className={`gap-3 ${indent ? "pr-5 pl-9" : "pr-5 pl-5"}`}
       icon={icon}
     />
   );
@@ -1027,33 +1034,21 @@ function BarButton({
   );
 }
 
-// A draggable row: the framework grab handle laid over the row's leading edge
-// (faint at rest, brighter on hover) with the existing row content untouched
-// behind it. The handle sits *outside* the row's own button/swipe layers, so a
-// drag never trips the row's tap or its swipe gesture, and owns the pointer for
-// the duration (the framework hook captures it).
+// A draggable row: the whole row is the framework drag source — no grip column
+// to spend space on. The framework hook splits the gesture by pointer (a mouse
+// press-and-drags, a finger presses-and-holds to pick the row up) and owns the
+// pointer once a drag begins, so the drag rides over the row's tap and swipe
+// without tripping them. The wrapper opts out of the drawer's swipe-to-close so
+// a horizontal drag here never doubles as a drawer dismiss.
 function DraggableRow({
   handle,
-  handleLabel,
   children,
 }: {
   handle: DragHandleProps;
-  handleLabel: string;
   children: ReactNode;
 }) {
   return (
-    <div className="group relative">
-      <span
-        {...handle}
-        role="button"
-        aria-label={handleLabel}
-        // Opt the row out of the drawer's swipe-to-close while a finger is on
-        // the handle — the handle owns this gesture.
-        data-drawer-swipe-ignore
-        className="absolute inset-y-0 left-0 z-10 flex w-10 cursor-grab touch-none items-center justify-center text-muted opacity-30 group-hover:opacity-70"
-      >
-        <GripIcon className="h-4 w-4" />
-      </span>
+    <div {...handle} data-drawer-swipe-ignore className="relative">
       {children}
     </div>
   );
