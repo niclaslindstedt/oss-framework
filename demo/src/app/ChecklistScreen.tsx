@@ -5,6 +5,7 @@ import {
   ArchiveIcon,
   CopyButton,
   FabMenu,
+  InlineEditField,
   PullToRefreshIndicator,
   PlusIcon,
   TrashIcon,
@@ -60,11 +61,15 @@ export function ChecklistScreen({
     archiveFinishedItems,
     deleteFinishedItems,
     setListAppearance,
+    renameList,
     reload,
   } = store;
   // The list's own composer is owned by the framework `Checklist`; this only
   // holds whether the toolbar composer (the one the add FAB opens) is showing.
   const [composing, setComposing] = useState(false);
+  // Tapping the header title swaps it for an inline editor (select-all on
+  // focus, so the first keystroke replaces the name); this holds that mode.
+  const [editingTitle, setEditingTitle] = useState(false);
 
   // Desktop pointers (mouse / trackpad) have no swipe, so they reach a row's
   // actions through a right-click menu instead — the same Delete the touch
@@ -128,9 +133,35 @@ export function ChecklistScreen({
           list={activeList}
           onChange={(patch) => setListAppearance(activeList.id, patch)}
         />
-        <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-wide text-fg-bright">
-          {activeList.title}
-        </h1>
+        {editingTitle ? (
+          // The header title is an h1; in edit mode the same slot holds the
+          // borderless field, styled to match so the swap doesn't reflow. The
+          // field focuses and selects its text on mount — which also raises the
+          // on-screen keyboard on mobile — so a tap-then-type renames the list.
+          <h1 className="min-w-0 flex-1">
+            <InlineEditField
+              initial={activeList.title}
+              ariaLabel={t("screen.renameList")}
+              className="w-full border-0 bg-transparent p-0 text-lg font-bold tracking-wide text-fg-bright outline-none"
+              onCommit={(title) => {
+                renameList(activeList.id, title);
+                setEditingTitle(false);
+              }}
+              onCancel={() => setEditingTitle(false)}
+            />
+          </h1>
+        ) : (
+          <h1 className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setEditingTitle(true)}
+              title={t("screen.renameList")}
+              className="block w-full truncate text-left text-lg font-bold tracking-wide text-fg-bright"
+            >
+              {activeList.title}
+            </button>
+          </h1>
+        )}
         <ChecklistProgress
           checked={progress.checked}
           total={progress.total}

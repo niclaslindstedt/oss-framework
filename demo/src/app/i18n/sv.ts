@@ -106,6 +106,7 @@ export const sv: Catalog = {
     addItem: "Lägg till en rad…",
     addItemAria: "Lägg till rad",
     editItem: "Redigera rad",
+    renameList: "Byt namn på lista",
     clear: "Rensa",
     copyList: "Kopiera lista",
     copied: "Kopierad",

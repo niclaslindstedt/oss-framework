@@ -107,6 +107,7 @@ export const en = {
     addItem: "Add an item…",
     addItemAria: "Add item",
     editItem: "Edit item",
+    renameList: "Rename list",
     clear: "Clear",
     copyList: "Copy list",
     copied: "Copied",
