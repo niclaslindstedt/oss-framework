@@ -193,14 +193,19 @@ export function SideMenuContent({
       switch (target.kind) {
         case "folder": {
           if (drag.kind !== "list") return false; // folders don't nest
-          const list = data.lists.find((l) => l.id === drag.id);
-          return !!list && list.folderId !== target.id;
+          // Every folder is a valid target for a list — including the one it
+          // already lives in. Dropping back where it came from is a harmless
+          // no-op (`moveListToFolder` short-circuits an unchanged parent), so a
+          // picked-up list can always be returned to its own folder rather than
+          // forcing a detour through another container and back.
+          return data.lists.some((l) => l.id === drag.id);
         }
         case "root": {
-          // Only meaningful for a list currently inside a folder.
+          // The top level is a target like any folder — a list already at the
+          // root may be dropped back onto it (a no-op), so the gesture never
+          // rejects an item's current container.
           if (drag.kind !== "list") return false;
-          const list = data.lists.find((l) => l.id === drag.id);
-          return !!list && list.folderId !== null;
+          return data.lists.some((l) => l.id === drag.id);
         }
         case "namespace":
           return true;
@@ -440,12 +445,16 @@ export function SideMenuContent({
       <div
         ref={rootZone.ref}
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto transition-colors ${
-          // An inset `outline` (not a `ring`/`box-shadow`, which paints behind
-          // the rows' opaque backgrounds) frames the whole ungrouped region on
-          // top of its rows, so a checklist dragged out of a folder reads "drop
-          // here to ungroup" even when the pointer is over an opaque list row.
+          // The whole region is the "drop to ungroup" target, but a solid frame
+          // flush to its edges reads as a stray panel border, not an
+          // affordance. A *dashed, rounded* outline pulled well inside the
+          // region (a large negative `outline-offset`, so it never shifts the
+          // layout or paints behind the rows' opaque backgrounds) draws a
+          // recognisable floating drop zone — clearly "drop here to ungroup",
+          // even when the pointer sits over an opaque list row or in the empty
+          // space below the last one.
           rootZone.isOver
-            ? "bg-accent/10 [outline:2px_solid_var(--color-accent)] [outline-offset:-2px]"
+            ? "bg-accent/10 [outline:2px_dashed_var(--color-accent)] [outline-offset:-10px] rounded-xl"
             : ""
         }`}
       >

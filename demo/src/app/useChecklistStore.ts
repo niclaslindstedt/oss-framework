@@ -551,15 +551,20 @@ export function useChecklistStore(slug: string) {
 
   // Move a checklist into a folder (or out to the root, `null`) — the drag-and-
   // drop-into-a-folder outcome. A pure reparent within the active document;
-  // goes through `commit`, so the move is one Undo away.
+  // goes through `commit`, so the move is one Undo away. Dropping a list back
+  // onto the container it already lives in is a no-op: it changes nothing, so it
+  // short-circuits before `commit` rather than stacking an empty undo step.
   const moveListToFolder = useCallback(
-    (listId: string, folderId: string | null) =>
+    (listId: string, folderId: string | null) => {
+      const list = data.lists.find((l) => l.id === listId);
+      if (!list || list.folderId === folderId) return;
       commit({
         ...data,
         lists: data.lists.map((l) =>
           l.id === listId ? { ...l, folderId } : l,
         ),
-      }),
+      });
+    },
     [commit, data],
   );
 
