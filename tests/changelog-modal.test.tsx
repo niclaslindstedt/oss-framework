@@ -98,6 +98,19 @@ describe("ChangelogModal", () => {
     expect(screen.getByRole("heading", { name: "Vad är nytt" })).toBeTruthy();
   });
 
+  it("fills the screen on mobile and shrinks to a centered card from `sm` up", () => {
+    render(<ChangelogModal open onClose={vi.fn()} releases={RELEASES} />);
+    const dialog = screen.getByRole("dialog");
+    // Mobile (default): full height/width, no rounded corners.
+    expect(dialog.className).toContain("h-full");
+    expect(dialog.className).toContain("max-h-full");
+    expect(dialog.className).toContain("w-full");
+    // From the `sm` breakpoint up: the centered, capped card returns.
+    expect(dialog.className).toContain("sm:max-h-[85vh]");
+    expect(dialog.className).toContain("sm:max-w-md");
+    expect(dialog.className).toContain("sm:rounded-md");
+  });
+
   it("renders nothing when closed", () => {
     const { container } = render(
       <ChangelogModal open={false} onClose={vi.fn()} releases={RELEASES} />,
