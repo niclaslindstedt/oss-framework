@@ -33,7 +33,6 @@ export const en = {
     renameChecklist: "Rename",
     deleteChecklist: "Delete",
     checklistActions: "Checklist actions",
-    dragToMove: "Drag to move",
     dropToArchive: "Drop here to archive",
     archive: "Archive",
     undo: "Undo",

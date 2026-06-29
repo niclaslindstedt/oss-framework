@@ -38,6 +38,7 @@ export function RowActionMenu({
   enabled = true,
   ariaLabel,
   longPressMs,
+  touchLongPress = true,
   children,
 }: {
   actions: RowAction[];
@@ -45,6 +46,11 @@ export function RowActionMenu({
   ariaLabel?: string;
   // Override the hold time (ms) that opens the menu on touch.
   longPressMs?: number;
+  // Whether a touch long press opens the menu. Hand it over (`false`) when the
+  // row already spends its hold on another gesture — a long-press-to-drag, say
+  // — leaving the desktop right-click as the menu's only opener. The touch
+  // actions are expected to stay reachable another way (a swipe strip).
+  touchLongPress?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -87,7 +93,7 @@ export function RowActionMenu({
   // Long press is the touch counterpart to the desktop right-click — gate it to
   // touch so a held mouse button never opens the menu on desktop.
   const longPress = useLongPress(openMenu, {
-    enabled: active && !desktop,
+    enabled: active && !desktop && touchLongPress,
     delayMs: longPressMs,
   });
 

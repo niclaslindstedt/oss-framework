@@ -32,7 +32,6 @@ export const sv: Catalog = {
     renameChecklist: "Byt namn",
     deleteChecklist: "Ta bort",
     checklistActions: "Checklisteåtgärder",
-    dragToMove: "Dra för att flytta",
     dropToArchive: "Släpp här för att arkivera",
     archive: "Arkiv",
     undo: "Ångra",
