@@ -111,7 +111,9 @@ function CloseIcon({ className }: { className?: string }) {
 // on Escape (via the framework's `useEscapeKey`) and backdrop click, locks
 // body scroll while open, and moves focus into the card on open / restores it
 // on close. Portalled to `document.body` so it escapes any ancestor stacking
-// context.
+// context. On small viewports the card fills the screen edge-to-edge (no
+// backdrop padding, full height, square corners); from the `sm` breakpoint up
+// it shrinks back to the centered, capped card.
 function Overlay({
   open,
   onClose,
@@ -150,7 +152,7 @@ function Overlay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -160,7 +162,7 @@ function Overlay({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-md border border-line bg-surface text-fg shadow-xl outline-none"
+        className="flex h-full max-h-full w-full flex-col overflow-hidden border border-line bg-surface text-fg shadow-xl outline-none sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-md"
       >
         {children}
       </div>
