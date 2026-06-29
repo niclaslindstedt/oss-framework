@@ -441,148 +441,159 @@ export function SideMenuContent({
       <SectionHeader label={t("menu.checklists")} border />
 
       {/* Scrolling list region — also the "root" drop target: dropping a list
-          dragged out of a folder here un-groups it. */}
-      <div
-        ref={rootZone.ref}
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto transition-colors ${
-          // The whole region is the "drop to ungroup" target, but a solid frame
-          // flush to its edges reads as a stray panel border, not an
-          // affordance. A *dashed, rounded* outline pulled well inside the
-          // region (a large negative `outline-offset`, so it never shifts the
-          // layout or paints behind the rows' opaque backgrounds) draws a
-          // recognisable floating drop zone — clearly "drop here to ungroup",
-          // even when the pointer sits over an opaque list row or in the empty
-          // space below the last one.
-          rootZone.isOver
-            ? "bg-accent/10 [outline:2px_dashed_var(--color-accent)] [outline-offset:-10px] rounded-xl"
-            : ""
-        }`}
-      >
-        {/* A fresh, unnamed folder editor — committing it creates the folder,
+          dragged out of a folder here un-groups it. The non-scrolling wrapper
+          anchors the drop cue (below); the inner element scrolls and is the
+          registered drop zone. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={rootZone.ref}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        >
+          {/* A fresh, unnamed folder editor — committing it creates the folder,
             defocusing it empty (or Escape) discards it. */}
-        {creatingFolder && (
-          <FolderEditRow
-            placeholder={t("menu.folderName")}
-            onCommit={(name) => {
-              addFolder(name);
-              setCreatingFolder(false);
-            }}
-            onCancel={() => setCreatingFolder(false)}
-          />
-        )}
-        {folders.map((folder) => {
-          const lists = data.lists.filter(
-            (l) => l.folderId === folder.id && !l.archived,
-          );
-          const expanded = !collapsedFolders.has(folder.id);
-          // Renaming swaps the folder's row for the same inline editor, seeded
-          // with its current name.
-          if (renamingFolderId === folder.id) {
-            return (
-              <FolderEditRow
-                key={folder.id}
-                initial={folder.name}
-                placeholder={t("menu.folderName")}
-                onCommit={(name) => {
-                  renameFolder(folder.id, name);
-                  setRenamingFolderId(null);
-                }}
-                onCancel={() => setRenamingFolderId(null)}
-              />
+          {creatingFolder && (
+            <FolderEditRow
+              placeholder={t("menu.folderName")}
+              onCommit={(name) => {
+                addFolder(name);
+                setCreatingFolder(false);
+              }}
+              onCancel={() => setCreatingFolder(false)}
+            />
+          )}
+          {folders.map((folder) => {
+            const lists = data.lists.filter(
+              (l) => l.folderId === folder.id && !l.archived,
             );
-          }
-          // Swipe left for the pencil + trash strip (rename / delete), swipe
-          // right to archive; a desktop right-click / a touch long press reach
-          // those through `RowActionMenu`, where Archive joins them (the
-          // swipe-right commit has no pointer counterpart otherwise).
-          const renameFolderAction = {
-            label: t("menu.renameFolder"),
-            icon: <PencilIcon className="h-5 w-5" />,
-            onSelect: () => setRenamingFolderId(folder.id),
-          };
-          const deleteFolderAction = {
-            label: t("menu.deleteFolder"),
-            icon: <TrashIcon className="h-5 w-5" />,
-            danger: true,
-            onSelect: () => deleteFolder(folder.id),
-          };
-          const folderActions = [renameFolderAction, deleteFolderAction];
-          const folderMenuActions = [
-            renameFolderAction,
-            {
-              label: t("menu.archive"),
-              icon: <ArchiveIcon className="h-5 w-5" />,
-              onSelect: () => archiveFolder(folder.id),
-            },
-            deleteFolderAction,
-          ];
-          const folderZone = dnd.dropZone(`folder:${folder.id}`, {
-            kind: "folder",
-            id: folder.id,
-          });
-          return (
-            <div key={folder.id} ref={folderZone.ref}>
-              <DraggableRow
-                handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
-                handleLabel={t("menu.dragToMove")}
-              >
-                <RowActionMenu
-                  ariaLabel={t("menu.folderActions")}
-                  actions={folderMenuActions}
-                >
-                  <SwipeableRow
-                    actions={folderActions}
-                    leading={{
-                      kind: "commit",
-                      onCommit: () => archiveFolder(folder.id),
-                      label: t("menu.archive"),
-                      icon: <ArchiveIcon className="h-5 w-5" />,
-                    }}
-                    highlighted={folderZone.isOver}
-                  >
-                    <FolderRow
-                      name={folder.name}
-                      addLabel={t("menu.newChecklistIn", { name: folder.name })}
-                      count={lists.length}
-                      expanded={expanded}
-                      onToggle={() => toggleFolder(folder.id)}
-                      onAdd={() => beginCreateList(folder.id, "checklist")}
-                    />
-                  </SwipeableRow>
-                </RowActionMenu>
-              </DraggableRow>
-              {expanded && (
-                <>
-                  {lists.map((list) => renderList(list, true))}
-                  {creatingListIn?.folderId === folder.id && (
-                    <ListEditRow
-                      indent
-                      initial=""
-                      icon={draftIcon(creatingListIn.kind)}
-                      placeholder={draftPlaceholder(creatingListIn.kind)}
-                      onCommit={(title) =>
-                        commitCreateList(folder.id, creatingListIn.kind, title)
-                      }
-                      onCancel={() => setCreatingListIn(null)}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
-
-        {standalone.map((list) => renderList(list, false))}
-        {creatingListIn?.folderId === null && (
-          <ListEditRow
-            indent={false}
-            initial=""
-            icon={draftIcon(creatingListIn.kind)}
-            placeholder={draftPlaceholder(creatingListIn.kind)}
-            onCommit={(title) =>
-              commitCreateList(null, creatingListIn.kind, title)
+            const expanded = !collapsedFolders.has(folder.id);
+            // Renaming swaps the folder's row for the same inline editor, seeded
+            // with its current name.
+            if (renamingFolderId === folder.id) {
+              return (
+                <FolderEditRow
+                  key={folder.id}
+                  initial={folder.name}
+                  placeholder={t("menu.folderName")}
+                  onCommit={(name) => {
+                    renameFolder(folder.id, name);
+                    setRenamingFolderId(null);
+                  }}
+                  onCancel={() => setRenamingFolderId(null)}
+                />
+              );
             }
-            onCancel={() => setCreatingListIn(null)}
+            // Swipe left for the pencil + trash strip (rename / delete), swipe
+            // right to archive; a desktop right-click / a touch long press reach
+            // those through `RowActionMenu`, where Archive joins them (the
+            // swipe-right commit has no pointer counterpart otherwise).
+            const renameFolderAction = {
+              label: t("menu.renameFolder"),
+              icon: <PencilIcon className="h-5 w-5" />,
+              onSelect: () => setRenamingFolderId(folder.id),
+            };
+            const deleteFolderAction = {
+              label: t("menu.deleteFolder"),
+              icon: <TrashIcon className="h-5 w-5" />,
+              danger: true,
+              onSelect: () => deleteFolder(folder.id),
+            };
+            const folderActions = [renameFolderAction, deleteFolderAction];
+            const folderMenuActions = [
+              renameFolderAction,
+              {
+                label: t("menu.archive"),
+                icon: <ArchiveIcon className="h-5 w-5" />,
+                onSelect: () => archiveFolder(folder.id),
+              },
+              deleteFolderAction,
+            ];
+            const folderZone = dnd.dropZone(`folder:${folder.id}`, {
+              kind: "folder",
+              id: folder.id,
+            });
+            return (
+              <div key={folder.id} ref={folderZone.ref}>
+                <DraggableRow
+                  handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
+                  handleLabel={t("menu.dragToMove")}
+                >
+                  <RowActionMenu
+                    ariaLabel={t("menu.folderActions")}
+                    actions={folderMenuActions}
+                  >
+                    <SwipeableRow
+                      actions={folderActions}
+                      leading={{
+                        kind: "commit",
+                        onCommit: () => archiveFolder(folder.id),
+                        label: t("menu.archive"),
+                        icon: <ArchiveIcon className="h-5 w-5" />,
+                      }}
+                      highlighted={folderZone.isOver}
+                    >
+                      <FolderRow
+                        name={folder.name}
+                        addLabel={t("menu.newChecklistIn", {
+                          name: folder.name,
+                        })}
+                        count={lists.length}
+                        expanded={expanded}
+                        onToggle={() => toggleFolder(folder.id)}
+                        onAdd={() => beginCreateList(folder.id, "checklist")}
+                      />
+                    </SwipeableRow>
+                  </RowActionMenu>
+                </DraggableRow>
+                {expanded && (
+                  <>
+                    {lists.map((list) => renderList(list, true))}
+                    {creatingListIn?.folderId === folder.id && (
+                      <ListEditRow
+                        indent
+                        initial=""
+                        icon={draftIcon(creatingListIn.kind)}
+                        placeholder={draftPlaceholder(creatingListIn.kind)}
+                        onCommit={(title) =>
+                          commitCreateList(
+                            folder.id,
+                            creatingListIn.kind,
+                            title,
+                          )
+                        }
+                        onCancel={() => setCreatingListIn(null)}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {standalone.map((list) => renderList(list, false))}
+          {creatingListIn?.folderId === null && (
+            <ListEditRow
+              indent={false}
+              initial=""
+              icon={draftIcon(creatingListIn.kind)}
+              placeholder={draftPlaceholder(creatingListIn.kind)}
+              onCommit={(title) =>
+                commitCreateList(null, creatingListIn.kind, title)
+              }
+              onCancel={() => setCreatingListIn(null)}
+            />
+          )}
+        </div>
+        {/* "Drop here to ungroup" cue. Drawn as a real bordered element on the
+            non-scrolling wrapper rather than an `outline` on the scroll region:
+            WebKit (iOS PWAs) mis-paints outlines on `overflow` containers,
+            rendering the stray clipped box this used to show. This overlay
+            floats above the rows, is pinned to the visible region (it never
+            scrolls with the content), and is click-through so it can never
+            swallow the drop it advertises. */}
+        {rootZone.isOver && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed border-accent bg-accent/10"
           />
         )}
       </div>
