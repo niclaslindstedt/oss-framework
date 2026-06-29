@@ -61,10 +61,17 @@ export function docKey(slug: string): string {
     : `${DOC_KEY_PREFIX}:${slug}`;
 }
 
-let counter = 0;
+// Mint a unique id for a new list / folder / item. A plain per-session counter
+// (`${prefix}-${n}` from a module-level `n` reset to 0 on every load) is *not*
+// safe: the count restarts each page load, so the first list created in one
+// session and the first created in the next both come out `list-1`. Two
+// persisted lists then share an id, and since the side menu highlights every
+// row whose id equals `activeListId`, opening one lights up both — the "I made
+// a second note and now both are highlighted" bug. A random suffix makes the id
+// unique across sessions (and namespaces), so it can never collide with an id
+// already on disk. The prefix is kept purely so ids stay legible while debugging.
 function freshId(prefix: string): string {
-  counter += 1;
-  return `${prefix}-${counter}`;
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
 /** A blank starter document for a brand-new namespace — one empty list so the
