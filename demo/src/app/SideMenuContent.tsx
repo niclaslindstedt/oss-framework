@@ -410,8 +410,9 @@ export function SideMenuContent({
       {/* Namespace switcher — fixed. The framework component owns the
           collapsible section, the switchable rows, and the per-row drop targets
           (a checklist or folder dragged onto another workspace's row moves into
-          it). A live drag springs the section open so every workspace is
-          reachable; the cog opens the full namespaces manager. */}
+          it). A collapsed switcher stays collapsed during a drag — only the
+          workspaces already on screen are drop targets, leaving more room to
+          drop into a folder; the cog opens the full namespaces manager. */}
       <NamespaceSwitcher
         namespaces={namespaces}
         activeNamespace={activeNamespace.slug}
@@ -420,7 +421,6 @@ export function SideMenuContent({
           onNavigate();
         }}
         onManage={onOpenNamespaces}
-        dragging={dnd.dragging !== null}
         dropZone={(slug) =>
           dnd.dropZone(`ns:${slug}`, { kind: "namespace", slug })
         }

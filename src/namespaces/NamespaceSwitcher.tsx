@@ -9,9 +9,10 @@
 // It doubles as the drop target for moving items across namespaces: wire the
 // optional `dropZone` to your sidebar `useDragDrop` and each *other* namespace's
 // row accepts a dropped payload, so a drag lands on the switcher itself rather
-// than a separate, drag-only drop strip. Pass `dragging` so the section springs
-// open for the duration of a drag (and folds back after) — every namespace is a
-// reachable target even when the switcher was collapsed.
+// than a separate, drag-only drop strip. A drag never forces the section open:
+// a collapsed switcher stays collapsed, so the user who started dragging without
+// expanding keeps the extra room to drop into a folder — only the namespaces
+// already on screen (an expanded switcher) are cross-namespace targets.
 //
 // Presentational and store-free, like the rest of the namespaces module: your
 // app owns the namespace list and the active pointer and threads them in, along
@@ -67,11 +68,6 @@ type Props = {
    * Only the *non-active* rows ask for a zone.
    */
   dropZone?: (slug: string) => DropZoneProps;
-  /**
-   * Whether a drag is in flight. While true the switcher force-expands so every
-   * namespace is a reachable drop target, then folds back to its prior state.
-   */
-  dragging?: boolean;
   /** Whether the switcher starts collapsed (active row only). Default true. */
   defaultCollapsed?: boolean;
   labels?: NamespaceSwitcherLabels;
@@ -83,7 +79,6 @@ export function NamespaceSwitcher({
   onSwitch,
   onManage,
   dropZone,
-  dragging = false,
   defaultCollapsed = true,
   labels,
 }: Props) {
@@ -93,10 +88,10 @@ export function NamespaceSwitcher({
   // The collapse toggle only earns its keep with more than one namespace —
   // a lone namespace reads the same collapsed or open, so the chevron is dropped.
   const collapsible = namespaces.length > 1;
-  // A live drag wins over the collapsed preference: every namespace must be a
-  // reachable target for the duration, then the switcher folds back to where the
-  // user left it.
-  const expanded = !collapsible || !collapsed || dragging;
+  // A drag never overrides the collapsed preference: a collapsed switcher stays
+  // collapsed for the duration, leaving the user more room to drop into a folder.
+  // Only the namespaces already on screen accept a cross-namespace drop.
+  const expanded = !collapsible || !collapsed;
 
   const shown = expanded
     ? namespaces

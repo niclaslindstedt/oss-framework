@@ -58,13 +58,22 @@ describe("NamespaceSwitcher", () => {
     expect(props.onManage).toHaveBeenCalled();
   });
 
-  it("force-expands while a drag is live, regardless of collapse", () => {
-    renderSwitcher({ dragging: true });
-    // Collapsed preference is overridden so every namespace is a drop target.
-    expect(screen.getByRole("button", { name: "Switch to Work" })).toBeTruthy();
+  it("stays collapsed while a drag is live", () => {
+    // A drag never forces the section open: a collapsed switcher stays collapsed
+    // so the user keeps the room to drop into a folder. Only the namespaces
+    // already on screen (an expanded switcher) are cross-namespace targets.
+    const dropZone = vi.fn((_slug: string) => ({
+      ref: () => {},
+      isOver: false,
+      isActive: true,
+    }));
+    renderSwitcher({ dropZone });
+    expect(screen.queryByRole("button", { name: "Switch to Work" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Switch to Travel" }),
-    ).toBeTruthy();
+      screen.queryByRole("button", { name: "Switch to Travel" }),
+    ).toBeNull();
+    // Collapsed: no hidden row asked for a drop zone.
+    expect(dropZone).not.toHaveBeenCalled();
   });
 
   it("wires a drop zone for every namespace but the active one", () => {
