@@ -191,9 +191,11 @@ useEffect(() => {
   lists them all (the toggle is dropped when there's only one). It doubles as the
   cross-namespace drop target: wire `dropZone` to your `sidebar` `useDragDrop`
   and each _other_ namespace's row accepts a dropped payload, so a drag lands on
-  the switcher itself rather than a separate drop strip — pass `dragging` so the
-  section springs open for the duration of a drag and every namespace is
-  reachable. Presentational; `labels` (English defaults) localise it.
+  the switcher itself rather than a separate drop strip. A drag never forces the
+  section open — a collapsed switcher stays collapsed, leaving the user the room
+  to drop into a folder; only the namespaces already on screen are
+  cross-namespace targets. Presentational; `labels` (English defaults) localise
+  it.
 - `NamespacesModal` — the full create / switch / rename / restyle / delete
   surface. Presentational; `labels` (English defaults) localise it, and
   `glyphs` / `colors` override the picker catalogues (defaulting to the
@@ -214,7 +216,6 @@ const dnd = useDragDrop<DragItem, DropTarget>({ canDrop, onDrop });
   activeNamespace={ns.activeSlug}
   onSwitch={ns.switchTo}
   onManage={() => setManageOpen(true)}
-  dragging={dnd.dragging !== null}
   dropZone={(slug) => dnd.dropZone(`ns:${slug}`, { kind: "namespace", slug })}
 />;
 ```
@@ -228,7 +229,7 @@ A new app's needs rarely match a component exactly. The likely mismatches:
   `NamespacesModal`) render a plain default mark; you can pass a trimmed
   `NamespacesModal` by leaving the pickers as-is (they're harmless) or build your
   own switcher over the data helpers and skip the dialog entirely.
-- **You don't need cross-namespace drag.** Omit `dropZone`/`dragging` on
+- **You don't need cross-namespace drag.** Omit `dropZone` on
   `NamespaceSwitcher` and the rows are switch-only — no drop targets, no
   dependency on the `sidebar` drag hook.
 - **You sync the registry across devices.** Persist `serializeNamespaces(list)`
