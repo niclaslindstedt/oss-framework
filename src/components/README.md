@@ -18,7 +18,7 @@ defaults.
 
 | Export                                         | Kind      | What it is                                                                                                                                   |
 | ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape.                                                       |
+| `Modal`                                        | component | Portalled accessible dialog: dimmed backdrop, focus trap, scroll lock, stacked-Escape, swipe-down-to-close on the mobile sheet.              |
 | `Button`                                       | component | Themed button, four variants (`primary` / `secondary` / `ghost` / `danger`).                                                                 |
 | `Checkbox`                                     | component | Accessible custom checkbox (hidden native input + drawn box).                                                                                |
 | `ClearableInput`                               | component | Text input with an inline clear (×) button.                                                                                                  |
