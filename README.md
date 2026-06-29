@@ -87,6 +87,7 @@ Today:
 | `useMediaQuery`          | `.` and `./hooks`        | Subscribe to a CSS media query; `useDesktopPointer` gates right-click affordances.                                         |
 | `useRowSwipe`            | `.` and `./hooks`        | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                                                 |
 | `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.                                        |
+| `useSwipeDownToClose`    | `.` and `./hooks`        | Touch swipe-down-to-dismiss for a modal sheet — arms on the header or at a content scroll-top; `Modal` wires it in.        |
 | `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.                                                 |
 | `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                             |
 | `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useSwipeDownToClose } from "../hooks/useSwipeDownToClose.ts";
 import { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 
 // Minimal accessible modal: a dimmed backdrop with a centered card. Closes
@@ -79,6 +80,20 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  // Swipe-down-to-close, the mobile-sheet dismiss gesture. Only the
+  // full-screen mobile layout reads as a sheet, so a centered card (a
+  // confirmation, a picker) opts out — and the hook is touch-only, so a desktop
+  // pointer never trips it regardless. A downward drag that starts on the
+  // header, or in content already scrolled to its top, pulls the card with the
+  // finger; releasing past the threshold closes. `dragOffset` translates the
+  // card and `dragging` gates its transition (live drag tracks 1:1, the
+  // snap-back animates).
+  const { offset: dragOffset, dragging } = useSwipeDownToClose(
+    cardRef,
+    onClose,
+    { enabled: open && !centered },
+  );
+
   // Focus runs in a layout effect, not a passive one, so it fires
   // synchronously on commit. When the open is dispatched inside `flushSync`
   // from the tap that triggered it, this layout effect therefore runs
@@ -136,6 +151,11 @@ export function Modal({
     ? `relative flex max-h-[85svh] w-full ${size} flex-col overflow-hidden rounded-lg border border-line bg-surface text-fg shadow-xl outline-none`
     : "relative flex h-full w-full flex-col overflow-hidden bg-surface text-fg shadow-xl outline-none sm:h-[min(90svh,42rem)] sm:max-w-3xl sm:rounded-lg sm:border sm:border-line";
 
+  // Fade the backdrop as the sheet is dragged away so the chrome behind it
+  // surfaces in step with the dismiss — clamped so it never fully clears mid
+  // gesture.
+  const dragProgress = Math.min(dragOffset / 240, 0.6);
+
   return createPortal(
     <div className={wrapperClass} style={APP_VIEWPORT_RECT}>
       <button
@@ -144,6 +164,7 @@ export function Modal({
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/50"
+        style={dragOffset > 0 ? { opacity: 1 - dragProgress } : undefined}
       />
       <div
         ref={cardRef}
@@ -152,6 +173,14 @@ export function Modal({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         className={cardClass}
+        style={
+          dragOffset > 0
+            ? {
+                transform: `translateY(${dragOffset}px)`,
+                transition: dragging ? "none" : "transform 0.2s ease-out",
+              }
+            : undefined
+        }
       >
         {/* iOS PWA safe-area: the full-screen mobile layout reaches the top
             of the viewport, so reserve room for the status bar / Dynamic

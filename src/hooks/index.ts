@@ -21,6 +21,7 @@ export {
   usePullToRefresh,
   type PullToRefreshState,
 } from "./usePullToRefresh.ts";
+export { useSwipeDownToClose } from "./useSwipeDownToClose.ts";
 export {
   useUndoRedoShortcuts,
   type UndoRedoShortcutsParams,
