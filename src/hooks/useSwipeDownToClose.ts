@@ -29,6 +29,14 @@ const DEFAULT_CLOSE_DISTANCE = 100;
 // A drag that locks horizontal stands down so a sideways flick never pulls the
 // sheet. Mirrors `useRowSwipe`'s axis lock.
 const AXIS_LOCK = 8;
+// How long the dismiss animation runs before `onClose` fires, in ms. A release
+// past the threshold glides the card the rest of the way off-screen and fades
+// it out rather than letting it vanish at the finger's last position; this is
+// how long that flow-out lasts. Exported so the `Modal` (the in-tree caller)
+// drives its CSS transition off the same value — the duration stays a single
+// source of truth across the hook's timer and the caller's transition. Keep any
+// caller's CSS transition in step with it (or whatever `dismissMs` it passes).
+export const SWIPE_DOWN_DISMISS_MS = 240;
 
 type Options = {
   // Gate the gesture off entirely (default true). When false the listeners are
@@ -38,6 +46,10 @@ type Options = {
   // Downward distance (px) a release must reach to fire `onClose`. Defaults to
   // `DEFAULT_CLOSE_DISTANCE`.
   closeDistance?: number;
+  // How long the dismiss flow-out animation runs before `onClose` fires, in ms.
+  // Keep it in step with the caller's CSS transition. Defaults to
+  // `SWIPE_DOWN_DISMISS_MS`.
+  dismissMs?: number;
 };
 
 type Result = {
@@ -48,6 +60,12 @@ type Result = {
   // transition on its negation so the live drag tracks the finger 1:1 and only
   // the snap-back / settle animates.
   dragging: boolean;
+  // True from the moment a release past the threshold commits to dismiss until
+  // `onClose` fires. The card is animating out — gliding the rest of the way
+  // down and fading — so the caller applies the exit transition (transform +
+  // opacity) and fades the backdrop fully clear, rather than letting the sheet
+  // disappear at the finger's last position.
+  closing: boolean;
 };
 
 // True only if every scrollable ancestor of `target` up to (and including)
@@ -76,19 +94,32 @@ export function useSwipeDownToClose(
   onClose: () => void,
   options: Options = {},
 ): Result {
-  const { enabled = true, closeDistance = DEFAULT_CLOSE_DISTANCE } = options;
+  const {
+    enabled = true,
+    closeDistance = DEFAULT_CLOSE_DISTANCE,
+    dismissMs = SWIPE_DOWN_DISMISS_MS,
+  } = options;
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   // Mirror the live offset so the listeners read it on release without
   // re-subscribing every tick, and hold the latest `onClose` / `closeDistance`
-  // in refs so changing either never re-runs the attach effect (callers pass a
-  // fresh inline `onClose` every render).
+  // / `dismissMs` in refs so changing any never re-runs the attach effect
+  // (callers pass a fresh inline `onClose` every render).
   const offsetRef = useRef(0);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const closeDistanceRef = useRef(closeDistance);
   closeDistanceRef.current = closeDistance;
+  const dismissMsRef = useRef(dismissMs);
+  dismissMsRef.current = dismissMs;
+  // True while the exit animation is mid-flight, read by `onTouchStart` so a
+  // fresh touch can't re-arm a drag over a sheet that's already gliding out.
+  const closingRef = useRef(false);
+  // Pending dismiss timer, cleared on unmount so a teardown mid-animation never
+  // fires `onClose` into an unmounted tree.
+  const dismissTimer = useRef<number | null>(null);
 
   useEffect(() => {
     const card = ref.current;
@@ -112,6 +143,9 @@ export function useSwipeDownToClose(
     };
 
     const onTouchStart = (e: TouchEvent) => {
+      // Ignore a new touch while the sheet is gliding out — the dismiss is
+      // already committed; let the exit animation run to its close.
+      if (closingRef.current) return;
       if (e.touches.length !== 1) return;
       const touch = e.touches[0];
       if (!touch) return;
@@ -158,10 +192,30 @@ export function useSwipeDownToClose(
       armed = false;
       axis = "none";
       if (traveled >= closeDistanceRef.current) {
-        // Leave the offset where the finger left it; the modal unmounts on
-        // close, so there's no settle to animate.
         setDragging(false);
-        onCloseRef.current();
+        // Honour a reduced-motion preference: skip the glide-out and dismiss at
+        // once (the old behaviour), so the sheet doesn't animate for users who
+        // asked it not to.
+        const reduceMotion =
+          typeof window !== "undefined" &&
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduceMotion) {
+          onCloseRef.current();
+          return;
+        }
+        // Glide the rest of the way out and fade, then close. The card's own
+        // height carries it fully below the viewport (falling back to the travel
+        // so far if the element can't be measured); `closing` tells the caller
+        // to run the exit transition. `onClose` fires once the animation has had
+        // time to play — mirrors `useRowSwipe`'s commit-after-`dismissMs` slide.
+        closingRef.current = true;
+        setClosing(true);
+        const fullTravel = card.getBoundingClientRect().height || traveled;
+        setOffsetBoth(Math.max(fullTravel, traveled));
+        dismissTimer.current = window.setTimeout(() => {
+          onCloseRef.current();
+        }, dismissMsRef.current);
         return;
       }
       // Short of the threshold — snap back. `dragging` flips false first so the
@@ -182,12 +236,20 @@ export function useSwipeDownToClose(
       card.removeEventListener("touchmove", onTouchMove);
       card.removeEventListener("touchend", onTouchEnd);
       card.removeEventListener("touchcancel", reset);
-      // Clear any in-progress drag state so a re-mount starts at rest.
+      // Drop a pending dismiss timer so a teardown mid-animation never fires
+      // `onClose` after unmount.
+      if (dismissTimer.current !== null) {
+        clearTimeout(dismissTimer.current);
+        dismissTimer.current = null;
+      }
+      // Clear any in-progress drag / exit state so a re-mount starts at rest.
+      closingRef.current = false;
       offsetRef.current = 0;
       setOffset(0);
       setDragging(false);
+      setClosing(false);
     };
   }, [ref, enabled]);
 
-  return { offset, dragging };
+  return { offset, dragging, closing };
 }
