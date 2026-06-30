@@ -11,6 +11,7 @@ export const en = {
     close: "Close",
     cancel: "Cancel",
     save: "Save",
+    clear: "Clear",
     resetToDefaults: "Reset to defaults",
   },
   menu: {
@@ -235,6 +236,15 @@ export const en = {
       passphrase: "Passphrase",
       unlock: "Unlock",
       encrypt: "Encrypt",
+      gateExplainer:
+        "The passphrase lives only in memory, so the simulated reload locked the document. The framework's full-screen unlock gate is up — enter the passphrase to decrypt the envelope on disk.",
+      gateTitle: "Document is locked",
+      gateHint:
+        "Enter your passphrase to unlock and read this document on this device.",
+      gateStatusAria: "Decrypting",
+      gateDeriving: "Checking your passphrase…",
+      gateDecrypting: "Decrypting your document…",
+      gateWrong: "Wrong passphrase. Try again.",
       bytesTitle: "Bytes on disk",
       bytesIntro:
         "What localStorage actually holds for this document — plaintext, or the JSON envelope when encrypted.",

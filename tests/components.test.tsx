@@ -15,6 +15,7 @@ import {
   Section,
   SelectPicker,
   ToggleRow,
+  UnlockGate,
   computeFloatingRect,
   CheckIcon,
   CloseIcon,
@@ -422,6 +423,96 @@ describe("CipherGlyph", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// --- UnlockGate ---------------------------------------------------------
+
+describe("UnlockGate", () => {
+  it("renders nothing when closed", () => {
+    const { container } = render(
+      <UnlockGate open={false} onUnlock={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("shows English defaults and disables unlock until a passphrase is typed", () => {
+    render(<UnlockGate open onUnlock={vi.fn()} />);
+    expect(screen.getByText("Content is locked")).toBeTruthy();
+    const unlock = screen.getByRole("button", {
+      name: "Unlock",
+    }) as HTMLButtonElement;
+    expect(unlock.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Passphrase"), {
+      target: { value: "hunter2" },
+    });
+    expect(unlock.disabled).toBe(false);
+  });
+
+  it("overrides every visible string through labels", () => {
+    render(
+      <UnlockGate
+        open
+        onUnlock={vi.fn()}
+        labels={{
+          title: "Notes are locked",
+          hint: "Enter your passphrase.",
+          passphrase: "Lösenord",
+          unlock: "Lås upp",
+        }}
+      />,
+    );
+    expect(screen.getByText("Notes are locked")).toBeTruthy();
+    expect(screen.getByText("Enter your passphrase.")).toBeTruthy();
+    expect(screen.getByLabelText("Lösenord")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Lås upp" })).toBeTruthy();
+  });
+
+  it("flashes the caller's progress label beside the cipher animation, then clears on success", async () => {
+    const onUnlock = vi.fn(
+      async (_pw: string, onProgress: (label: string) => void) => {
+        onProgress("Decrypting your notes…");
+      },
+    );
+    render(<UnlockGate open onUnlock={onUnlock} />);
+    const input = screen.getByLabelText("Passphrase") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "right" } });
+    await act(async () => {
+      fireEvent.submit(input.closest("form")!);
+    });
+    expect(onUnlock).toHaveBeenCalledWith("right", expect.any(Function));
+    // Resolved: the field is cleared and the status line is gone.
+    expect(input.value).toBe("");
+  });
+
+  it("shows the default error on rejection and routes it through mapError", async () => {
+    const onUnlock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockRejectedValueOnce(new Error("boom"));
+    const { rerender } = render(<UnlockGate open onUnlock={onUnlock} />);
+    const submit = async () => {
+      const input = screen.getByLabelText("Passphrase") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "wrong" } });
+      await act(async () => {
+        fireEvent.submit(input.closest("form")!);
+      });
+    };
+    await submit();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Wrong passphrase. Try again.",
+    );
+    rerender(
+      <UnlockGate
+        open
+        onUnlock={onUnlock}
+        mapError={() => "Can't reach your cloud."}
+      />,
+    );
+    await submit();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Can't reach your cloud.",
+    );
   });
 });
 
