@@ -8,7 +8,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { useSwipeDownToClose } from "../hooks/useSwipeDownToClose.ts";
+import {
+  useSwipeDownToClose,
+  SWIPE_DOWN_DISMISS_MS,
+} from "../hooks/useSwipeDownToClose.ts";
 import { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 
 // Minimal accessible modal: a dimmed backdrop with a centered card. Closes
@@ -87,12 +90,15 @@ export function Modal({
   // header, or in content already scrolled to its top, pulls the card with the
   // finger; releasing past the threshold closes. `dragOffset` translates the
   // card and `dragging` gates its transition (live drag tracks 1:1, the
-  // snap-back animates).
-  const { offset: dragOffset, dragging } = useSwipeDownToClose(
-    cardRef,
-    onClose,
-    { enabled: open && !centered },
-  );
+  // snap-back animates). `closing` is true once a release past the threshold
+  // commits to dismiss: the card then glides the rest of the way down and fades
+  // out before `onClose` unmounts it, instead of vanishing at the finger's last
+  // position.
+  const {
+    offset: dragOffset,
+    dragging,
+    closing,
+  } = useSwipeDownToClose(cardRef, onClose, { enabled: open && !centered });
 
   // Focus runs in a layout effect, not a passive one, so it fires
   // synchronously on commit. When the open is dispatched inside `flushSync`
@@ -153,8 +159,34 @@ export function Modal({
 
   // Fade the backdrop as the sheet is dragged away so the chrome behind it
   // surfaces in step with the dismiss — clamped so it never fully clears mid
-  // gesture.
+  // gesture. Once the dismiss commits (`closing`), it eases the rest of the way
+  // to clear in step with the card gliding out.
   const dragProgress = Math.min(dragOffset / 240, 0.6);
+  // The exit transition the card and backdrop share once a dismiss commits:
+  // glide down (accelerating away, Material's "leaving the screen" easing) while
+  // fading out, timed to `SWIPE_DOWN_DISMISS_MS` so it lands exactly as the hook
+  // fires `onClose`.
+  const exitEase = "cubic-bezier(0.4, 0, 1, 1)";
+  const backdropStyle = closing
+    ? {
+        opacity: 0,
+        transition: `opacity ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}`,
+      }
+    : dragOffset > 0
+      ? { opacity: 1 - dragProgress }
+      : undefined;
+  const cardStyle = closing
+    ? {
+        transform: `translateY(${dragOffset}px)`,
+        opacity: 0,
+        transition: `transform ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}, opacity ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}`,
+      }
+    : dragOffset > 0
+      ? {
+          transform: `translateY(${dragOffset}px)`,
+          transition: dragging ? "none" : "transform 0.2s ease-out",
+        }
+      : undefined;
 
   return createPortal(
     <div className={wrapperClass} style={APP_VIEWPORT_RECT}>
@@ -164,7 +196,7 @@ export function Modal({
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/50"
-        style={dragOffset > 0 ? { opacity: 1 - dragProgress } : undefined}
+        style={backdropStyle}
       />
       <div
         ref={cardRef}
@@ -173,14 +205,7 @@ export function Modal({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         className={cardClass}
-        style={
-          dragOffset > 0
-            ? {
-                transform: `translateY(${dragOffset}px)`,
-                transition: dragging ? "none" : "transform 0.2s ease-out",
-              }
-            : undefined
-        }
+        style={cardStyle}
       >
         {/* iOS PWA safe-area: the full-screen mobile layout reaches the top
             of the viewport, so reserve room for the status bar / Dynamic
