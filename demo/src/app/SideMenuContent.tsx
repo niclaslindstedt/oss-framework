@@ -143,10 +143,16 @@ type Props = {
   // the header so the trophy lives with the other menu actions. App owns what it
   // opens.
   trophy?: ReactNode;
+  // Notified while a nav row is picked up and dragged (reparent / archive), so
+  // the host can suppress competing global gestures — the list's
+  // pull-to-refresh — for the drag's duration. A row is lifted by a long press,
+  // which iOS would otherwise also read as the start of a downward pull.
+  onDraggingChange?: (dragging: boolean) => void;
 };
 
 export function SideMenuContent({
   store,
+  onDraggingChange,
   activeNamespace,
   namespaces,
   onSwitchNamespace,
@@ -188,6 +194,7 @@ export function SideMenuContent({
   // one means (`onDrop`) — reparent into a folder or back to the root, hand a
   // checklist / folder to another namespace, or archive it.
   const dnd = useDragDrop<DragItem, DropTarget>({
+    onDraggingChange,
     canDrop: (drag, target) => {
       switch (target.kind) {
         case "folder": {
