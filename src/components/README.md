@@ -30,6 +30,7 @@ defaults.
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                                  |
 | `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row.                                   |
 | `CipherGlyph`                                  | component | An "encryptish" busy indicator — a run of re-scrambling cipher glyphs, used in place of a spinner.                                           |
+| `UnlockGate`                                   | component | Full-screen passphrase lock screen for an at-rest-encrypted app — cipher animation + caller-narrated progress; strings via `labels`.         |
 | `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                                  |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                                      |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                                           |
@@ -187,6 +188,41 @@ With motion off it holds a static frame, which still reads as enciphered bytes.
 Because the localStorage backends resolve in well under a frame, pair it with a
 small minimum-display window (a standard anti-flicker beat) when fronting a fast
 async op so the animation reads rather than flashes past.
+
+### Lock screen (`UnlockGate`)
+
+`UnlockGate` is the full-screen lock screen an at-rest-encrypted app paints on a
+fresh load, when the stored bytes are an envelope but the session passphrase is
+gone. It floats a lone passphrase card over an opaque page (no dimmed backdrop —
+there is nothing to reveal behind it) and stays up until your `onUnlock`
+resolves. While it runs, a `CipherGlyph` animates beside whatever phase label you
+push through the progress sink, so the wait reads as bytes being deciphered:
+
+```tsx
+import { UnlockGate } from "@niclaslindstedt/oss-framework/components";
+
+<UnlockGate
+  open={locked}
+  onUnlock={async (password, onProgress) => {
+    onProgress(t("unlock.deriving")); // "Checking your passphrase…"
+    passwordRef.current = password; // the seam your app owns
+    await reload(); // throws on the wrong passphrase
+  }}
+  // Distinguish, say, an offline backend from a genuinely wrong passphrase.
+  mapError={(err) =>
+    err instanceof OfflineError ? t("unlock.offline") : t("unlock.wrong")
+  }
+  labels={{ title: t("unlock.title"), unlock: t("unlock.button") }}
+/>;
+```
+
+It owns the screen, not the secret: where the passphrase lives and how it
+decrypts is the `onUnlock` your app supplies (the same `passwordRef` seam the
+[`encryption`](../encryption/README.md) wrapper threads). It carries no i18n and
+no domain types — every visible string injects through `labels` with English
+defaults, a rejected `onUnlock` becomes a message through `mapError` (falling
+back to `labels.error`), and the progress phase is a plain string you push — so a
+second app reuses it without inheriting the first app's vocabulary.
 
 ### Copy-to-clipboard button (`CopyButton`)
 

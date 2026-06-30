@@ -8,6 +8,7 @@ import {
   Section,
   SelectPicker,
   ToggleRow,
+  UnlockGate,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   backoffDelayMs,
@@ -384,24 +385,34 @@ export function StorageTab({ sync }: { sync: MockSync }) {
     refreshRaw();
   }
 
-  // Re-enter the passphrase and decrypt. A wrong one fails at the AES-GCM auth
-  // tag, surfaced here as the framework's "Wrong password".
-  async function unlock() {
-    if (!pass) return;
-    passwordRef.current = pass;
-    setEncError("");
+  // Re-enter the passphrase and decrypt, driving the framework's full-screen
+  // `UnlockGate` — the real lock screen an app shows after a reload, not a
+  // settings-tab affordance. The gate hands us a progress sink: we narrate the
+  // key-derivation/decrypt beats it flashes beside the cipher animation. A
+  // wrong passphrase fails at the AES-GCM auth tag; we rethrow so the gate
+  // surfaces it (routed through `mapError` to a friendly line).
+  async function gateUnlock(
+    password: string,
+    onProgress: (label: string) => void,
+  ) {
+    onProgress(t("settings.storage.gateDeriving"));
+    passwordRef.current = password;
     try {
-      await reload();
+      const snap = await adapter.load();
+      onProgress(t("settings.storage.gateDecrypting"));
+      setText(snap?.text ?? "");
+      baseRevision.current = snap?.revision;
       setMode("unlocked");
-      setPass("");
+      setStatus(snap ? `loaded ${snap.text.length} B` : "nothing stored yet");
+      refreshRaw();
     } catch (err) {
+      // Drop the bad passphrase so the next attempt re-derives from scratch.
       passwordRef.current = null;
-      setEncError(err instanceof Error ? err.message : String(err));
+      throw err;
     }
   }
 
   const locked = mode === "locked";
-  const passControls = mode === "setup" || locked;
 
   return (
     <div>
@@ -500,39 +511,39 @@ export function StorageTab({ sync }: { sync: MockSync }) {
           </div>
         )}
 
-        {passControls && (
+        {mode === "setup" && (
           <div className="flex flex-col gap-2">
             <span className="text-xs text-muted">
-              {mode === "setup"
-                ? "Choose a passphrase. Saving re-writes the document as an envelope; the passphrase is held in memory only."
-                : "The passphrase lives only in memory, so a reload locks the document. Enter it to decrypt the envelope on disk."}
+              Choose a passphrase. Saving re-writes the document as an envelope;
+              the passphrase is held in memory only.
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="password"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  void (locked ? unlock() : enableEncryption())
-                }
+                onKeyDown={(e) => e.key === "Enter" && void enableEncryption()}
                 placeholder={t("settings.storage.passphrase")}
                 className={inputClass}
               />
               <Button
                 variant="primary"
-                onClick={() => void (locked ? unlock() : enableEncryption())}
+                onClick={() => void enableEncryption()}
                 disabled={!pass || busy !== null}
               >
-                {locked
-                  ? t("settings.storage.unlock")
-                  : t("settings.storage.encrypt")}
+                {t("settings.storage.encrypt")}
               </Button>
             </div>
             {encError && (
               <span className="text-sm text-danger">{encError}</span>
             )}
           </div>
+        )}
+
+        {locked && (
+          <span className="text-xs text-muted">
+            {t("settings.storage.gateExplainer")}
+          </span>
         )}
       </Section>
 
@@ -610,6 +621,25 @@ export function StorageTab({ sync }: { sync: MockSync }) {
           title: t("settings.storage.saveLogTitle"),
           empty: t("settings.storage.saveLogEmpty"),
           close: t("common.close"),
+        }}
+      />
+
+      {/* The framework's full-screen lock screen — what a real app paints on a
+          fresh load when the document is an envelope but the session passphrase
+          is gone. It blocks the app until the passphrase decrypts the bytes,
+          fronting a `CipherGlyph` beside the progress line we narrate. A wrong
+          passphrase routes through `mapError` to a friendly message. */}
+      <UnlockGate
+        open={locked}
+        onUnlock={gateUnlock}
+        mapError={() => t("settings.storage.gateWrong")}
+        labels={{
+          title: t("settings.storage.gateTitle"),
+          hint: t("settings.storage.gateHint"),
+          passphrase: t("settings.storage.passphrase"),
+          unlock: t("settings.storage.unlock"),
+          statusAria: t("settings.storage.gateStatusAria"),
+          clear: t("common.clear"),
         }}
       />
     </div>

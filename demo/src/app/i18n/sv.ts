@@ -10,6 +10,7 @@ export const sv: Catalog = {
     close: "Stäng",
     cancel: "Avbryt",
     save: "Spara",
+    clear: "Rensa",
     resetToDefaults: "Återställ standard",
   },
   menu: {
@@ -232,6 +233,15 @@ export const sv: Catalog = {
       passphrase: "Lösenfras",
       unlock: "Lås upp",
       encrypt: "Kryptera",
+      gateExplainer:
+        "Lösenfrasen lever bara i minnet, så den simulerade omladdningen låste dokumentet. Ramverkets upplåsningsruta i helskärm visas — ange lösenfrasen för att dekryptera kuvertet på disk.",
+      gateTitle: "Dokumentet är låst",
+      gateHint:
+        "Ange din lösenfras för att låsa upp och läsa dokumentet på den här enheten.",
+      gateStatusAria: "Dekrypterar",
+      gateDeriving: "Kontrollerar din lösenfras…",
+      gateDecrypting: "Dekrypterar ditt dokument…",
+      gateWrong: "Fel lösenfras. Försök igen.",
       bytesTitle: "Byten på disk",
       bytesIntro:
         "Vad localStorage faktiskt innehåller för det här dokumentet — klartext, eller JSON-kuvertet när det är krypterat.",

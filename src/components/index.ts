@@ -41,6 +41,7 @@ export {
   type ConfirmDialogLabels,
 } from "./ConfirmDialog.tsx";
 export { CipherGlyph } from "./CipherGlyph.tsx";
+export { UnlockGate, type UnlockGateLabels } from "./UnlockGate.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";
 export {
