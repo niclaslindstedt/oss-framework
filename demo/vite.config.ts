@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -22,6 +23,24 @@ const version = process.env.GITHUB_SHA
   ? process.env.GITHUB_SHA.slice(0, 7)
   : new Date().toISOString();
 
+// Build identity for the Developer tab's "Build" grid. The commit hash is the
+// deploying SHA in CI (the workflow exposes GITHUB_SHA), falling back to the
+// local working tree's HEAD so a `make`/`npm run build:demo` still stamps a
+// real hash; "unknown" only if git isn't reachable. The build number is the
+// CI run number when present, "dev" for a local build.
+const commit =
+  process.env.GITHUB_SHA?.slice(0, 7) ??
+  (() => {
+    try {
+      return execSync("git rev-parse --short HEAD", {
+        encoding: "utf8",
+      }).trim();
+    } catch {
+      return "unknown";
+    }
+  })();
+const buildNumber = process.env.GITHUB_RUN_NUMBER ?? "dev";
+
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 // The framework package's released version (e.g. "0.2.0"), surfaced in the
@@ -35,9 +54,14 @@ const appVersion = (
 
 export default defineConfig({
   base,
-  // Inline the package version at build time so the side menu can show it
-  // without importing `package.json` into the bundle.
-  define: { __APP_VERSION__: JSON.stringify(appVersion) },
+  // Inline the package version + build identity at build time so the side menu
+  // and the Developer tab can show them without importing `package.json` or
+  // shelling out to git from the bundle.
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __BUILD_COMMIT__: JSON.stringify(commit),
+    __BUILD_NUMBER__: JSON.stringify(buildNumber),
+  },
   // `demoPwa` only applies on build, so dev keeps registering no worker (the
   // app passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).
   plugins: [react(), tailwindcss(), demoPwa({ base, version })],

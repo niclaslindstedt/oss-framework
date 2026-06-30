@@ -272,6 +272,8 @@ export const sv: Catalog = {
       latestVersionLabel: "senaste version",
       loadLegacy: "Ladda ett äldre dokument",
       buildTitle: "Bygge",
+      buildLabel: "bygge",
+      commitLabel: "commit",
       modeLabel: "läge",
       displayLabel: "visning",
       installedPwa: "installerad PWA (fristående)",
