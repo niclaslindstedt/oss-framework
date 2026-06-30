@@ -275,6 +275,8 @@ export const en = {
       latestVersionLabel: "latest version",
       loadLegacy: "Load a legacy document",
       buildTitle: "Build",
+      buildLabel: "build",
+      commitLabel: "commit",
       modeLabel: "mode",
       displayLabel: "display",
       installedPwa: "installed PWA (standalone)",

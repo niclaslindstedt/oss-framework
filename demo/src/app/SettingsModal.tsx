@@ -118,12 +118,14 @@ export function SettingsModal({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
-  // The Developer / Logs tabs only exist while developer mode (or capture) is
-  // on — mirror the real app. If the active tab vanishes, fall back to General.
+  // The Developer tab only exists while developer mode is on; the Logs tab only
+  // while log capture is on — there's nothing to show when the app isn't
+  // catching logs. Mirror the real app. If the active tab vanishes, fall back
+  // to General.
   const visible = TABS.filter(
     (tabItem) =>
       (tabItem.id !== "developer" || draft.devMode) &&
-      (tabItem.id !== "logs" || draft.devMode || draft.captureLogs),
+      (tabItem.id !== "logs" || draft.captureLogs),
   );
   const activeTab = visible.some((tabItem) => tabItem.id === tab)
     ? tab

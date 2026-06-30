@@ -727,6 +727,10 @@ export function DeveloperTab({
           <dd className="text-fg tabular-nums">
             @niclaslindstedt/oss-framework
           </dd>
+          <dt className="text-muted">{t("settings.developer.buildLabel")}</dt>
+          <dd className="text-fg tabular-nums">{__BUILD_NUMBER__}</dd>
+          <dt className="text-muted">{t("settings.developer.commitLabel")}</dt>
+          <dd className="text-fg tabular-nums">{__BUILD_COMMIT__}</dd>
           <dt className="text-muted">{t("settings.developer.modeLabel")}</dt>
           <dd className="text-fg">{import.meta.env.MODE}</dd>
           <dt className="text-muted">{t("settings.developer.displayLabel")}</dt>
