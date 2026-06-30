@@ -99,6 +99,14 @@ export function App() {
   // shell is told the answer.
   const pinned = useMediaQuery("(min-width: 768px)");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // True while a sidebar gesture owns the pointer — the floating button being
+  // dragged to a new edge, or a nav row picked up to reparent / archive. Both
+  // are downward-capable drags that would otherwise arm the list's
+  // pull-to-refresh behind them (a row is lifted by a long press, the very
+  // gesture iOS also reads as the start of a pull), so the screen suppresses
+  // that gesture for its duration. See the `pullEnabled` gate on
+  // `ChecklistScreen` below.
+  const [sidebarDragging, setSidebarDragging] = useState(false);
   // The sidebar button's resting spot is remembered across reloads by the
   // framework's `usePersistentMenuPosition` — a drop-in for `useState` backed by
   // localStorage, so a placement the user drags it to survives a refresh.
@@ -252,6 +260,10 @@ export function App() {
         onClose={() => setDrawerOpen(false)}
         position={position}
         onPositionChange={setPosition}
+        // The floating button reports its own drag so the list's
+        // pull-to-refresh stands down while the button is dragged downward to a
+        // new resting edge (the nav-row drag below feeds the same flag).
+        onDraggingChange={setSidebarDragging}
         // On phones the button shows only in "Floating button" mode; in
         // "Right-swipe" mode it's hidden and the edge-swipe gesture above opens
         // the drawer instead. Wide screens dock the menu and never show either.
@@ -266,6 +278,7 @@ export function App() {
       >
         <SideMenuContent
           store={{ ...store, undo: undoWithTrophy }}
+          onDraggingChange={setSidebarDragging}
           activeNamespace={ns.activeNamespace}
           namespaces={ns.list}
           onSwitchNamespace={ns.switchTo}
@@ -312,6 +325,11 @@ export function App() {
             sync={sync}
             onOpenSyncDetails={() => setSyncDetailsOpen(true)}
             addItemPosition={settings.addItemPosition}
+            // Suppress pull-to-refresh while a sidebar drag owns the pointer, and
+            // while the phone drawer covers the list (a downward drag inside the
+            // open drawer must not refresh the screen behind it — the same gate
+            // the undo shortcuts use).
+            pullEnabled={!sidebarDragging && (pinned || !drawerOpen)}
           />
         )}
       </main>

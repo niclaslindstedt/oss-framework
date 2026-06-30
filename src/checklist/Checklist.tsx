@@ -431,11 +431,15 @@ export function Checklist<T extends ChecklistNode = ChecklistNode>({
   }
 
   // `relative` so the lifted row can position itself absolutely against the list
-  // while it floats under the finger.
+  // while it floats under the finger. `select-none` keeps a press-and-hold —
+  // the gesture that reorders / drags a row — from popping the platform text
+  // selection (the iOS magnifier) over the label instead; the inline editors
+  // re-enable selection on themselves (`select-text`) so editing a row is
+  // unaffected.
   return (
     <ul
       ref={reorder.containerRef}
-      className={`relative flex flex-col ${className}`.trim()}
+      className={`relative flex flex-col select-none ${className}`.trim()}
     >
       {rowEls}
     </ul>
@@ -479,7 +483,7 @@ function ComposerRow({
           onCancel();
           return true;
         }}
-        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg outline-none placeholder:text-muted/60"
+        className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg outline-none select-text placeholder:text-muted/60"
       />
     </li>
   );
@@ -636,7 +640,7 @@ function RowInner({
           onCommit={onCommitEdit}
           onCancel={onCancelEdit}
           onBackspaceEmpty={onBackspaceEmpty}
-          className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-fg outline-none placeholder:text-muted/60 ${textSize}`}
+          className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-fg outline-none select-text placeholder:text-muted/60 ${textSize}`}
         />
       ) : editable ? (
         // Tap-to-edit: a button so it's keyboard-reachable and announces as

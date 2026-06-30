@@ -40,6 +40,7 @@ export function ChecklistScreen({
   sync,
   onOpenSyncDetails,
   addItemPosition,
+  pullEnabled = true,
 }: {
   store: ChecklistStore;
   // The app's simulated sync engine — drives the header `SyncStatus` glyph.
@@ -49,6 +50,10 @@ export function ChecklistScreen({
   // Where the composer drops a new item (Settings → Lists). "Enter on a row"
   // always lands the next item directly below the one you're on.
   addItemPosition: AddItemPosition;
+  // Gate the pull-to-refresh gesture. The shell drops this to false while a
+  // sidebar drag owns the pointer or the phone drawer covers the list, so a
+  // downward drag in either can't arm a refresh of the screen behind it.
+  pullEnabled?: boolean;
 }) {
   const t = useT();
   const {
@@ -92,7 +97,7 @@ export function ChecklistScreen({
   // own in-flight guard, and the anti-flicker floor, and gates itself
   // (touch-only, stands down inside a modal, only at scroll-top); the indicator
   // below renders its three states.
-  const pull = usePullToRefresh(doPull);
+  const pull = usePullToRefresh(doPull, { enabled: pullEnabled });
 
   if (!activeList) return null;
 
