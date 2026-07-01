@@ -115,7 +115,7 @@ over `classifyLines` + `parseInline`.
 ## Lists and nesting
 
 Indented list items render with a depth-aware marker so nested levels read
-apart at a glance: bullets step `•` → `–` → `+` and ordered items step decimal
+apart at a glance: bullets step `•` → `◦` → `▪` and ordered items step decimal
 → lower-alpha → lower-roman (`1.` → `a.` → `i.`), re-using whatever separator
 the source typed (`.` or `)`). One nesting level is two columns of leading
 indentation (a tab counts as two), exposed on each `LineBlock` as `depth` for an

@@ -19,10 +19,10 @@ function marker(source: string): string {
 }
 
 describe("bullet markers by depth", () => {
-  it("cycles •, –, + as the item nests", () => {
+  it("cycles •, ◦, ▪ as the item nests", () => {
     expect(marker("- top")).toBe("•");
-    expect(marker("  - sub")).toBe("–");
-    expect(marker("    - deep")).toBe("+");
+    expect(marker("  - sub")).toBe("◦");
+    expect(marker("    - deep")).toBe("▪");
   });
 
   it("wraps back to • past the third level", () => {
