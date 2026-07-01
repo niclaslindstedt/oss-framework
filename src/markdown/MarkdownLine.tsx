@@ -29,11 +29,12 @@ function isLoadableUrl(href: string): boolean {
 //
 // A nested list reads far more clearly when each level looks different, so the
 // marker cycles with the item's indent depth (see `LineBlock.depth`): bullets
-// step •, –, +, and numbers step decimal → lower-alpha → lower-roman. The
-// number itself is the list's running sequence (`LineBlock.seq`, so 1./1. shows
-// 1, 2), re-using whatever separator the source typed (`.` or `)`).
+// step •, ◦, ▪ (the classic disc → circle → square), and numbers step decimal →
+// lower-alpha → lower-roman. The number itself is the list's running sequence
+// (`LineBlock.seq`, so 1./1. shows 1, 2), re-using whatever separator the source
+// typed (`.` or `)`).
 
-const BULLET_GLYPHS = ["•", "–", "+"] as const;
+const BULLET_GLYPHS = ["•", "◦", "▪"] as const;
 
 function bulletGlyph(depth: number): string {
   return BULLET_GLYPHS[depth % BULLET_GLYPHS.length]!;
@@ -298,7 +299,7 @@ function RenderedLineImpl({
           {/* A larger glyph than the raw "•", kept on a base-height line box
               (`leading-6`) so it doesn't stretch the row or drift off the first
               line of a wrapped item. The glyph changes as the item nests
-              (•, –, +) so indent levels read apart at a glance. */}
+              (•, ◦, ▪) so indent levels read apart at a glance. */}
           <span
             aria-hidden
             className="text-xl leading-6 text-accent select-none"
