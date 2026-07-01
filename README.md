@@ -115,6 +115,7 @@ Today:
 | `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                                                           |
 | `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.                                                |
 | `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.                                             |
+| `ContextMenu`            | `.` and `./components`   | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, viewport clamping.       |
 | `SwipeableRow`           | `.` and `./components`   | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action (glyphs/colours configurable). |
 | `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                                                                 |
 | `CopyButton`             | `.` and `./components`   | Glyph button that copies a value (string or getter) to the clipboard and flashes a tick; built on `useClipboard`.          |

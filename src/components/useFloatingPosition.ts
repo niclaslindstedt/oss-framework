@@ -53,6 +53,38 @@ export type FloatingWidth =
   | { kind: "max"; maxPx: number }
   | { kind: "grow"; minPx: number };
 
+// A fixed point to float against instead of a trigger element — the pointer
+// coordinates of a right-click, say. Expressed in viewport (client)
+// coordinates, exactly like `MouseEvent.clientX` / `clientY`; with
+// `coordinateSpace: "document"` the page scroll is added the same way it is
+// for a measured trigger rect.
+export type FloatingPoint = { x: number; y: number };
+
+// What a floating element may anchor to: a trigger element (measured on
+// open and on every resize/scroll) or a fixed point (a zero-size rect, so
+// all the same clamp / flip / width math applies).
+export type FloatingAnchor = RefObject<HTMLElement | null> | FloatingPoint;
+
+function isFloatingPoint(anchor: FloatingAnchor): anchor is FloatingPoint {
+  return typeof (anchor as FloatingPoint).x === "number";
+}
+
+// A point behaves as a zero-size trigger rect at (x, y). Built as a plain
+// object (not `new DOMRect`) so it needs nothing from the host environment.
+function rectFromPoint({ x, y }: FloatingPoint): DOMRect {
+  return {
+    x,
+    y,
+    top: y,
+    left: x,
+    right: x,
+    bottom: y,
+    width: 0,
+    height: 0,
+    toJSON: () => ({ x, y }),
+  } as DOMRect;
+}
+
 export type FloatingPlacement = {
   width: FloatingWidth;
   // Which edge of the trigger drives the floating element's left
@@ -244,23 +276,34 @@ function compute(
   };
 }
 
-// Measures `triggerRef` while `open` is true and returns its
-// {top, left, width, maxHeight}. Recomputes on window resize, on any
-// ancestor scroll (capture phase), and on visualViewport resize /
-// scroll — the last two fire on iOS when the soft keyboard opens or
-// closes and we need the panel to re-clamp into the visible region.
-// Reads `placement` through a latest-ref, so callers can pass a fresh
-// placement object each render without re-attaching listeners or re-
-// measuring needlessly — the placement that wins is whichever one
-// applies at the next measurement (open, resize, or scroll).
+// Measures the anchor while `open` is true and returns its
+// {top, left, width, maxHeight}. The anchor is a trigger-element ref
+// (measured with `getBoundingClientRect`) or a `FloatingPoint` (treated
+// as a zero-size rect — a right-click's cursor position). Recomputes on
+// window resize, on any ancestor scroll (capture phase), and on
+// visualViewport resize / scroll — the last two fire on iOS when the
+// soft keyboard opens or closes and we need the panel to re-clamp into
+// the visible region. Reads `placement` (and the latest anchor) through
+// a latest-ref, so callers can pass a fresh placement object each render
+// without re-attaching listeners or re-measuring needlessly — the
+// placement that wins is whichever one applies at the next measurement
+// (open, resize, or scroll).
 export function useFloatingPosition(
-  triggerRef: RefObject<HTMLElement | null>,
+  anchor: FloatingAnchor,
   open: boolean,
   placement: FloatingPlacement,
 ): FloatingRect | null {
   const [rect, setRect] = useState<FloatingRect | null>(null);
   const placementRef = useRef(placement);
   placementRef.current = placement;
+  const anchorRef = useRef(anchor);
+  anchorRef.current = anchor;
+
+  // Split for the dependency list: a ref anchor is stable by identity, a
+  // point anchor re-measures when its coordinates change (a fresh `{x, y}`
+  // object per render must not re-run the effect).
+  const point = isFloatingPoint(anchor) ? anchor : null;
+  const elementRef = isFloatingPoint(anchor) ? null : anchor;
 
   useLayoutEffect(() => {
     if (!open) {
@@ -268,15 +311,12 @@ export function useFloatingPosition(
       return;
     }
     function measure() {
-      const el = triggerRef.current;
-      if (!el) return;
-      setRect(
-        compute(
-          el.getBoundingClientRect(),
-          placementRef.current,
-          readVisualViewport(),
-        ),
-      );
+      const a = anchorRef.current;
+      const domRect = isFloatingPoint(a)
+        ? rectFromPoint(a)
+        : a.current?.getBoundingClientRect();
+      if (!domRect) return;
+      setRect(compute(domRect, placementRef.current, readVisualViewport()));
     }
     measure();
     window.addEventListener("resize", measure);
@@ -291,7 +331,7 @@ export function useFloatingPosition(
       vv?.removeEventListener("resize", measure);
       vv?.removeEventListener("scroll", measure);
     };
-  }, [open, triggerRef]);
+  }, [open, elementRef, point?.x, point?.y]);
 
   return rect;
 }

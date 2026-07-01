@@ -6,6 +6,7 @@ import { useEscapeKey } from "../hooks/useEscapeKey.ts";
 import { DismissBackdrop } from "./DismissBackdrop.tsx";
 import {
   type FloatingPlacement,
+  type FloatingPoint,
   useFloatingPosition,
 } from "./useFloatingPosition.ts";
 
@@ -13,13 +14,24 @@ type Props = {
   open: boolean;
   // Closes the panel.
   onClose: () => void;
-  // Ref to the element the panel anchors against — the trigger button.
-  triggerRef: RefObject<HTMLElement | null>;
   placement: FloatingPlacement;
   // Extra Tailwind classes appended to the panel root.
   className?: string;
   children: React.ReactNode;
-};
+} & (
+  | {
+      // Ref to the element the panel anchors against — the trigger button.
+      triggerRef: RefObject<HTMLElement | null>;
+      anchorPoint?: undefined;
+    }
+  | {
+      // A fixed viewport point to anchor against instead of a trigger — the
+      // cursor position of a right-click. A `triggerRef` may still be given
+      // alongside it so focus can return somewhere sensible on close.
+      anchorPoint: FloatingPoint;
+      triggerRef?: RefObject<HTMLElement | null>;
+    }
+);
 
 // Portalled dropdown / popover shell. Owns the float position (via
 // `useFloatingPosition`), the Escape + outside-click dismissal, and the
@@ -31,11 +43,16 @@ export function FloatingPanel({
   open,
   onClose,
   triggerRef,
+  anchorPoint,
   placement,
   className = "",
   children,
 }: Props) {
-  const position = useFloatingPosition(triggerRef, open, placement);
+  const position = useFloatingPosition(
+    anchorPoint ?? triggerRef,
+    open,
+    placement,
+  );
 
   useEscapeKey(open, onClose);
 
@@ -54,7 +71,8 @@ export function FloatingPanel({
     }
     if (!wasOpen.current) return;
     wasOpen.current = false;
-    const trigger = triggerRef.current;
+    // A point-anchored panel may have no trigger element to return to.
+    const trigger = triggerRef?.current;
     if (!trigger) return;
     if (document.activeElement === document.body) {
       // `preventScroll` keeps the page where the user left it.
