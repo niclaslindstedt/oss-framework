@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-01
+
+### Added
+
+- **Swipe down to close a modal sheet** — A `useSwipeDownToClose` hook (in `/hooks`) drives the mobile bottom-sheet dismiss gesture, and the full-screen `Modal` layout now wires it up: a downward drag that starts on the header — or in content already scrolled to its top — pulls the card with the finger and closes it past the threshold, while a mid-scrolled region keeps the touch as a normal scroll. Releasing past the threshold glides the card the rest of the way off-screen and fades it (backdrop and all) before it unmounts, rather than letting it vanish at the finger's last position — honouring a reduced-motion preference by closing at once. Touch-only, and centered cards (confirmations, pickers) opt out.
+- **Depth-aware list markers in the Markdown preview** — The `/markdown` live preview now styles list markers by nesting depth: bullets step `•` → `◦` → `▪` and ordered items step decimal → lower-alpha → lower-roman (`1.` → `a.` → `i.`, keeping the source's `.`/`)` separator), with nested items indented and the top-level bullet enlarged for legibility. Each list `LineBlock` gains a `depth` field (one level per two columns of indent, a tab counting as two) for apps rendering their own preview over `classifyLines`.
+- **UnlockGate lock screen** — A new `UnlockGate` component (in `/components`) paints the full-screen lock screen an at-rest-encrypted app shows on a fresh load: a centered passphrase card over an opaque page, the framework's `CipherGlyph` animating beside a caller-narrated progress line while the passphrase derives and decrypts. It composes the framework's own `ClearableInput`, `Button`, and shield/spinner glyphs; every visible string injects through `labels` (English defaults), a rejected unlock maps to a message through `mapError`, and the progress phase is a caller-supplied string — so an app drops in its own vocabulary without re-copying the screen.
+- **GlyphPicker defaultIcon** — `GlyphPicker` now accepts a `defaultIcon` node for its leading "clear" cell, so an app whose glyph-less default isn't the catalogue's `folder` — including one that varies by entity kind — can make the cell show the same mark clearing actually reverts to, instead of always the fallback glyph.
+
+### Changed
+
+- **MarkdownEditor rebuilt on one contenteditable surface** — The `/markdown` live-preview editor now renders on a single `contenteditable` surface instead of a per-line roaming `<textarea>`: the browser owns native caret glide across wrapped lines, whole-document `Ctrl/Cmd+A`, and cross-line touch selection on mobile, while every edit is intercepted at `beforeinput` and applied to the source through a new pure line-edit engine (`replaceRange`, exported alongside `orderPoints`/`pointsEqual`) so the source string stays the single source of truth. Copy **and cut** now put the verbatim Markdown — leading `#`/`-`/`>` block markers included — on the clipboard, a tapped line scrolls clear of the soft keyboard, and selected text tints with the active theme. **Breaking:** `extractSourceRange(lines, blocks, a, b)` drops its `blocks` argument — it is now `extractSourceRange(lines, a, b)` and returns verbatim source (markers included); `snapStartToLineEdge` is exported for callers that need the old marker-trimming boundary behaviour.
+- **Drag nav rows by the whole row, not a grip** — `useDragDrop` (in `/sidebar`) now makes the whole row the drag source instead of a dedicated grip column: a mouse press-and-drags, while a finger presses-and-holds to pick the row up (`longPressMs`, default 400ms) so a quick touch still scrolls or swipes the row. `RowActionMenu` gains a `touchLongPress` prop to hand its hold over to such a gesture, opening on a desktop right-click only.
+
+### Fixed
+
+- **Ordered lists renumber; a lone hyphen is a divider** — Ordered lists in the `/markdown` preview now renumber sequentially from their first item's value, so `1.` / `1.` renders as 1, 2 instead of 1, 1 (nested levels step through lower-alpha and lower-roman off the same running count). A line that is just a single `-` now renders as a thematic-break divider — tinted like the quote bar — alongside the usual `---`; a `- ` with text after it is still a bullet. Each ordered `LineBlock` carries the computed number as `seq`.
+- **Stop press-and-hold from selecting checklist text** — `Checklist` now marks its rows `select-none`, so a press-and-hold — the gesture that reorders or drags a row — no longer pops the platform text selection (the iOS magnifier) over the label. The inline editors re-enable selection on themselves, so renaming and editing a row are unaffected.
+- **Long checklist labels wrap instead of clipping** — A `Checklist` row whose label is too long for one line now wraps onto the next instead of being clipped with an ellipsis. Both the editable and read-only label render as `break-words`, so a long unbroken run (a URL or word) splits rather than overflowing the row and shoving the trailing grips off-screen.
+
 ## [1.0.0] - 2026-06-29
 
 ### Added
