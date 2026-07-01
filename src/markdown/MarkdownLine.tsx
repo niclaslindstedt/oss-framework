@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { memo, type ReactNode } from "react";
+import { memo, type CSSProperties, type ReactNode } from "react";
 
 import {
   parseInline,
@@ -23,6 +23,77 @@ import { lineTextClass } from "./markdown-line-class.ts";
 // on with its own renderer.
 function isLoadableUrl(href: string): boolean {
   return /^(https?:|data:|blob:|\/\/|\/)/i.test(href);
+}
+
+// --- List markers ----------------------------------------------------------
+//
+// A nested list reads far more clearly when each level looks different, so the
+// marker cycles with the item's indent depth (see `LineBlock.depth`): bullets
+// step •, –, +, and numbers step decimal → lower-alpha → lower-roman. The
+// numbering re-uses whatever separator the source typed (`.` or `)`).
+
+const BULLET_GLYPHS = ["•", "–", "+"] as const;
+
+function bulletGlyph(depth: number): string {
+  return BULLET_GLYPHS[depth % BULLET_GLYPHS.length]!;
+}
+
+// Nested items step in by a fixed amount per level; the left margin is
+// undefined at depth 0 so a top-level list keeps its existing flush layout.
+function indentStyle(depth: number): CSSProperties | undefined {
+  return depth > 0 ? { marginLeft: `${depth * 1.25}rem` } : undefined;
+}
+
+// Render an ordered-list marker in the style for its depth. The source only ever
+// carries a decimal ordinal (`"2."`), so alpha / roman levels convert that number
+// on the fly; the original separator is preserved. A non-decimal or zero ordinal
+// is shown verbatim.
+function orderedMarker(ordinal: string, depth: number): string {
+  const m = /^(\d+)([.)])$/.exec(ordinal);
+  if (!m) return ordinal;
+  const n = Number.parseInt(m[1]!, 10);
+  const sep = m[2]!;
+  const style = depth % 3;
+  if (n < 1 || style === 0) return `${n}${sep}`;
+  return `${style === 1 ? toAlpha(n) : toRoman(n)}${sep}`;
+}
+
+// 1 → "a", 26 → "z", 27 → "aa" (bijective base-26), matching CSS `lower-alpha`.
+function toAlpha(n: number): string {
+  let s = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(97 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+// Lowercase Roman numerals, matching CSS `lower-roman` (1 → "i", 4 → "iv", …).
+function toRoman(n: number): string {
+  const table: [number, string][] = [
+    [1000, "m"],
+    [900, "cm"],
+    [500, "d"],
+    [400, "cd"],
+    [100, "c"],
+    [90, "xc"],
+    [50, "l"],
+    [40, "xl"],
+    [10, "x"],
+    [9, "ix"],
+    [5, "v"],
+    [4, "iv"],
+    [1, "i"],
+  ];
+  let out = "";
+  for (const [v, sym] of table) {
+    while (n >= v) {
+      out += sym;
+      n -= v;
+    }
+  }
+  return out;
 }
 
 function renderInline(
@@ -116,8 +187,8 @@ function ImageNode({
 
 // A link node — an ordinary hyperlink when its href is loadable, otherwise the
 // raw `[…](…)` markdown (so an app-relative reference stays editable rather than
-// rendering as a broken relative link). Stops the editor's line-level mousedown
-// so a click follows the link instead of rolling the caret onto its line.
+// rendering as a broken relative link). Inside the contenteditable surface a
+// plain click follows the link instead of dropping the caret onto its line.
 function LinkNode({
   text,
   href,
@@ -149,9 +220,22 @@ function LinkNode({
       target="_blank"
       rel="noreferrer noopener"
       // Links are draggable by default, which would start a link drag-and-drop
-      // instead of a text selection when the user drags across the note.
+      // instead of a text selection when the user drags across the document.
       draggable={false}
-      onMouseDown={(e) => e.stopPropagation()}
+      // Inside the contenteditable surface a plain click would drop the caret
+      // (turning the link's line into raw source) and the browser won't navigate
+      // an editable anchor. Suppress the caret on press and open the link on a
+      // plain, unmodified click instead — to edit it, click just past and
+      // backspace in. A modified click (new tab / download shortcuts) or a
+      // drag-select is left to the browser.
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) return; // a drag-select ending here
+        e.preventDefault();
+        window.open(href, "_blank", "noreferrer,noopener");
+      }}
       className="text-link underline underline-offset-2"
     >
       {display ?? text}
@@ -207,29 +291,43 @@ function RenderedLineImpl({
         </div>
       );
 
-    case "ul":
+    case "ul": {
+      const depth = block.depth ?? 0;
       return (
-        <div className="flex gap-2">
-          <span aria-hidden className="text-accent select-none">
-            •
+        <div className="flex gap-2" style={indentStyle(depth)}>
+          {/* A larger glyph than the raw "•", kept on a base-height line box
+              (`leading-6`) so it doesn't stretch the row or drift off the first
+              line of a wrapped item. The glyph changes as the item nests
+              (•, –, +) so indent levels read apart at a glance. */}
+          <span
+            aria-hidden
+            className="text-xl leading-6 text-accent select-none"
+          >
+            {bulletGlyph(depth)}
           </span>
           <span className="min-w-0 flex-1">
             {inlineContent(block, shortenLinkChars)}
           </span>
         </div>
       );
+    }
 
-    case "ol":
+    case "ol": {
+      const depth = block.depth ?? 0;
       return (
-        <div className="flex gap-2">
+        <div className="flex gap-2" style={indentStyle(depth)}>
+          {/* The numbering style follows the nesting depth — decimal, then
+              lower-alpha, then lower-roman — re-using the source's own "." / ")"
+              separator. */}
           <span aria-hidden className="text-accent tabular-nums select-none">
-            {block.ordinal}
+            {orderedMarker(block.ordinal ?? "", depth)}
           </span>
           <span className="min-w-0 flex-1">
             {inlineContent(block, shortenLinkChars)}
           </span>
         </div>
       );
+    }
 
     case "fence":
     case "code":
@@ -260,5 +358,6 @@ export const RenderedLine = memo(
     a.block.content === b.block.content &&
     a.block.contentStart === b.block.contentStart &&
     a.block.level === b.block.level &&
-    a.block.ordinal === b.block.ordinal,
+    a.block.ordinal === b.block.ordinal &&
+    a.block.depth === b.block.depth,
 );

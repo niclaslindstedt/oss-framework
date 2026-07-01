@@ -10,12 +10,14 @@ or render Markdown without the editor.
 
 ## What it is / what it owns vs. what stays in your app
 
-- **The framework owns** the whole editing widget: the line-by-line render, the
-  single roaming `<textarea>` that shows raw source on the caret's line, all the
-  caret/selection/keyboard plumbing (Enter/Backspace/Delete splice the document,
-  arrows roll between lines, a drag sweeps a cross-line selection), the mobile
-  soft-keyboard quirks (the zero-width sentinel, sentence auto-capitalisation),
-  and copy-as-verbatim-source. It also owns the pure parser.
+- **The framework owns** the whole editing widget: one `contenteditable` surface
+  that renders every line formatted except the caret's (shown as raw source),
+  all the caret/selection/keyboard plumbing (every edit is intercepted at
+  `beforeinput` and applied to the source through a pure line-edit engine, so
+  Enter/Backspace/Delete/typing/paste never corrupt the DOM; the browser owns
+  native caret glide, Ctrl/Cmd+A, and cross-line touch selection), IME
+  composition, the mobile soft-keyboard reveal, and copy/cut-as-verbatim-source.
+  It also owns the pure parser and line-edit engine.
 - **Your app owns** the document and where it lives. The editor is **controlled**:
   it holds no persistence and never writes to disk. You pass the current `body`
   string and a `onChange(body)` callback, and you decide how (and whether) to
@@ -23,8 +25,9 @@ or render Markdown without the editor.
   types.
 
 The seam is the `body` string. The editor reads it, re-derives everything from
-it on every keystroke, and hands you the next string through `onChange` — it
-never reads formatted DOM back.
+it on every keystroke, and hands you the next string through `onChange` — every
+edit runs through the pure `replaceRange` engine, so it never reads formatted
+DOM back.
 
 ## The contract
 
@@ -94,8 +97,9 @@ import {
 tokenises a line into `InlineNode`s carrying absolute source offsets. Both are
 pure and DOM-free — cheap to unit-test and reuse (e.g. to render a read-only
 preview, or to copy a list as plain text). `RenderedLine`, `lineTextClass`,
-`sourcePointFromDom`, and `extractSourceRange` are exported too for an app that
-builds its own renderer over the same parse.
+`sourcePointFromDom`, `extractSourceRange`, `snapStartToLineEdge`, and the pure
+line-edit engine (`replaceRange`, `orderPoints`, `pointsEqual`) are exported too
+for an app that builds its own renderer or editing surface over the same parse.
 
 ## Images and links
 
@@ -107,6 +111,15 @@ rather than rendering broken. If your app stores its own assets (an attachment
 store, a CDN with signed URLs), resolve those references to loadable URLs in
 your `onChange`/load path, or render a read-only preview with your own renderer
 over `classifyLines` + `parseInline`.
+
+## Lists and nesting
+
+Indented list items render with a depth-aware marker so nested levels read
+apart at a glance: bullets step `•` → `–` → `+` and ordered items step decimal
+→ lower-alpha → lower-roman (`1.` → `a.` → `i.`), re-using whatever separator
+the source typed (`.` or `)`). One nesting level is two columns of leading
+indentation (a tab counts as two), exposed on each `LineBlock` as `depth` for an
+app rendering its own preview over `classifyLines`.
 
 ## Adapting to your app
 
@@ -137,9 +150,10 @@ A new app's needs won't match the editor exactly. The common mismatches:
 
 - The whole document renders formatted; clicking a line turns _that line_ into
   raw source and leaves the rest formatted.
-- Enter splits a line, Backspace at column 0 merges into the line above, arrows
-  roll the caret between lines.
-- Selecting across lines and copying puts the verbatim Markdown (and full URLs)
-  on the clipboard, not the rendered text.
+- Enter splits a line, Backspace at column 0 merges into the line above, and the
+  arrow keys glide the caret across lines natively (it's one editable surface).
+- Selecting across lines and copying (or cutting) puts the verbatim Markdown
+  (and full URLs) on the clipboard, not the rendered text; Ctrl/Cmd+A selects
+  the whole document.
 - Switching documents (`key` change) starts clean rather than carrying the prior
   caret/active line.

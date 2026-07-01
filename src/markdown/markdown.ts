@@ -36,6 +36,8 @@ export type LineBlock = {
   level?: number;
   /** Ordered-list marker, e.g. `"1."` (only on `ol`). */
   ordinal?: string;
+  /** Indent nesting level of a list item — 0 at the left margin (only ul/ol). */
+  depth?: number;
   /** The text after any block marker — the part inline parsing runs over. */
   content: string;
   /** Column in `raw` where `content` begins (so leaf offsets stay absolute). */
@@ -112,6 +114,7 @@ function classifyLine(raw: string): LineBlock {
     return {
       kind: "ul",
       raw,
+      depth: listDepth(indent),
       content: ul[4]!,
       contentStart: indent.length + bullet.length + gap.length,
     };
@@ -125,11 +128,23 @@ function classifyLine(raw: string): LineBlock {
       kind: "ol",
       raw,
       ordinal,
+      depth: listDepth(indent),
       content: ol[4]!,
       contentStart: indent.length + ordinal.length + gap.length,
     };
   }
   return { kind: "paragraph", raw, content: raw, contentStart: 0 };
+}
+
+// A list item's nesting level from its leading whitespace: one level per two
+// columns of indent (a tab counts as two), so pressing Tab or adding two spaces
+// nests the item one deeper. Deliberately absolute — measured off the item's own
+// indentation, not a parent list — so it stays predictable in a live editor that
+// classifies one line at a time.
+function listDepth(indent: string): number {
+  let cols = 0;
+  for (const ch of indent) cols += ch === "\t" ? 2 : 1;
+  return Math.floor(cols / 2);
 }
 
 // ---------------------------------------------------------------------------
