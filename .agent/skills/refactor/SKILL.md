@@ -521,6 +521,12 @@ conversation, not a lift.
 - **Inflating severity to justify the work.** If every adopter wouldn't
   actually re-write it, it's not a 9. The ratings are how the next agent
   spends their time; inflating them devalues the signal.
+- **Mistaking i18n layering for boilerplate.** A demo screen passing a
+  translated `labels` object to a component that already ships and merges
+  English defaults is the seam working, not a too-light extraction — even when
+  the same wiring appears on two screens (that's demo factoring; hoist it
+  app-side). Check the component for a `DEFAULT_*_LABELS` merge before flagging
+  any labels finding; only a label with **no** shipped default is a candidate.
 - **Moving logic in without testing it.** The lift makes the responsibility
   unit-testable for the first time. Add the tests in the same PR — deferring
   them means the next sweep sees green CI over untested code and assumes it's

@@ -54,27 +54,130 @@ responsibility can only be absorbed by importing the store, a domain type, a
 business rule, or a side-effecting asset — record it under Investigated-and-
 skipped so the next sweep doesn't re-raise it.
 
+Known auto-rejections (patterns that have consistently rated 0 on past
+sweeps — reject at rating time, don't re-derive):
+
+- **Translated label objects** passed to a component that already ships and
+  merges English defaults: that is the i18n layering working, not a too-light
+  seam. Only flag a label with no shipped default.
+- **Turnkey persisted stores** ("`usePersistedX`" wrappers): they move where
+  the user's data lives across the seam. Lift the pure state mechanics; leave
+  the persistence wrapper app-side.
+
 ## Pending
+
+_Last sweep: 2026-07 — demo-boilerplate audit (the primary angle), full pass
+over `demo/src/app/` + the App shell + the non-UI module glue._
 
 ### Severity 9–10
 
-_(none yet)_
+_(none)_
 
 ### Severity 7–8
 
-_(none yet)_
+- **Cursor-anchored context menu — the demo hand-rolls the entire chrome.**
+  Files: `demo/src/app/RowContextMenu.tsx` (whole file),
+  `src/components/FloatingPanel.tsx`, `src/components/useFloatingPosition.ts`,
+  `src/components/RowActionMenu.tsx`.
+  **Handed back:** a desktop right-click menu anchored at the pointer. The demo
+  assembles all of it itself: `createPortal` to body, `DismissBackdrop`,
+  `useEscapeKey`, manual viewport clamping
+  (`Math.min(target.x, window.innerWidth - 200)`), fixed z-index/border/shadow
+  shell, `role="menu"`/`role="menuitem"`, and a local `MenuItem` with tone
+  variants — none of it domain. `FloatingPanel` can't help because it only
+  anchors to a `triggerRef`; `RowActionMenu` owns identical chrome but only for
+  its own trigger gestures. Every adopter whose row forwards a `contextmenu`
+  event re-builds this.
+  **Plan:** teach `useFloatingPosition`/`FloatingPanel` an optional point
+  anchor (`anchor: {x,y}` as an alternative to `triggerRef`, clamping owned by
+  the positioning hook), then expose an assembled coordinate-anchored menu
+  (reuse the `RowAction[]` shape and `RowActionMenu`'s item rendering — prefer
+  integrating over a new primitive). Existing `triggerRef` callers unchanged.
+  **Risk:** clamping semantics must match `useFloatingPosition`'s existing
+  flip/clamp math; focus restore has no trigger element to return to (return to
+  the row). **Severity: 8.**
+
+- **`localStorage` load/merge/persist loop duplicated in three demo hooks.**
+  Files: `demo/src/app/useAppSettings.ts` (load + merge-defaults + write-back),
+  `demo/src/app/useAchievements.ts:24-54` (same),
+  `demo/src/app/useNamespaces.ts` (loadList/loadActive + per-mutation sync);
+  home would be `src/hooks/`.
+  **Handed back:** the safe-parse → merge-with-defaults → write-on-change
+  persistence mechanic. Three demo hooks implement it identically (try/catch
+  around `JSON.parse`, spread defaults under the parsed partial, `useEffect`
+  write-through); every adopter of settings/achievements/namespaces writes the
+  same loop. The mechanic is generic — the app still owns the key, the shape,
+  and _that_ it persists (the store seam stays app-side).
+  **Plan:** a new leaf hook `useLocalStorageState<T>(key, defaults)` in
+  `src/hooks/` (cross-module duplication N≥3 with no existing home — the one
+  case that earns a new primitive). Demo hooks shrink to domain logic over it.
+  **Risk:** scope creep (cross-tab sync, storage events) — keep v1 to the
+  demonstrated loop; do NOT absorb the domain wrappers themselves (see
+  Investigated-and-skipped). **Severity: 7.**
 
 ### Severity 5–6
 
-_(none yet)_
+- **Achievement unlock-ledger mechanics (idempotent `record` + unseen queue).**
+  Files: `demo/src/app/useAchievements.ts:81-101`, home `src/achievements/`.
+  **Handed back:** the exact state transition `useAchievementWatcher`'s
+  contract requires — idempotent per-id recording, returning only
+  genuinely-new ids, deduped unseen-queue push, `clearUnseen`. Subtle (the
+  fresh-ids return drives the celebration modal; a naive rewrite double-fires)
+  and fully generic; every adopter re-derives it. Persistence and the demo's
+  first-run backfill stay app-side.
+  **Plan:** export a pure `applyUnlocks(prev, ids, now)` helper (or an
+  in-memory `useUnlockLedger` with the `record`/`clearUnseen` surface) from
+  `src/achievements`; the demo keeps its localStorage wrapper (composes with
+  the `useLocalStorageState` row above). Watcher contract unchanged.
+  **Risk:** low — pure logic, unit-testable for the first time. **Severity: 6.**
+
+- **Menu-item button reimplemented in three places (two inside the framework).**
+  Files: `src/components/RowActionMenu.tsx:161-186`,
+  `src/components/SelectPicker.tsx:296-306`,
+  `demo/src/app/RowContextMenu.tsx:71-94`.
+  **Handed back / duplicated:** the same `role="menuitem"` button — flex
+  layout, `px-3 py-2` padding, icon slot, danger/neutral tone, hover +
+  highlight states — hand-rolled per site with drifting class strings.
+  **Plan:** extract a `MenuItem` in `src/components/`, consume it from
+  `RowActionMenu` and `SelectPicker` with pixel-identical output, export it for
+  apps. Partially subsumed by the context-menu row above (landing that removes
+  the demo site) — re-verify ordering when picked up.
+  **Risk:** the two framework sites' classes differ slightly (`bg-surface-3`
+  highlight vs hover-only); the extraction must reproduce each exactly or it's
+  a visual change. **Severity: 5.**
 
 ### Severity 3–4
 
-_(none yet)_
+- **Safe-area _bottom_ inset hand-computed in the demo; framework owns only the top.**
+  Files: `demo/src/app/SettingsModal.tsx:252`
+  (`[padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]` on the modal
+  footer), `demo/src/app/ChecklistScreen.tsx:252`
+  (`bottom-[calc(1.5rem+env(safe-area-inset-bottom))]` under the FAB);
+  precedent `src/components/Modal.tsx:210-219` (Modal already owns
+  `safe-area-inset-top`).
+  **Handed back:** iOS-PWA home-indicator clearance — generic device plumbing
+  the framework already half-owns (top edge yes, bottom edge no).
+  **Plan:** give `Modal` an optional `footer` slot that owns the bottom inset
+  (mirroring its top-inset spacer), and/or default the FAB/`FabMenu` bottom
+  offset to include the inset. Default must reproduce today's rendering for
+  callers passing nothing.
+  **Risk:** a footer slot is new API surface — design it against the demo's
+  three-button footer to be sure it fits. **Severity: 4.**
 
 ### Easy wins (mechanical, any severity)
 
-_(none yet)_
+- **`FloatingPanel` callers re-supply the shell classes to change one thing.**
+  Files: `demo/src/app/ListAppearancePopover.tsx:67` (passes
+  `rounded-md border border-line bg-surface-1 p-3 shadow-lg` — three of those
+  five classes are already rendered by `src/components/FloatingPanel.tsx:88`,
+  and the appended `bg-surface-1` only beats the baked-in `bg-surface-2` by
+  CSS-order luck); `src/components/RowActionMenu.tsx:147` and
+  `demo/src/app/SideMenuContent.tsx` (menus all append `py-1`).
+  **Plan:** an optional `surface` (and/or `padding`) prop whose default emits
+  today's exact class string, so overriding the background stops requiring the
+  caller to re-state the shell and stops depending on class order.
+  **Risk:** keep the default output byte-identical; Tailwind class-conflict
+  semantics are the whole bug here. **Severity: 3.**
 
 ## Landed
 
@@ -82,4 +185,39 @@ _(none yet)_
 
 ## Investigated and skipped
 
-_(none yet)_
+- **`SyncStatus` label wiring in both screens** (`ChecklistScreen.tsx:194-204`,
+  `NoteScreen.tsx:47-62`): looked like duplicated boilerplate, but the
+  component already ships and merges `DEFAULT_SYNC_STATUS_LABELS`
+  (`src/sync/SyncStatus.tsx:113`); the demo passes _translations_, which is the
+  i18n layering working as designed. A `labelKeyPrefix` bridge would teach the
+  framework the app's i18n keys — domain. The two-screen duplication is demo
+  factoring (hoist one shared labels object app-side). Re-evaluate only if a
+  label appears that has no shipped default.
+- **Turnkey persisted stores** (`usePersistedNamespaces`,
+  `usePersistedAchievements`, `usePersistedAppearance` — proposed against
+  `useNamespaces.ts` / `useAchievements.ts` / the appearance state): hard
+  rejection — each would move _where the user's data lives_ (persistence keys,
+  the store) across the seam. The generic mechanics they contain are covered by
+  the `useLocalStorageState` and unlock-ledger Pending rows; the wrappers stay
+  app-side.
+- **`localStorage` key-namespacing helper** (the `oss-demo:checklist:*` prefix
+  across 7 call sites): a one-line template literal; the keys themselves are
+  app-owned. Cosmetic (below threshold).
+- **Default `storageKey`/`eventName` in `createI18n`**: defaults invite
+  same-origin collisions between two apps; the explicit key _is_ the seam
+  working. Rejected.
+- **PWA cache-id derivation** (`demo/src/app/pwa.ts:17-20`): driven by the
+  demo's three-slot GitHub Pages deployment, not something every adopter
+  writes. Rejected as demo-infra.
+- **Search corpus walk/grouping** (`demo/src/app/search.ts:59-125`): the
+  compile→walk→group→score loop is shaped entirely by the app's tree domain;
+  `src/search/README.md` documents the seam deliberately. Rejected.
+- **Deliberate demo-only mocks** (per `demo/ADOPTION.md`): the simulated sync
+  engine (`useMockSync.ts`), log seeding (`log.ts`), the storage playground,
+  the PWA update simulation, and the achievements first-run backfill are all
+  REPLACE/DELETE items for adopters — not seams.
+- **Misc app-side-by-design**: `SettingsModal` conditional tab filtering
+  (feature flags are domain); `SearchOverlay` depth-indent formula (inside
+  `SearchModal`'s render-prop boundary); `RowContextMenu`'s English strings
+  (app copy); gating `RowActionMenu` with `useDesktopPointer` (gesture policy
+  belongs to the app).
