@@ -1,9 +1,36 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import type { IconProps } from "@niclaslindstedt/oss-framework/components";
+import {
+  ChecklistIcon,
+  NoteIcon,
+  type IconProps,
+} from "@niclaslindstedt/oss-framework/components";
+
+import type { ListKind } from "./types.ts";
 
 // A couple of glyphs the app needs that the framework's neutral set doesn't
 // ship yet (the framework keeps domain/dev-specific marks app-side). Traced on
 // Lucide's 24×24 grid to match the framework family's weight.
+
+// The neutral default mark for a list that carries no custom glyph, keyed off
+// its kind — a note document or a checklist tick. This is the app's own domain
+// mapping ("what a glyph-less list looks like") and the single source of truth
+// for it: the side-menu rows, the appearance popover's header trigger, and that
+// popover's glyph-picker "clear" cell all draw it, so the icon a note shows and
+// the icon its picker clears back to can never drift apart. The framework's
+// `DEFAULT_GLYPH` (a folder) is kind-blind, which is why the app supplies this.
+export function DefaultListIcon({
+  kind,
+  className,
+}: {
+  kind: ListKind | undefined;
+  className?: string;
+}) {
+  return kind === "note" ? (
+    <NoteIcon className={className} />
+  ) : (
+    <ChecklistIcon className={className} />
+  );
+}
 
 /** Angle brackets — the Developer surface. */
 export function CodeIcon({ className }: IconProps) {

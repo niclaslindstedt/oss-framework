@@ -39,6 +39,7 @@ import {
   type DragHandleProps,
 } from "@niclaslindstedt/oss-framework/sidebar";
 
+import { DefaultListIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { remaining, type ChecklistStore } from "./useChecklistStore.ts";
 import type { List, ListKind } from "./types.ts";
@@ -60,11 +61,7 @@ type DropTarget =
 // the selected row's accent consistent.
 function listIcon(list: List, active: boolean) {
   if (!list.glyph) {
-    return list.kind === "note" ? (
-      <NoteIcon className="h-4 w-4" />
-    ) : (
-      <ChecklistIcon className="h-4 w-4" />
-    );
+    return <DefaultListIcon kind={list.kind} className="h-4 w-4" />;
   }
   return (
     <Glyph
@@ -315,11 +312,7 @@ export function SideMenuContent({
   // The inline draft editor's icon and placeholder, keyed off which kind the
   // "New" dropdown picked.
   function draftIcon(kind: ListKind) {
-    return kind === "note" ? (
-      <NoteIcon className="h-4 w-4" />
-    ) : (
-      <ChecklistIcon className="h-4 w-4" />
-    );
+    return <DefaultListIcon kind={kind} className="h-4 w-4" />;
   }
   function draftPlaceholder(kind: ListKind) {
     return kind === "note" ? t("menu.noteName") : t("menu.checklistName");

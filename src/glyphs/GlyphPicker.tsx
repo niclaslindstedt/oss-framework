@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import type { ReactNode } from "react";
+
 import { useGridRovingTabindex } from "../hooks/useRovingTabindex.ts";
 import { DEFAULT_GLYPH } from "./catalogue.ts";
 import { Glyph } from "./Glyph.tsx";
@@ -8,6 +10,12 @@ import { Glyph } from "./Glyph.tsx";
 // "no custom icon"); the rest are the named glyphs the caller passes (usually
 // `GLYPH_NAMES`). Presentational: the caller owns the selected value and the
 // tint colour, and is handed the new glyph (or `null` to clear) on every pick.
+//
+// The clear cell paints `DEFAULT_GLYPH` (the catalogue's fallback) unless the
+// caller passes `defaultIcon` — the node an app whose glyph-less default isn't a
+// catalogue glyph (e.g. one that varies by entity kind) draws elsewhere. Pass
+// the same mark the entity wears when it carries no glyph so the picker's "no
+// custom icon" cell reads as the icon it actually clears back to.
 //
 // Keyboard nav: the grid is a roving-tabindex radiogroup — a single Tab stop
 // (the selected cell) enters the grid, then ArrowLeft / ArrowRight walk the
@@ -27,6 +35,12 @@ type Props = {
   noneLabel: string;
   /** Per-glyph aria-label prefix, e.g. "Icon" → "Icon home". */
   ariaLabelPrefix: string;
+  /**
+   * The icon drawn in the leading "clear" cell. Defaults to `DEFAULT_GLYPH`;
+   * pass a node when the glyph-less default isn't a catalogue glyph (e.g. it
+   * varies by entity kind) so the cell matches what clearing actually shows.
+   */
+  defaultIcon?: ReactNode;
 };
 
 export function GlyphPicker({
@@ -36,6 +50,7 @@ export function GlyphPicker({
   tintColor,
   noneLabel,
   ariaLabelPrefix,
+  defaultIcon,
 }: Props) {
   // The leading clear cell is index 0; the named glyphs follow. The cursor
   // seats on whatever is selected (the clear cell when `value` is null).
@@ -69,7 +84,7 @@ export function GlyphPicker({
         }`}
         style={tintStyle(value === null)}
       >
-        <Glyph name={DEFAULT_GLYPH} className="h-3.5 w-3.5" />
+        {defaultIcon ?? <Glyph name={DEFAULT_GLYPH} className="h-3.5 w-3.5" />}
       </button>
       {glyphs.map((name, i) => {
         const selected = name === value;

@@ -4,13 +4,13 @@ import { useRef, useState } from "react";
 import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 import {
   ColorPalette,
-  DEFAULT_GLYPH,
   GLYPH_COLORS,
   GLYPH_NAMES,
   Glyph,
   GlyphPicker,
 } from "@niclaslindstedt/oss-framework/glyphs";
 
+import { DefaultListIcon } from "./icons.tsx";
 import type { List } from "./types.ts";
 
 // The active list's "appearance" control in the screen header: a button
@@ -43,11 +43,15 @@ export function ListAppearancePopover({ list, onChange }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line text-muted hover:bg-surface-2 hover:text-fg"
       >
-        <Glyph
-          name={list.glyph ?? DEFAULT_GLYPH}
-          className="h-4 w-4"
-          style={tint}
-        />
+        {/* A picked glyph wears the list's accent; with no custom glyph the
+            button shows the same neutral kind mark the side-menu row does (a
+            note document / a checklist tick) — not the framework's kind-blind
+            folder default. */}
+        {list.glyph ? (
+          <Glyph name={list.glyph} className="h-4 w-4" style={tint} />
+        ) : (
+          <DefaultListIcon kind={list.kind} className="h-4 w-4" />
+        )}
       </button>
 
       <FloatingPanel
@@ -81,6 +85,9 @@ export function ListAppearancePopover({ list, onChange }: Props) {
           tintColor={list.color}
           noneLabel="Default icon"
           ariaLabelPrefix="Icon"
+          defaultIcon={
+            <DefaultListIcon kind={list.kind} className="h-3.5 w-3.5" />
+          }
         />
       </FloatingPanel>
     </>
