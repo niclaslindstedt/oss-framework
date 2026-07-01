@@ -560,6 +560,27 @@ describe("Checklist component", () => {
     expect(screen.queryByRole("button", { name: "Milk" })).toBeNull();
   });
 
+  it("wraps a long read-only label instead of clipping it to one line", () => {
+    render(<Controlled initial={tree()} />);
+    // The label reflows onto extra lines (`break-words`) rather than being cut
+    // off with an ellipsis (`truncate` sets `white-space: nowrap`), so a long
+    // item stays fully readable.
+    const label = screen.getByText("Milk");
+    expect(label.className).toContain("break-words");
+    expect(label.className).not.toContain("truncate");
+  });
+
+  it("wraps a long editable label instead of clipping it to one line", () => {
+    function Editable() {
+      const [items, setItems] = useState(tree());
+      return <Checklist items={items} onChange={setItems} editable />;
+    }
+    render(<Editable />);
+    const label = screen.getByRole("button", { name: "Milk" });
+    expect(label.className).toContain("break-words");
+    expect(label.className).not.toContain("truncate");
+  });
+
   it("edits a row's label in place on click", () => {
     function Editable() {
       const [items, setItems] = useState(tree());
