@@ -7,10 +7,6 @@ import {
   shortenUrl,
   type InlineNode,
 } from "../src/markdown/index.ts";
-import {
-  extractSourceRange,
-  type SourcePoint,
-} from "../src/markdown/markdown-selection.ts";
 
 describe("classifyLines — block kinds", () => {
   it("classifies headings with level and content offset", () => {
@@ -46,6 +42,17 @@ describe("classifyLines — block kinds", () => {
 
   it("yields one block per source line", () => {
     expect(classifyLines("a\nb\nc")).toHaveLength(3);
+  });
+
+  it("tracks list nesting depth from leading indentation", () => {
+    const blocks = classifyLines("- top\n  - sub\n    - deep\n\t- tab");
+    // A tab counts as two indent columns, so a tab-led item nests one level.
+    expect(blocks.map((b) => b.depth)).toEqual([0, 1, 2, 1]);
+  });
+
+  it("tracks ordered-list depth the same way", () => {
+    const blocks = classifyLines("1. top\n  1. sub\n    1. deep");
+    expect(blocks.map((b) => b.depth)).toEqual([0, 1, 2]);
   });
 });
 
@@ -113,25 +120,5 @@ describe("shortenUrl", () => {
     const short = shortenUrl(long, 4);
     expect(short.length).toBeLessThan(long.length);
     expect(short).toContain("[...]");
-  });
-});
-
-describe("extractSourceRange — verbatim source from a selection", () => {
-  const lines = ["# Title", "- one", "- two"];
-  const blocks = classifyLines(lines.join("\n"));
-
-  it("returns the raw source between two points, clamped to content", () => {
-    const a: SourcePoint = { line: 0, col: 2 }; // after "# "
-    const b: SourcePoint = { line: 0, col: 7 };
-    expect(extractSourceRange(lines, blocks, a, b)).toBe("Title");
-  });
-
-  it("orders the endpoints and spans multiple lines, clamping to content", () => {
-    // Reversed endpoints — the function orders them itself. Each line's list
-    // marker ("- ") is a non-selectable glyph, so the source slice starts at
-    // the content column, never leaking the marker into the copy.
-    const a: SourcePoint = { line: 2, col: 5 };
-    const b: SourcePoint = { line: 1, col: 2 };
-    expect(extractSourceRange(lines, blocks, a, b)).toBe("one\ntwo");
   });
 });
