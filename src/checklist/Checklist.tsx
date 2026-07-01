@@ -650,13 +650,17 @@ function RowInner({
         <button
           type="button"
           onClick={onStartEdit}
-          className={`min-w-0 flex-1 truncate text-left select-none ${textSize} ${labelTone}`}
+          // A label too long for one line wraps onto the next instead of being
+          // clipped with an ellipsis; `break-words` also splits a single
+          // unbroken run (a long URL or word) so it can't overflow the row and
+          // shove the trailing grips off-screen.
+          className={`min-w-0 flex-1 break-words text-left select-none ${textSize} ${labelTone}`}
         >
           {node.label}
         </button>
       ) : (
         <span
-          className={`flex-1 truncate select-none ${textSize} ${labelTone}`}
+          className={`min-w-0 flex-1 break-words select-none ${textSize} ${labelTone}`}
         >
           {node.label}
         </span>
