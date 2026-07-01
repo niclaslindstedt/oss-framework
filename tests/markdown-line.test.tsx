@@ -55,3 +55,36 @@ describe("indentation", () => {
     expect(renderLine("    - deep").style.marginLeft).toBe("2.5rem");
   });
 });
+
+// The rendered marker of the block at `index` within a multi-line body — so the
+// running sequence number (assigned across the whole list) is exercised.
+function markerAt(body: string, index: number): string {
+  const block = classifyLines(body)[index]!;
+  const { container } = render(<RenderedLine block={block} />);
+  return container.querySelector('[aria-hidden="true"]')?.textContent ?? "";
+}
+
+describe("ordered-list running numbers", () => {
+  it("renders 1, 2, 3 even when the source repeats 1.", () => {
+    const body = "1. a\n1. b\n1. c";
+    expect(markerAt(body, 0)).toBe("1.");
+    expect(markerAt(body, 1)).toBe("2.");
+    expect(markerAt(body, 2)).toBe("3.");
+  });
+
+  it("styles the running number by depth (lower-alpha one level in)", () => {
+    // A sub-list of three items renders a., b., c. off its running sequence.
+    const body = "1. top\n  1. x\n  1. y\n  1. z";
+    expect(markerAt(body, 1)).toBe("a.");
+    expect(markerAt(body, 2)).toBe("b.");
+    expect(markerAt(body, 3)).toBe("c.");
+  });
+});
+
+describe("thematic break", () => {
+  it("renders a lone hyphen as a divider tinted like the quote bar", () => {
+    const hr = renderLine("-").querySelector("hr");
+    expect(hr).not.toBeNull();
+    expect(hr!.className).toContain("border-line");
+  });
+});

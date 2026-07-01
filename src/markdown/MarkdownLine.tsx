@@ -30,7 +30,8 @@ function isLoadableUrl(href: string): boolean {
 // A nested list reads far more clearly when each level looks different, so the
 // marker cycles with the item's indent depth (see `LineBlock.depth`): bullets
 // step •, –, +, and numbers step decimal → lower-alpha → lower-roman. The
-// numbering re-uses whatever separator the source typed (`.` or `)`).
+// number itself is the list's running sequence (`LineBlock.seq`, so 1./1. shows
+// 1, 2), re-using whatever separator the source typed (`.` or `)`).
 
 const BULLET_GLYPHS = ["•", "–", "+"] as const;
 
@@ -44,17 +45,14 @@ function indentStyle(depth: number): CSSProperties | undefined {
   return depth > 0 ? { marginLeft: `${depth * 1.25}rem` } : undefined;
 }
 
-// Render an ordered-list marker in the style for its depth. The source only ever
-// carries a decimal ordinal (`"2."`), so alpha / roman levels convert that number
-// on the fly; the original separator is preserved. A non-decimal or zero ordinal
-// is shown verbatim.
-function orderedMarker(ordinal: string, depth: number): string {
-  const m = /^(\d+)([.)])$/.exec(ordinal);
-  if (!m) return ordinal;
-  const n = Number.parseInt(m[1]!, 10);
-  const sep = m[2]!;
+// Render an ordered-list marker: the list's running number (`seq`) styled for
+// its depth — decimal, then lower-alpha, then lower-roman — with the source's own
+// separator (`.` or `)`) kept. A zero / missing number is shown as a bare "1".
+function orderedMarker(ordinal: string, seq: number, depth: number): string {
+  const sep = /[.)]$/.exec(ordinal)?.[0] ?? ".";
+  const n = seq >= 1 ? seq : 1;
   const style = depth % 3;
-  if (n < 1 || style === 0) return `${n}${sep}`;
+  if (style === 0) return `${n}${sep}`;
   return `${style === 1 ? toAlpha(n) : toRoman(n)}${sep}`;
 }
 
@@ -273,6 +271,8 @@ function RenderedLineImpl({
     case "hr":
       return (
         <div className="flex items-center" data-src={block.contentStart}>
+          {/* Same `border-line` tint as the quote bar, so a divider reads as the
+              same kind of structural rule in the active theme. */}
           <hr className="my-[0.6em] w-full border-t border-line" />
         </div>
       );
@@ -320,7 +320,7 @@ function RenderedLineImpl({
               lower-alpha, then lower-roman — re-using the source's own "." / ")"
               separator. */}
           <span aria-hidden className="text-accent tabular-nums select-none">
-            {orderedMarker(block.ordinal ?? "", depth)}
+            {orderedMarker(block.ordinal ?? "", block.seq ?? 1, depth)}
           </span>
           <span className="min-w-0 flex-1">
             {inlineContent(block, shortenLinkChars)}
@@ -359,5 +359,6 @@ export const RenderedLine = memo(
     a.block.contentStart === b.block.contentStart &&
     a.block.level === b.block.level &&
     a.block.ordinal === b.block.ordinal &&
+    a.block.seq === b.block.seq &&
     a.block.depth === b.block.depth,
 );

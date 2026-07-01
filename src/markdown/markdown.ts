@@ -36,6 +36,12 @@ export type LineBlock = {
   level?: number;
   /** Ordered-list marker, e.g. `"1."` (only on `ol`). */
   ordinal?: string;
+  /**
+   * The number to *display* for an ordered item (only on `ol`). Markdown
+   * renumbers a list sequentially from its first item's value, so `1.`/`1.`
+   * shows as 1, 2 — this is that computed position, not the source ordinal.
+   */
+  seq?: number;
   /** Indent nesting level of a list item — 0 at the left margin (only ul/ol). */
   depth?: number;
   /** The text after any block marker — the part inline parsing runs over. */
@@ -45,6 +51,11 @@ export type LineBlock = {
 };
 
 const HR_RE = /^ {0,3}(-{3,}|\*{3,}|_{3,})\s*$/;
+// A line that is nothing but a single hyphen (optionally padded) is treated as a
+// thematic break too — a quick "type a dash, get a divider" shorthand alongside
+// the usual `---`. Checked before the list rules so a lone `-` is a divider, not
+// an empty bullet; a `- ` with text after it still parses as a list item.
+const LONE_RULE_RE = /^\s*-\s*$/;
 const HEADING_RE = /^(#{1,6})(\s+)(.*)$/;
 const UL_RE = /^(\s*)([-*+])(\s+)(.*)$/;
 const OL_RE = /^(\s*)(\d+[.)])(\s+)(.*)$/;
@@ -73,14 +84,46 @@ export function classifyLines(body: string): LineBlock[] {
     }
     blocks.push(classifyLine(raw));
   }
+  numberOrderedLists(blocks);
   return blocks;
+}
+
+// Assign each ordered item its displayed number. A run of `ol` items at one
+// depth counts up from the first item's own value (so `3.`/`1.` shows 3, 4);
+// blank lines are transparent, and any other content at that depth (a bullet, a
+// paragraph, a heading) ends the run so the next `ol` starts fresh. Nested lists
+// keep their own counter and reset when their parent advances.
+function numberOrderedLists(blocks: LineBlock[]): void {
+  const counters: (number | undefined)[] = [];
+  for (const block of blocks) {
+    if (block.kind === "blank") continue;
+    const d = block.depth ?? 0;
+    if (block.kind === "ol") {
+      const prev = counters[d];
+      const n = prev === undefined ? startOrdinal(block.ordinal) : prev + 1;
+      counters[d] = n;
+      counters.length = d + 1; // a step at this depth resets any deeper list
+      block.seq = n;
+    } else {
+      // Nothing else continues an ordered run; break this depth and everything
+      // nested under it (a shallower line thus clears deeper counters too).
+      counters.length = d;
+    }
+  }
+}
+
+// The number an ordered list starts at, read from its first item's marker
+// (`"5."` → 5); a missing or non-positive value falls back to 1.
+function startOrdinal(ordinal: string | undefined): number {
+  const n = ordinal ? Number.parseInt(ordinal, 10) : NaN;
+  return Number.isNaN(n) || n < 1 ? 1 : n;
 }
 
 function classifyLine(raw: string): LineBlock {
   if (raw.trim() === "") {
     return { kind: "blank", raw, content: "", contentStart: 0 };
   }
-  if (HR_RE.test(raw)) {
+  if (HR_RE.test(raw) || LONE_RULE_RE.test(raw)) {
     return { kind: "hr", raw, content: "", contentStart: 0 };
   }
   const heading = HEADING_RE.exec(raw);

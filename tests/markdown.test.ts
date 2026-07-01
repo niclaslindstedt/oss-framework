@@ -54,6 +54,45 @@ describe("classifyLines — block kinds", () => {
     const blocks = classifyLines("1. top\n  1. sub\n    1. deep");
     expect(blocks.map((b) => b.depth)).toEqual([0, 1, 2]);
   });
+
+  it("classifies a lone hyphen as a thematic break, not a bullet", () => {
+    expect(classifyLines("-")[0]?.kind).toBe("hr");
+    expect(classifyLines("  -  ")[0]?.kind).toBe("hr");
+    // A hyphen with content after it is still a bullet.
+    expect(classifyLines("- item")[0]?.kind).toBe("ul");
+    // The classic three-dash rule still works.
+    expect(classifyLines("---")[0]?.kind).toBe("hr");
+  });
+});
+
+describe("classifyLines — ordered-list numbering", () => {
+  const seqs = (body: string) => classifyLines(body).map((b) => b.seq);
+
+  it("renumbers a run sequentially regardless of the source numbers", () => {
+    expect(seqs("1. a\n1. b\n1. c")).toEqual([1, 2, 3]);
+  });
+
+  it("starts from the first item's own value", () => {
+    expect(seqs("3. a\n1. b")).toEqual([3, 4]);
+  });
+
+  it("treats blank lines as transparent within a list", () => {
+    expect(seqs("1. a\n\n1. b")).toEqual([1, undefined, 2]);
+  });
+
+  it("restarts after non-list content breaks the run", () => {
+    expect(seqs("1. a\ntext\n1. b")).toEqual([1, undefined, 1]);
+  });
+
+  it("numbers nested lists independently and resets them per parent", () => {
+    // top: 1,2 ; each sub-list restarts at 1.
+    const blocks = classifyLines("1. a\n  1. x\n  1. y\n1. b\n  1. z");
+    expect(blocks.map((b) => b.seq)).toEqual([1, 1, 2, 2, 1]);
+  });
+
+  it("does not let a nested bullet break the parent numbering", () => {
+    expect(seqs("1. a\n  - sub\n1. b")).toEqual([1, undefined, 2]);
+  });
 });
 
 describe("parseInline — emphasis, code, links", () => {

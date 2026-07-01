@@ -121,6 +121,15 @@ the source typed (`.` or `)`). One nesting level is two columns of leading
 indentation (a tab counts as two), exposed on each `LineBlock` as `depth` for an
 app rendering its own preview over `classifyLines`.
 
+Ordered lists **renumber sequentially** from their first item's value, so
+`1.` / `1.` renders as 1, 2 (and `3.` / `1.` as 3, 4). The computed number rides
+on each ordered `LineBlock` as `seq`. A blank line is transparent within a list;
+any other content ends the run so the next list starts fresh.
+
+A line that is just a single `-` renders as a thematic-break divider (alongside
+the usual `---`) — a quick "type a dash, get a line" shorthand. A `- ` with text
+after it is still a bullet.
+
 ## Adapting to your app
 
 A new app's needs won't match the editor exactly. The common mismatches:
