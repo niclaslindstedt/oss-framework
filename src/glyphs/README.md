@@ -92,18 +92,18 @@ link.href = glyphDataUri(glyph ?? DEFAULT_GLYPH, color ?? "#888");
 
 ## API
 
-| Export                         | Kind      | Notes                                                                |
-| ------------------------------ | --------- | -------------------------------------------------------------------- |
-| `Glyph`                        | component | `{ name?, className?, style? }` — inline SVG, falls back to default. |
-| `GlyphPicker`                  | component | grid radiogroup (roving tabindex); leading cell clears to default.   |
-| `ColorPalette`                 | component | swatch radiogroup (roving tabindex); arrow keys cycle the swatches.  |
-| `GLYPH_PATHS`                  | data      | `name → inner SVG markup`.                                           |
-| `DEFAULT_GLYPH`                | data      | the fallback glyph name (`"folder"`).                                |
-| `GLYPH_NAMES`                  | data      | pickable names, default omitted.                                     |
-| `GLYPH_COLORS`                 | data      | 16-hue default accent palette.                                       |
-| `isGlyphName(name)`            | guard     | narrows a stored string to a drawable name.                          |
-| `glyphSvg(name, color, opts?)` | util      | standalone badge SVG string (`GlyphBadgeOptions`).                   |
-| `glyphDataUri(name, color, …)` | util      | the same, as an `image/svg+xml` data URI for a favicon `href`.       |
+| Export                         | Kind      | Notes                                                                                                 |
+| ------------------------------ | --------- | ----------------------------------------------------------------------------------------------------- |
+| `Glyph`                        | component | `{ name?, className?, style? }` — inline SVG, falls back to default.                                  |
+| `GlyphPicker`                  | component | grid radiogroup (roving tabindex); leading cell clears to default (`defaultIcon` overrides its mark). |
+| `ColorPalette`                 | component | swatch radiogroup (roving tabindex); arrow keys cycle the swatches.                                   |
+| `GLYPH_PATHS`                  | data      | `name → inner SVG markup`.                                                                            |
+| `DEFAULT_GLYPH`                | data      | the fallback glyph name (`"folder"`).                                                                 |
+| `GLYPH_NAMES`                  | data      | pickable names, default omitted.                                                                      |
+| `GLYPH_COLORS`                 | data      | 16-hue default accent palette.                                                                        |
+| `isGlyphName(name)`            | guard     | narrows a stored string to a drawable name.                                                           |
+| `glyphSvg(name, color, opts?)` | util      | standalone badge SVG string (`GlyphBadgeOptions`).                                                    |
+| `glyphDataUri(name, color, …)` | util      | the same, as an `image/svg+xml` data URI for a favicon `href`.                                        |
 
 `GlyphBadgeOptions`: `{ size?, radius?, background?, padding? }` — the badge
 defaults to **transparent** (just the stroked glyph); pass `background` for a
@@ -139,9 +139,13 @@ reconcile each:
   any stored name, the picker just doesn't offer the ones you omit.
 - **Your default glyph differs** (you draw a different "no custom icon" shape).
   `DEFAULT_GLYPH` is `"folder"`; if yours differs, render your own fallback in
-  the renderer call (`name={glyph ?? "myDefault"}`) and pass a matching
-  `GlyphPicker` clear-cell — or add your default to the catalogue and filter it
-  out of the offered list as the framework does.
+  the renderer call (`name={glyph ?? "myDefault"}`) and pass `GlyphPicker` a
+  matching clear-cell mark via `defaultIcon` so the picker shows what it clears
+  back to. When the default isn't even a catalogue glyph — say it varies by
+  entity kind (a note document vs a checklist tick) — `defaultIcon` takes any
+  node, so the same mark the entity wears when it has no glyph goes straight in.
+  (Or add your default to the catalogue and filter it out of the offered list,
+  as the framework does for `folder`.)
 - **You want a different palette.** `ColorPalette` takes any `colors` array;
   `GLYPH_COLORS` is only the default. Pass your own and nothing else changes.
 - **Your favicon badge geometry differs** (size, corner radius, padding). Tune

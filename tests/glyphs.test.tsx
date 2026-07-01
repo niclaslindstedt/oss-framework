@@ -126,6 +126,21 @@ describe("GlyphPicker", () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
+  it("draws a caller-supplied default icon in the clear cell", () => {
+    render(
+      <GlyphPicker
+        glyphs={GLYPH_NAMES}
+        value={null}
+        onChange={() => {}}
+        noneLabel="No icon"
+        ariaLabelPrefix="Icon"
+        defaultIcon={<span data-testid="kind-default">note</span>}
+      />,
+    );
+    const clear = screen.getByRole("radio", { name: "No icon" });
+    expect(clear.querySelector('[data-testid="kind-default"]')).not.toBeNull();
+  });
+
   it("tints the selected cell with the accent colour", () => {
     render(
       <GlyphPicker
