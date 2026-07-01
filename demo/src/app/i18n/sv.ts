@@ -69,9 +69,9 @@ export const sv: Catalog = {
   },
   search: {
     title: "Sök",
-    placeholder: "Sök listor och poster…",
+    placeholder: "Sök listor, anteckningar och poster…",
     clear: "Rensa sökning",
-    prompt: "Sök bland dina listor och poster.",
+    prompt: "Sök bland dina listor, anteckningar och poster.",
     hint: "Använd * och ? för jokertecken, eller /regex/ för ett mönster.",
     invalidRegex: "Ogiltigt reguljärt uttryck.",
     noResults: "Inga resultat för ”{query}”.",

@@ -115,7 +115,18 @@ function ResultGroup({
       {result.items.map((item) => (
         <ItemRow key={item.id} item={item} onSelect={onSelect} />
       ))}
-      {result.items.length === 0 && result.titleRanges && (
+      {result.body && (
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex w-full cursor-pointer px-4 py-1.5 pl-12 text-left hover:bg-surface-2"
+        >
+          <span className="line-clamp-2 min-w-0 flex-1 text-sm text-muted">
+            <Highlighted text={result.body.text} ranges={result.body.ranges} />
+          </span>
+        </button>
+      )}
+      {result.items.length === 0 && !result.body && result.titleRanges && (
         <p className="py-1.5 pr-4 pl-12 text-xs text-muted">{inListLabel}</p>
       )}
     </li>

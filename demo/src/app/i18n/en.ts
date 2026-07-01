@@ -70,9 +70,9 @@ export const en = {
   },
   search: {
     title: "Search",
-    placeholder: "Search lists and items…",
+    placeholder: "Search lists, notes, and items…",
     clear: "Clear search",
-    prompt: "Search your lists and items.",
+    prompt: "Search your lists, notes, and items.",
     hint: "Use * and ? for wildcards, or /regex/ for a pattern.",
     invalidRegex: "Invalid regular expression.",
     noResults: "No results for “{query}”.",

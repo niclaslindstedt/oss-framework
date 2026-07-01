@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import {
   compileQuery,
+  clipAround,
   type MatchRange,
 } from "@niclaslindstedt/oss-framework/search";
 import type { ChecklistNode } from "@niclaslindstedt/oss-framework/checklist";
@@ -9,10 +10,11 @@ import type { AppData } from "./types.ts";
 
 // The app side of the search seam: the framework owns the matcher (the query
 // language, per-string matching, scoring, highlighting) and the overlay chrome;
-// this file owns the *corpus* — what gets indexed (each list's title and its
-// items, walked recursively) and how the hits are grouped (per list). The
-// framework's `compileQuery` is parsed once per query, then run against every
-// string here.
+// this file owns the *corpus* — what gets indexed and how the hits are grouped
+// (per list). A checklist contributes its title and every item (walked
+// recursively); a note contributes its title and its Markdown `body`, surfaced
+// as a clipped snippet. The framework's `compileQuery` is parsed once per query,
+// then run against every string here.
 
 /** One matched item within a list group. */
 export type ItemHit = {
@@ -22,6 +24,14 @@ export type ItemHit = {
   depth: number;
 };
 
+/** A matched note body, clipped to a window around the first hit. */
+export type BodyHit = {
+  /** The clipped snippet (with ellipses where text was dropped). */
+  text: string;
+  /** Ranges within `text` (already shifted to suit the clip). */
+  ranges: MatchRange[];
+};
+
 /** All matches within one list, ready to render as a group. */
 export type ListResult = {
   listId: string;
@@ -29,6 +39,9 @@ export type ListResult = {
   /** Ranges within the list title when it matched, else null. */
   titleRanges: MatchRange[] | null;
   items: ItemHit[];
+  /** A note body hit, clipped to a snippet — null for a checklist or an
+   *  unmatched body. */
+  body: BodyHit | null;
   /** Best single-match score in the group — drives result ordering. */
   score: number;
 };
@@ -83,12 +96,25 @@ export function runSearch(data: AppData, raw: string): SearchOutcome {
     };
     walk(list.items, 0);
 
-    if (titleRanges || items.length > 0) {
+    // A note holds its text in `body`, not `items`; index it so a term buried
+    // in the Markdown surfaces the note. Clip the hit to a snippet so a
+    // multi-paragraph body shows a focused window, not the whole document.
+    let body: BodyHit | null = null;
+    if (list.kind === "note" && list.body) {
+      const m = q.match(list.body);
+      if (m) {
+        body = clipAround(list.body, m.ranges);
+        score = Math.max(score, m.score);
+      }
+    }
+
+    if (titleRanges || items.length > 0 || body) {
       results.push({
         listId: list.id,
         title: list.title,
         titleRanges,
         items,
+        body,
         score,
       });
     }
