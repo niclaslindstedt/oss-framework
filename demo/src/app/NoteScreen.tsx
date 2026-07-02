@@ -67,8 +67,10 @@ export function NoteScreen({
           id so switching notes remounts the editor (a fresh caret, no carried
           active line) rather than reconciling mid-edit. `focusOnMount={false}`
           opens an existing note fully formatted with the keyboard down until a
-          tap; the app persists every keystroke through `setListBody`. */}
-      <div className="flex min-h-0 flex-1 flex-col pb-28">
+          tap; the app persists every keystroke through `setListBody`. Unlike the
+          checklist, a note has no floating FAB to clear, so the editor runs to
+          the bottom edge — its own safe-area bottom padding is the only inset. */}
+      <div className="flex min-h-0 flex-1 flex-col">
         <MarkdownEditor
           key={activeList.id}
           body={body}
