@@ -133,6 +133,7 @@ Today:
 | `CheckForUpdatesItem`    | `.` and `./pwa`          | Presentational "check for updates" footer row — drives `usePwaUpdate().checkForUpdate`.                                    |
 | `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.                                                |
 | `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.                                                     |
+| `applyUnlocks` / ledger  | `.` and `./achievements` | Pure `record`-contract mechanics: idempotent unlock, fresh-ids, unseen queue (`clearUnseen`) over an `UnlockLedger`.       |
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.                                           |
 | `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.                                                    |
 | `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.                                                |

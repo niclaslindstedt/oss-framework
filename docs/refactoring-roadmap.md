@@ -79,19 +79,7 @@ _(none)_
 
 ### Severity 5–6
 
-- **Achievement unlock-ledger mechanics (idempotent `record` + unseen queue).**
-  Files: `demo/src/app/useAchievements.ts:81-101`, home `src/achievements/`.
-  **Handed back:** the exact state transition `useAchievementWatcher`'s
-  contract requires — idempotent per-id recording, returning only
-  genuinely-new ids, deduped unseen-queue push, `clearUnseen`. Subtle (the
-  fresh-ids return drives the celebration modal; a naive rewrite double-fires)
-  and fully generic; every adopter re-derives it. Persistence and the demo's
-  first-run backfill stay app-side.
-  **Plan:** export a pure `applyUnlocks(prev, ids, now)` helper (or an
-  in-memory `useUnlockLedger` with the `record`/`clearUnseen` surface) from
-  `src/achievements`; the demo keeps its localStorage wrapper (composes with
-  the `useLocalStorageState` row above). Watcher contract unchanged.
-  **Risk:** low — pure logic, unit-testable for the first time. **Severity: 6.**
+_(none)_
 
 ### Severity 3–4
 
@@ -145,6 +133,16 @@ _(none)_
   semantics are the whole bug here. **Severity: 3.**
 
 ## Landed
+
+- **2026-07 — Achievement unlock-ledger mechanics** (was severity 6).
+  The idempotent-`record` transition `useAchievementWatcher` requires — per-id
+  idempotent unlock, genuinely-new-ids return, deduped unseen-queue push, and
+  `clearUnseen` — is now the pure `applyUnlocks(prev, ids, now)` / `clearUnseen`
+  pair over an `UnlockLedger` in `src/achievements/ledger.ts`. Both are generic
+  over the ledger shape (`T extends UnlockLedger`) so an app's extra fields (the
+  demo's first-run `seeded` flag) pass through. The demo's `record`/`clearUnseen`
+  collapsed to storing the result + returning the fresh ids; persistence, the
+  storage key, and the backfill stay app-side. Unit-testable for the first time.
 
 - **2026-07 — `useLocalStorageState` leaf hook** (was severity 7).
   The safe-parse → merge-partial-over-defaults → write-through persistence
