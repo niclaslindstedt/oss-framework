@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { deriveUnlocks } from "@niclaslindstedt/oss-framework/achievements";
+import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 
 import { CATALOG, EMPTY_STATE, type AchState } from "./achievements.ts";
 
 // The app's achievements store — the seam the framework leaves to the app:
 // where earned trophies live. The framework's watcher calls `record` and reads
-// `unlocked`; this hook owns persistence (localStorage) and the unseen queue
-// that lights the trophy button. A real app would sync this map across devices.
+// `unlocked`; this hook owns the unseen queue that lights the trophy button
+// and *where* the map lives (a localStorage key, via the framework's
+// `useLocalStorageState` — which owns the safe-parse / merge / write-through
+// mechanics). A real app would sync this map across devices.
 
 type Persisted = {
   // id → unlock timestamp.
@@ -21,37 +24,14 @@ type Persisted = {
 
 const STORAGE_KEY = "oss-demo:checklist:achievements";
 
-function load(): Persisted {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const p = JSON.parse(raw) as Partial<Persisted>;
-      return {
-        unlocked: p.unlocked ?? {},
-        unseen: p.unseen ?? [],
-        seeded: p.seeded ?? false,
-      };
-    }
-  } catch {
-    // ignore
-  }
-  return { unlocked: {}, unseen: [], seeded: false };
-}
+const EMPTY: Persisted = { unlocked: {}, unseen: [], seeded: false };
 
 export type AchievementsStore = ReturnType<typeof useAchievements>;
 
 export function useAchievements(state: AchState, enabled: boolean) {
-  const [p, setP] = useState<Persisted>(load);
+  const [p, setP] = useLocalStorageState<Persisted>(STORAGE_KEY, EMPTY);
   const ref = useRef(p);
   ref.current = p;
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-    } catch {
-      // ignore
-    }
-  }, [p]);
 
   // First-run retroactive backfill. The watcher is forward-going only — it never
   // backfills unlocks the saved document already satisfies. For a demo that

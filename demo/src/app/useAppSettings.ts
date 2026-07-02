@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+
+import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 
 // The app's own (non-theme) settings — the slice that lives beside the
 // appearance store in a real app: how the side menu opens, achievements,
@@ -45,30 +47,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 const STORAGE_KEY = "oss-demo:checklist:settings";
 
-function load(): AppSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw)
-      return {
-        ...DEFAULT_SETTINGS,
-        ...(JSON.parse(raw) as Partial<AppSettings>),
-      };
-  } catch {
-    // ignore
-  }
-  return DEFAULT_SETTINGS;
-}
-
 export function useAppSettings() {
-  const [settings, setSettings] = useState<AppSettings>(load);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // ignore
-    }
-  }, [settings]);
+  // The framework hook owns the persistence mechanics (safe parse, merging a
+  // stored partial over the defaults, write-through); this store owns the
+  // key and the settings shape.
+  const [settings, setSettings] = useLocalStorageState<AppSettings>(
+    STORAGE_KEY,
+    DEFAULT_SETTINGS,
+  );
 
   const update = useCallback(
     <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
