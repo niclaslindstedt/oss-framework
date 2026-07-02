@@ -56,6 +56,15 @@ type Props = {
   // Accessible label for the dismissing backdrop button. Inject your app's
   // translated "Close" string; defaults to English `"Close"`.
   closeLabel?: string;
+  // An optional bar pinned to the bottom of the card, below the scrolling
+  // content (a button row: Cancel / Save, a single Reset). Passing it here
+  // instead of as the last child lets the Modal own the iOS-PWA
+  // home-indicator clearance beneath it — a bottom safe-area spacer mirroring
+  // the top-inset spacer — so a footer only sets its normal padding and never
+  // hand-computes `env(safe-area-inset-bottom)`. Colour the footer
+  // `bg-surface-3` (like the header) so it reads continuous with the inset
+  // spacer below it. Omit for modals with no footer bar.
+  footer?: ReactNode;
   children: ReactNode;
 };
 
@@ -68,6 +77,7 @@ export function Modal({
   centered = false,
   size = "max-w-md",
   closeLabel = "Close",
+  footer,
   children,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -219,6 +229,22 @@ export function Modal({
           />
         )}
         {children}
+        {footer !== undefined && (
+          <>
+            {footer}
+            {/* iOS PWA safe-area: mirror the top-inset spacer below the footer
+                so the footer bar's bg-surface-3 extends into the
+                home-indicator strip — the footer keeps its plain padding and
+                never hand-computes the inset. Full-screen mobile only; a
+                centered card floats clear of the inset. */}
+            {!centered && (
+              <div
+                aria-hidden="true"
+                className="h-[env(safe-area-inset-bottom)] shrink-0 bg-surface-3 sm:hidden"
+              />
+            )}
+          </>
+        )}
       </div>
     </div>,
     document.body,

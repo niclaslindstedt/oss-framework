@@ -101,38 +101,41 @@ _(none)_
   change. **Severity: 4** (down from 5 — the adopter-facing duplication is
   gone; this is now internal hygiene).
 
-- **Safe-area _bottom_ inset hand-computed in the demo; framework owns only the top.**
-  Files: `demo/src/app/SettingsModal.tsx:252`
-  (`[padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]` on the modal
-  footer), `demo/src/app/ChecklistScreen.tsx:252`
-  (`bottom-[calc(1.5rem+env(safe-area-inset-bottom))]` under the FAB);
-  precedent `src/components/Modal.tsx:210-219` (Modal already owns
-  `safe-area-inset-top`).
-  **Handed back:** iOS-PWA home-indicator clearance — generic device plumbing
-  the framework already half-owns (top edge yes, bottom edge no).
-  **Plan:** give `Modal` an optional `footer` slot that owns the bottom inset
-  (mirroring its top-inset spacer), and/or default the FAB/`FabMenu` bottom
-  offset to include the inset. Default must reproduce today's rendering for
-  callers passing nothing.
-  **Risk:** a footer slot is new API surface — design it against the demo's
-  three-button footer to be sure it fits. **Severity: 4.**
+- **Safe-area _bottom_ inset under a bottom-anchored FAB, hand-computed in the demo.**
+  _(Narrowed 2026-07: the Modal-footer half landed — see Landed. What remains
+  is the FAB offset.)_
+  Files: `demo/src/app/ChecklistScreen.tsx:252`
+  (`bottom-[calc(1.5rem+env(safe-area-inset-bottom))]` on the wrapper that
+  positions `FabMenu`); precedent `src/components/FabMenu.tsx:206` (the
+  fan-out menu already self-positions at `bottom-[calc(1.25rem+inset)]`, but
+  the resting button is positioned by the caller's wrapper).
+  **Handed back:** iOS-PWA home-indicator clearance for a bottom-anchored FAB.
+  **Plan:** unclear seam — the resting FAB's _position_ (bottom-centered,
+  fixed vs absolute) is app layout, not device plumbing, and `FabMenu` today
+  deliberately doesn't self-position the resting button. A clean lift would
+  need `FabMenu` to offer an opt-in anchored form that owns the bottom offset
+  and its inset; verify that doesn't force a positioning policy on apps that
+  place the FAB elsewhere.
+  **Risk:** changing where `FabMenu` sits is a behaviour change, not an
+  additive default; may be over-extraction (app layout). Re-rate on pickup.
+  **Severity: 3** (down from 4 — the clean, non-layout half already landed).
 
 ### Easy wins (mechanical, any severity)
 
-- **`FloatingPanel` callers re-supply the shell classes to change one thing.**
-  Files: `demo/src/app/ListAppearancePopover.tsx:67` (passes
-  `rounded-md border border-line bg-surface-1 p-3 shadow-lg` — three of those
-  five classes are already rendered by `src/components/FloatingPanel.tsx:88`,
-  and the appended `bg-surface-1` only beats the baked-in `bg-surface-2` by
-  CSS-order luck); `src/components/RowActionMenu.tsx:147` and
-  `demo/src/app/SideMenuContent.tsx` (menus all append `py-1`).
-  **Plan:** an optional `surface` (and/or `padding`) prop whose default emits
-  today's exact class string, so overriding the background stops requiring the
-  caller to re-state the shell and stops depending on class order.
-  **Risk:** keep the default output byte-identical; Tailwind class-conflict
-  semantics are the whole bug here. **Severity: 3.**
+_(none)_
 
 ## Landed
+
+- **2026-07 — Modal footer slot owns the bottom safe-area inset** (was part of
+  a severity-4 safe-area row). `Modal` gained an optional `footer` slot; when
+  passed, it renders the bar below the scrolling content and follows it with a
+  bottom safe-area spacer (`h-[env(safe-area-inset-bottom)] bg-surface-3
+sm:hidden`) mirroring the top-inset spacer it already owned. The demo's
+  `SettingsModal` footer dropped its hand-computed
+  `[padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]` for plain
+  `py-3`. Callers passing no `footer` render byte-identically. The FAB half of
+  the original row stayed pending (murkier — resting-FAB position is app
+  layout).
 
 - **2026-07 — Achievement unlock-ledger mechanics** (was severity 6).
   The idempotent-`record` transition `useAchievementWatcher` requires — per-id
@@ -166,6 +169,18 @@ _(none)_
 
 ## Investigated and skipped
 
+- **`FloatingPanel` "surface override" prop** (former easy win, severity 3):
+  re-verified 2026-07 and rejected as speculative. The premise was wrong — the
+  demo's `ListAppearancePopover` passes `bg-surface-1`, but no `surface-1`
+  token exists (`framework.css` defines only `surface` / `surface-2` /
+  `surface-3`), so that class is **dead**: the popover already renders the
+  panel's baked-in `bg-surface-2`. There is no genuine surface override to
+  make ergonomic — a `surface` prop would have no demo consumer, and the rest
+  of the passed string (`rounded-md border border-line shadow-lg`) merely
+  duplicates classes `FloatingPanel` already bakes. The only real residue is
+  the demo's redundant/dead className, a demo-side cleanup, not a framework
+  lift. Re-evaluate only if a caller appears that genuinely needs a
+  non-default panel surface.
 - **`SyncStatus` label wiring in both screens** (`ChecklistScreen.tsx:194-204`,
   `NoteScreen.tsx:47-62`): looked like duplicated boilerplate, but the
   component already ships and merges `DEFAULT_SYNC_STATUS_LABELS`
