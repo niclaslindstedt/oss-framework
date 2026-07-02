@@ -21,6 +21,7 @@ component decides what to render with them.
 | `useTypeahead`          | List-box "type to select": printable keystrokes jump to the first matching option.            |
 | `useRovingTabindex`     | Roving tabindex for a 1-D list (listbox / radiogroup / menu) — one Tab stop, arrows navigate. |
 | `useGridRovingTabindex` | Roving tabindex for a 2-D grid picker — arrows walk rows and columns, Home/End jump corners.  |
+| `useLocalStorageState`  | `useState` that survives a reload: safe parse, defaults merge, write-through to a given key.  |
 
 These are the leaf of the dependency graph: hooks import nothing from the
 feature modules, so pulling `/hooks` never drags the rest of the framework in.
@@ -361,6 +362,46 @@ and there's a single place to honour a new marker should the contract ever grow.
 Call it **imperatively at event time** (inside the handler), not at mount — it
 reads the live DOM each time, so it reflects whatever dialog is open the instant
 the gesture fires.
+
+## `useLocalStorageState`
+
+`useState` that survives a reload. Reads the key once on mount, writes the
+value back on every change, and owns the mechanics every app otherwise
+re-implements around each persisted slice: the try/catch for a blocked or
+full storage, the JSON round-trip, and merging a stored partial over the
+current defaults (so a settings object gains new fields across versions
+without wiping the user's choices).
+
+```ts
+import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
+
+const [settings, setSettings] = useLocalStorageState("my-app:settings", {
+  spellCheck: true,
+  monospace: false,
+});
+```
+
+The app still owns the seam that matters: **which key**, **what shape**, and
+that `localStorage` is the right home at all. State is the source of truth —
+storage is write-through and never re-read after mount — and the key is
+expected to stay stable for the component's lifetime. A missing key or a
+corrupt payload boots from `defaults`; a blocked write leaves the in-memory
+state working.
+
+For a slice that isn't stored as JSON (a raw string, a bespoke serial
+format), override the round-trip:
+
+```ts
+const [active, setActive] = useLocalStorageState("my-app:active", "default", {
+  parse: (raw) => raw, // stored verbatim, not JSON-quoted
+  serialize: (v) => v,
+});
+```
+
+`parse` runs once, on mount, only when the key exists; throwing falls back to
+`defaults`. Deliberately **not** included: cross-tab `storage`-event sync and
+re-reading on key change — if you need either, you're building a store, which
+belongs to the app.
 
 ## `useClipboard`
 

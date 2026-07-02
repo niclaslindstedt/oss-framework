@@ -34,6 +34,10 @@ export {
 } from "./useClipboard.ts";
 export { useTypeahead, matchPrefixRange } from "./useTypeahead.ts";
 export {
+  useLocalStorageState,
+  type LocalStorageStateOptions,
+} from "./useLocalStorageState.ts";
+export {
   useRovingTabindex,
   useGridRovingTabindex,
   type RovingOrientation,

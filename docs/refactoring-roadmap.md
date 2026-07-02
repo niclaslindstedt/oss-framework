@@ -75,23 +75,7 @@ _(none)_
 
 ### Severity 7–8
 
-- **`localStorage` load/merge/persist loop duplicated in three demo hooks.**
-  Files: `demo/src/app/useAppSettings.ts` (load + merge-defaults + write-back),
-  `demo/src/app/useAchievements.ts:24-54` (same),
-  `demo/src/app/useNamespaces.ts` (loadList/loadActive + per-mutation sync);
-  home would be `src/hooks/`.
-  **Handed back:** the safe-parse → merge-with-defaults → write-on-change
-  persistence mechanic. Three demo hooks implement it identically (try/catch
-  around `JSON.parse`, spread defaults under the parsed partial, `useEffect`
-  write-through); every adopter of settings/achievements/namespaces writes the
-  same loop. The mechanic is generic — the app still owns the key, the shape,
-  and _that_ it persists (the store seam stays app-side).
-  **Plan:** a new leaf hook `useLocalStorageState<T>(key, defaults)` in
-  `src/hooks/` (cross-module duplication N≥3 with no existing home — the one
-  case that earns a new primitive). Demo hooks shrink to domain logic over it.
-  **Risk:** scope creep (cross-tab sync, storage events) — keep v1 to the
-  demonstrated loop; do NOT absorb the domain wrappers themselves (see
-  Investigated-and-skipped). **Severity: 7.**
+_(none)_
 
 ### Severity 5–6
 
@@ -161,6 +145,17 @@ _(none)_
   semantics are the whole bug here. **Severity: 3.**
 
 ## Landed
+
+- **2026-07 — `useLocalStorageState` leaf hook** (was severity 7).
+  The safe-parse → merge-partial-over-defaults → write-through persistence
+  loop, previously hand-rolled identically in three demo hooks, is now
+  `useLocalStorageState<T>(key, defaults, {parse?, serialize?})` in
+  `src/hooks/`. The overrides carry the non-JSON slices (the namespaces
+  registry's serial format, the raw-string active pointer). The demo's
+  `useAppSettings` / `useAchievements` / `useNamespaces` shrank to domain
+  logic; the store seam (which key, what shape, whether localStorage at all)
+  stays app-side. Deliberately excluded: cross-tab sync and key-change
+  re-reads — that's a store, which belongs to the app.
 
 - **2026-07 — Cursor-anchored context menu** (was severity 8).
   `useFloatingPosition` / `FloatingPanel` accept a point anchor
