@@ -126,6 +126,34 @@ are what `onUnlocked` celebrates. A typical store also keeps an `unseen` queue
 clear it when the unlock modal closes. The watcher itself is stateless beyond a
 baseline ref.
 
+You don't have to hand-roll that transition. The framework ships the pure
+ledger mechanics — `applyUnlocks` and `clearUnseen` over an `UnlockLedger`
+(`{ unlocked: Record<string, number>; unseen: string[] }`) — so `record`
+collapses to storing the result and returning the fresh ids:
+
+```ts
+import {
+  applyUnlocks,
+  clearUnseen,
+} from "@niclaslindstedt/oss-framework/achievements";
+
+// `store.ledger` is your persisted `{ unlocked, unseen, ...extra }`.
+const record = (ids: readonly string[]): string[] => {
+  const { next, fresh } = applyUnlocks(store.ledger, ids, Date.now());
+  if (fresh.length) store.setLedger(next); // persist however you like
+  return fresh; // the genuinely-new ids the watcher celebrates
+};
+
+const acknowledge = () => store.setLedger(clearUnseen(store.ledger));
+```
+
+`applyUnlocks` is idempotent per id, timestamps each new id with the `now` you
+pass (kept injectable so it stays pure), dedupes the unseen queue, and returns
+the previous object unchanged when nothing was new. It's generic over your
+ledger shape, so extra fields (a first-run backfill flag, etc.) pass through.
+The framework still never persists anything — **where** the ledger lives stays
+yours.
+
 ### The "forward-going only" guarantee
 
 `loaded` exists so loading a saved document never backfills unlocks the user

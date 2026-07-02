@@ -4,6 +4,7 @@
 // owns the catalog and the store; the framework owns everything here.
 
 export { deriveUnlocks } from "./derive.ts";
+export { applyUnlocks, clearUnseen, type UnlockLedger } from "./ledger.ts";
 export { unlock, subscribe, drain, resetBus } from "./bus.ts";
 export {
   useAchievementWatcher,

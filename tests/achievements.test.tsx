@@ -6,6 +6,8 @@ import {
   AchievementsModal,
   AchievementUnlockModal,
   TrophyButton,
+  applyUnlocks,
+  clearUnseen,
   deriveUnlocks,
   drain,
   resetBus,
@@ -103,6 +105,65 @@ describe("deriveUnlocks", () => {
       {},
     );
     expect(fresh).toEqual([]);
+  });
+});
+
+describe("applyUnlocks", () => {
+  const base = {
+    unlocked: {} as Record<string, number>,
+    unseen: [] as string[],
+  };
+
+  it("records new ids with the given timestamp and queues them unseen", () => {
+    const { next, fresh } = applyUnlocks(base, ["a", "b"], 100);
+    expect(fresh).toEqual(["a", "b"]);
+    expect(next.unlocked).toEqual({ a: 100, b: 100 });
+    expect(next.unseen).toEqual(["a", "b"]);
+  });
+
+  it("is idempotent per id: already-earned ids are ignored", () => {
+    const prev = { unlocked: { a: 50 }, unseen: [] as string[] };
+    const { next, fresh } = applyUnlocks(prev, ["a", "b"], 100);
+    expect(fresh).toEqual(["b"]);
+    expect(next.unlocked).toEqual({ a: 50, b: 100 });
+    expect(next.unseen).toEqual(["b"]);
+  });
+
+  it("returns the previous object unchanged when nothing is new", () => {
+    const prev = { unlocked: { a: 50 }, unseen: ["a"] };
+    const result = applyUnlocks(prev, ["a"], 100);
+    expect(result.fresh).toEqual([]);
+    expect(result.next).toBe(prev);
+  });
+
+  it("does not double-queue an id already unseen", () => {
+    const prev = { unlocked: {} as Record<string, number>, unseen: ["a"] };
+    const { next } = applyUnlocks(prev, ["a"], 100);
+    expect(next.unseen).toEqual(["a"]);
+  });
+
+  it("preserves extra fields on the ledger", () => {
+    const prev = {
+      unlocked: {} as Record<string, number>,
+      unseen: [],
+      seeded: true,
+    };
+    const { next } = applyUnlocks(prev, ["a"], 100);
+    expect(next.seeded).toBe(true);
+  });
+});
+
+describe("clearUnseen", () => {
+  it("empties the unseen queue and leaves unlocked untouched", () => {
+    const prev = { unlocked: { a: 1 }, unseen: ["a", "b"] };
+    const next = clearUnseen(prev);
+    expect(next.unseen).toEqual([]);
+    expect(next.unlocked).toEqual({ a: 1 });
+  });
+
+  it("returns the previous object unchanged when already empty", () => {
+    const prev = { unlocked: {} as Record<string, number>, unseen: [] };
+    expect(clearUnseen(prev)).toBe(prev);
   });
 });
 

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useRef } from "react";
 
-import { deriveUnlocks } from "@niclaslindstedt/oss-framework/achievements";
+import {
+  applyUnlocks,
+  clearUnseen as clearUnseenQueue,
+  deriveUnlocks,
+} from "@niclaslindstedt/oss-framework/achievements";
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 
 import { CATALOG, EMPTY_STATE, type AchState } from "./achievements.ts";
@@ -56,28 +60,19 @@ export function useAchievements(state: AchState, enabled: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
-  // The watcher's writer: idempotent per id, returns only the genuinely-new ids
-  // (what the caller celebrates) and pushes them onto the unseen queue.
+  // The watcher's writer. The idempotent-record / fresh-ids / unseen-queue
+  // mechanics are the framework's `applyUnlocks`; the app only owns *where* the
+  // ledger lives and the synchronous fresh-ids return the watcher contract
+  // needs (React setState is fire-and-forget, so derive fresh from the ref).
   const record = useCallback((ids: readonly string[]): string[] => {
-    const current = ref.current.unlocked;
-    const fresh = ids.filter((id) => current[id] === undefined);
-    if (fresh.length === 0) return [];
-    setP((prev) => {
-      const unlocked = { ...prev.unlocked };
-      const unseen = [...prev.unseen];
-      const ts = Date.now();
-      for (const id of ids) {
-        if (unlocked[id] !== undefined) continue;
-        unlocked[id] = ts;
-        if (!unseen.includes(id)) unseen.push(id);
-      }
-      return { ...prev, unlocked, unseen };
-    });
+    const { fresh } = applyUnlocks(ref.current, ids, Date.now());
+    if (fresh.length === 0) return fresh;
+    setP((prev) => applyUnlocks(prev, ids, Date.now()).next);
     return fresh;
   }, []);
 
   const clearUnseen = useCallback(() => {
-    setP((prev) => (prev.unseen.length === 0 ? prev : { ...prev, unseen: [] }));
+    setP((prev) => clearUnseenQueue(prev));
   }, []);
 
   return {
