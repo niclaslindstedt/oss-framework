@@ -86,7 +86,11 @@ export function ChecklistProgress({
           strokeLinecap="round"
           strokeDasharray={RING_CIRCUMFERENCE}
           strokeDashoffset={RING_CIRCUMFERENCE * (1 - fraction)}
-          className={done ? "text-success" : "text-accent"}
+          // Ease the arc from its old length to the new one so a check sweeps
+          // the ring round rather than snapping it — the fill and the
+          // accent→success recolour animate together. The `data-reduce-motion`
+          // rule in `framework.css` collapses this to an instant jump on demand.
+          className={`transition-[stroke-dashoffset,color] duration-500 ease-out ${done ? "text-success" : "text-accent"}`}
         />
       </svg>
       <span className="text-sm font-medium tabular-nums">{progressLabel}</span>
