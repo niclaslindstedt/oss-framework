@@ -75,28 +75,6 @@ _(none)_
 
 ### Severity 7–8
 
-- **Cursor-anchored context menu — the demo hand-rolls the entire chrome.**
-  Files: `demo/src/app/RowContextMenu.tsx` (whole file),
-  `src/components/FloatingPanel.tsx`, `src/components/useFloatingPosition.ts`,
-  `src/components/RowActionMenu.tsx`.
-  **Handed back:** a desktop right-click menu anchored at the pointer. The demo
-  assembles all of it itself: `createPortal` to body, `DismissBackdrop`,
-  `useEscapeKey`, manual viewport clamping
-  (`Math.min(target.x, window.innerWidth - 200)`), fixed z-index/border/shadow
-  shell, `role="menu"`/`role="menuitem"`, and a local `MenuItem` with tone
-  variants — none of it domain. `FloatingPanel` can't help because it only
-  anchors to a `triggerRef`; `RowActionMenu` owns identical chrome but only for
-  its own trigger gestures. Every adopter whose row forwards a `contextmenu`
-  event re-builds this.
-  **Plan:** teach `useFloatingPosition`/`FloatingPanel` an optional point
-  anchor (`anchor: {x,y}` as an alternative to `triggerRef`, clamping owned by
-  the positioning hook), then expose an assembled coordinate-anchored menu
-  (reuse the `RowAction[]` shape and `RowActionMenu`'s item rendering — prefer
-  integrating over a new primitive). Existing `triggerRef` callers unchanged.
-  **Risk:** clamping semantics must match `useFloatingPosition`'s existing
-  flip/clamp math; focus restore has no trigger element to return to (return to
-  the row). **Severity: 8.**
-
 - **`localStorage` load/merge/persist loop duplicated in three demo hooks.**
   Files: `demo/src/app/useAppSettings.ts` (load + merge-defaults + write-back),
   `demo/src/app/useAchievements.ts:24-54` (same),
@@ -131,22 +109,25 @@ _(none)_
   the `useLocalStorageState` row above). Watcher contract unchanged.
   **Risk:** low — pure logic, unit-testable for the first time. **Severity: 6.**
 
-- **Menu-item button reimplemented in three places (two inside the framework).**
-  Files: `src/components/RowActionMenu.tsx:161-186`,
-  `src/components/SelectPicker.tsx:296-306`,
-  `demo/src/app/RowContextMenu.tsx:71-94`.
-  **Handed back / duplicated:** the same `role="menuitem"` button — flex
-  layout, `px-3 py-2` padding, icon slot, danger/neutral tone, hover +
-  highlight states — hand-rolled per site with drifting class strings.
-  **Plan:** extract a `MenuItem` in `src/components/`, consume it from
-  `RowActionMenu` and `SelectPicker` with pixel-identical output, export it for
-  apps. Partially subsumed by the context-menu row above (landing that removes
-  the demo site) — re-verify ordering when picked up.
-  **Risk:** the two framework sites' classes differ slightly (`bg-surface-3`
-  highlight vs hover-only); the extraction must reproduce each exactly or it's
-  a visual change. **Severity: 5.**
-
 ### Severity 3–4
+
+- **Menu-item button duplicated between the action menus and `SelectPicker`.**
+  _(Narrowed 2026-07: the context-menu lift removed the demo's hand-rolled
+  `MenuItem` and gave `RowActionMenu` + `ContextMenu` one shared list,
+  `src/components/ActionMenuList.tsx` — what remains is the framework-internal
+  overlap with the picker.)_
+  Files: `src/components/ActionMenuList.tsx` (item button),
+  `src/components/SelectPicker.tsx:296-306`.
+  **Duplicated:** the same `role="menuitem"`-style button — flex layout,
+  `px-3 py-2` padding, tone + highlight states — in two framework components
+  with drifting class strings.
+  **Plan:** extract a `MenuItem` in `src/components/`, consume it from
+  `ActionMenuList` and `SelectPicker` with pixel-identical output, and decide
+  whether to export it for apps.
+  **Risk:** the two sites' classes differ slightly (`bg-surface-3` highlight
+  vs hover-only); the extraction must reproduce each exactly or it's a visual
+  change. **Severity: 4** (down from 5 — the adopter-facing duplication is
+  gone; this is now internal hygiene).
 
 - **Safe-area _bottom_ inset hand-computed in the demo; framework owns only the top.**
   Files: `demo/src/app/SettingsModal.tsx:252`
@@ -181,7 +162,14 @@ _(none)_
 
 ## Landed
 
-_(none yet)_
+- **2026-07 — Cursor-anchored context menu** (was severity 8).
+  `useFloatingPosition` / `FloatingPanel` accept a point anchor
+  (`FloatingPoint` / `anchorPoint`), and the new assembled `ContextMenu`
+  (actions = the existing `RowAction[]` shape) owns the portal, backdrop,
+  Escape, viewport clamp/flip, and keyboard nav; the shared list rendering
+  was extracted from `RowActionMenu` into `ActionMenuList` (internal). The
+  demo's `RowContextMenu` dropped from ~95 hand-rolled lines to a
+  domain-actions-only wrapper.
 
 ## Investigated and skipped
 

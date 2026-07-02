@@ -26,6 +26,7 @@ defaults.
 | `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav + type-ahead.                                                         |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
+| `ContextMenu`                                  | component | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, and viewport clamping built in.            |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                                  |
 | `Section` / `Field` / `ToggleRow`              | component | Settings-layout building blocks: a bordered group card, a labelled control row, a checkbox+label+hint row.                                   |
@@ -34,7 +35,7 @@ defaults.
 | `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                                  |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                                      |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                                           |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger; flip + clamp into the viewport.                                                                      |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger element or a fixed point; flip + clamp into the viewport.                                             |
 | `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                                            |
 | `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                                            |
 
@@ -348,6 +349,40 @@ feeds `RowActionMenu`, so a row offers identical actions through a desktop
 long-press menu and a touch swipe from one declaration. The
 component tags itself `data-drawer-swipe-ignore` so an enclosing `Sidebar`'s
 swipe-to-close stands down while a finger is on the row.
+
+## ContextMenu — a menu at the cursor
+
+When the app catches a `contextmenu` event itself (a right-click on a row a
+`RowActionMenu` doesn't wrap), `ContextMenu` renders the same action menu
+anchored at the pointer instead of at a trigger element. It owns the portal,
+the outside-click backdrop, Escape-to-close, keyboard navigation, and viewport
+clamping (near the right edge the menu shifts inward; near the bottom it flips
+above the cursor). The app holds the coordinates in state and supplies the
+actions — the same `RowAction[]` shape as everywhere else:
+
+```tsx
+const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+
+<div onContextMenu={(e) => { e.preventDefault(); setMenuAt({ x: e.clientX, y: e.clientY }); }}>
+  …
+</div>
+
+<ContextMenu
+  position={menuAt}
+  onClose={() => setMenuAt(null)}
+  ariaLabel="Row actions"
+  actions={[
+    { label: "Copy", icon: <CopyIcon className="h-4 w-4" />, onSelect: copy },
+    { label: "Delete", onSelect: remove, danger: true },
+  ]}
+/>;
+```
+
+`position: null` keeps it closed; `onClose` fires on Escape, outside click, or
+after an action runs. For point anchoring in your own panels,
+`FloatingPanel` accepts `anchorPoint={{ x, y }}` (viewport coordinates, like
+`clientX`/`clientY`) in place of `triggerRef`, and `useFloatingPosition`
+accepts the same point as its anchor argument.
 
 ## Migrating an existing implementation
 

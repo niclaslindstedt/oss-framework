@@ -3,17 +3,11 @@ import { useCallback, useRef, useState, type ReactNode } from "react";
 
 import { useDesktopPointer } from "../hooks/useMediaQuery.ts";
 import { useLongPress } from "../hooks/useLongPress.ts";
+import { ActionMenuList, type RowAction } from "./ActionMenuList.tsx";
 import { FloatingPanel } from "./FloatingPanel.tsx";
 import type { FloatingPlacement } from "./useFloatingPosition.ts";
 
-// One row in the menu: a label, an optional leading glyph, the action it
-// fires, and a `danger` flag that tints destructive rows (delete) red.
-export type RowAction = {
-  label: string;
-  icon?: ReactNode;
-  onSelect: () => void;
-  danger?: boolean;
-};
+export type { RowAction };
 
 // A row's secondary-action menu, summoned without a dedicated button: a
 // desktop right-click or a touch long press over the wrapped row opens a small
@@ -54,7 +48,6 @@ export function RowActionMenu({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [highlight, setHighlight] = useState(-1);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   // The two entry points split by pointer: a real secondary (right) click opens
@@ -67,13 +60,11 @@ export function RowActionMenu({
 
   const openMenu = useCallback(() => {
     if (!active) return;
-    setHighlight(-1);
     setOpen(true);
   }, [active]);
 
   const close = useCallback(() => {
     setOpen(false);
-    setHighlight(-1);
   }, []);
 
   const onContextMenu = useCallback(
@@ -105,29 +96,6 @@ export function RowActionMenu({
     [close],
   );
 
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setHighlight((h) => (h + 1) % actions.length);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setHighlight((h) => (h - 1 + actions.length) % actions.length);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        setHighlight(0);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        setHighlight(actions.length - 1);
-      } else if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        const action = actions[highlight];
-        if (action) activate(action);
-      }
-    },
-    [actions, highlight, activate],
-  );
-
   return (
     <div
       ref={wrapRef}
@@ -146,45 +114,11 @@ export function RowActionMenu({
         placement={PLACEMENT}
         className="py-1"
       >
-        <div
-          role="menu"
-          aria-label={ariaLabel}
-          tabIndex={-1}
-          onKeyDown={onKeyDown}
-          // Focus the menu when it opens so Escape and arrow-key nav work
-          // without an extra click (FloatingPanel restores focus on close).
-          ref={(el) => {
-            if (el && open) el.focus();
-          }}
-          className="outline-none"
-        >
-          {actions.map((action, i) => {
-            const isHighlighted = i === highlight;
-            return (
-              <button
-                key={action.label}
-                type="button"
-                role="menuitem"
-                onMouseEnter={() => setHighlight(i)}
-                onClick={() => activate(action)}
-                className={`flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent px-3 py-2 text-left text-sm ${
-                  action.danger ? "text-danger" : "text-fg"
-                } ${
-                  isHighlighted
-                    ? action.danger
-                      ? "bg-danger/10"
-                      : "bg-surface-3 text-fg-bright"
-                    : action.danger
-                      ? "hover:bg-danger/10"
-                      : "hover:bg-surface-3"
-                }`}
-              >
-                {action.icon && <span className="shrink-0">{action.icon}</span>}
-                <span className="flex-1 truncate">{action.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <ActionMenuList
+          actions={actions}
+          ariaLabel={ariaLabel}
+          onActivate={activate}
+        />
       </FloatingPanel>
     </div>
   );

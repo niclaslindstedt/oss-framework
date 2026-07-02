@@ -26,6 +26,7 @@ export {
 } from "./InlineEditField.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
+export { ContextMenu } from "./ContextMenu.tsx";
 export {
   SwipeableRow,
   type SwipeableRowProps,
@@ -52,7 +53,9 @@ export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 export {
   useFloatingPosition,
   computeFloatingRect,
+  type FloatingAnchor,
   type FloatingPlacement,
+  type FloatingPoint,
   type FloatingWidth,
   type FloatingRect,
 } from "./useFloatingPosition.ts";
