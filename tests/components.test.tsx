@@ -321,6 +321,49 @@ describe("Modal", () => {
     );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("renders the footer slot with a bottom safe-area inset spacer below it", () => {
+    render(
+      <Modal open onClose={() => {}} labelledBy="t" footer={<div>Actions</div>}>
+        <h2 id="t">Titled</h2>
+      </Modal>,
+    );
+    const footer = screen.getByText("Actions");
+    expect(footer).toBeTruthy();
+    // The spacer is the footer's next sibling: aria-hidden, sized to the
+    // bottom inset, matching the header's top-inset spacer colour.
+    const spacer = footer.nextElementSibling as HTMLElement | null;
+    expect(spacer?.getAttribute("aria-hidden")).toBe("true");
+    expect(spacer?.className).toContain("env(safe-area-inset-bottom)");
+    expect(spacer?.className).toContain("bg-surface-3");
+  });
+
+  it("renders no footer region or bottom spacer when no footer is passed", () => {
+    render(
+      <Modal open onClose={() => {}} labelledBy="t">
+        <h2 id="t">Titled</h2>
+      </Modal>,
+    );
+    const card = screen.getByRole("dialog");
+    expect(card.innerHTML).not.toContain("env(safe-area-inset-bottom)");
+  });
+
+  it("omits the bottom inset spacer for a centered card", () => {
+    render(
+      <Modal
+        open
+        centered
+        onClose={() => {}}
+        labelledBy="t"
+        footer={<div>Actions</div>}
+      >
+        <h2 id="t">Titled</h2>
+      </Modal>,
+    );
+    const footer = screen.getByText("Actions");
+    // A centered card floats clear of the inset — footer present, no spacer.
+    expect(footer.nextElementSibling).toBeNull();
+  });
 });
 
 // --- icons --------------------------------------------------------------

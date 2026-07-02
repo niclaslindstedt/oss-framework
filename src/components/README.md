@@ -114,6 +114,33 @@ function SettingsButton() {
 `react` and `react-dom` are peer dependencies (the components portal through
 `react-dom`). There are no other runtime dependencies.
 
+Pass a bottom button bar as the `footer` prop rather than the last child:
+`Modal` renders it pinned below the scrolling content and owns the iOS-PWA
+home-indicator clearance beneath it (a bottom safe-area spacer mirroring the
+top-inset spacer it already renders above the header). Colour the footer
+`bg-surface-3` (like the header) so it reads continuous with the inset, and set
+only its normal padding — never hand-compute `env(safe-area-inset-bottom)`:
+
+```tsx
+<Modal
+  open={open}
+  onClose={close}
+  labelledBy="title"
+  footer={
+    <footer className="flex justify-end gap-2 border-t border-line bg-surface-3 px-4 py-3">
+      <Button variant="secondary" onClick={close}>
+        Cancel
+      </Button>
+      <Button variant="primary" onClick={save}>
+        Save
+      </Button>
+    </footer>
+  }
+>
+  {/* scrolling body */}
+</Modal>
+```
+
 ### Settings layout (`Section` / `Field` / `ToggleRow`)
 
 `Section`, `Field`, and `ToggleRow` are the layout glue a settings surface is

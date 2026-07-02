@@ -153,6 +153,23 @@ export function SettingsModal({
       onClose={cancel}
       labelledBy="settings-title"
       closeLabel={t("common.cancel")}
+      footer={
+        // Reset (left) | Cancel + Save (right). The Modal owns the bottom
+        // safe-area inset beneath this bar, so it keeps plain footer padding.
+        <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-surface-3 px-4 py-3">
+          <Button variant="secondary" onClick={reset}>
+            {t("common.resetToDefaults")}
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={cancel}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" onClick={save}>
+              {t("common.save")}
+            </Button>
+          </div>
+        </footer>
+      }
     >
       {/* Header: tab menu trigger (left) + close (right). */}
       <header className="relative flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface-3 px-4 py-3">
@@ -244,24 +261,6 @@ export function SettingsModal({
         )}
         {activeTab === "logs" && <LogsTab />}
       </div>
-
-      {/* Footer: Reset (left) | Cancel + Save (right). Add the bottom
-          safe-area inset on top of the normal 0.75rem padding so the buttons
-          keep their breathing room and clear the iOS PWA home-indicator /
-          curved corners; collapses to 0.75rem with no inset. */}
-      <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-surface-3 px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]">
-        <Button variant="secondary" onClick={reset}>
-          {t("common.resetToDefaults")}
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={cancel}>
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" onClick={save}>
-            {t("common.save")}
-          </Button>
-        </div>
-      </footer>
     </Modal>
   );
 }
