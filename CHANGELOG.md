@@ -6,6 +6,39 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-03
+
+### Added
+
+- **ContextMenu** — New `ContextMenu` component renders a keyboard-navigable action menu anchored
+  at the cursor of a caught `contextmenu` event, owning the portal, outside-click
+  dismissal, Escape, and viewport clamping; `FloatingPanel` and
+  `useFloatingPosition` now accept a point anchor (`anchorPoint` / a `{ x, y }`
+  argument) alongside a trigger ref.
+- **useLocalStorageState** — New `useLocalStorageState` hook — `useState` that survives a reload, owning
+  the safe parse, stored-partial-over-defaults merge, and write-through
+  persistence every app previously hand-rolled per slice; `parse`/`serialize`
+  are overridable for non-JSON payloads.
+- **applyUnlocks** — New `applyUnlocks` / `clearUnseen` pure helpers (over an `UnlockLedger`) in the
+  `achievements` module implement the idempotent unlock, genuinely-new-ids
+  return, and unseen-queue mechanics the `useAchievementWatcher` `record`
+  contract requires — logic every adopter previously hand-rolled. The store (and
+  where the ledger lives) stays app-side.
+- **Modal footer slot** — `Modal` accepts an optional `footer` slot for a bottom button bar. Passed here
+  instead of as the last child, the Modal pins it below the scrolling content and
+  owns the iOS-PWA home-indicator clearance beneath it — a bottom safe-area
+  spacer mirroring the top-inset spacer it already renders above the header — so
+  a footer never hand-computes `calc(… + env(safe-area-inset-bottom))`. Existing
+  modals (no `footer`) render unchanged.
+
+### Changed
+
+- **Animated progress ring** — `ChecklistProgress` now eases its ring arc between values instead of snapping
+  it: checking an item sweeps the circle glyph round to the new fraction (and
+  animates the accent→success recolour at 100%) rather than blipping straight to
+  it. The `data-reduce-motion` theme rule collapses the transition to an instant
+  jump for users who ask for less motion.
+
 ## [2.0.0] - 2026-07-01
 
 ### Added
