@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useRef, useState } from "react";
 
+import { scrollFocusedIntoView } from "./scrollFocusedIntoView.ts";
+
 // The bare text field at the heart of an in-place editor — the part every
 // inline editor (rename a list, rename a checklist item, name a new one) wires
 // the same way and is easy to get subtly wrong:
@@ -10,7 +12,11 @@ import { useEffect, useRef, useState } from "react";
 //   default) selects its seed text so the first keystroke replaces it. Pass
 //   `selectOnFocus={false}` to instead drop the caret at the end — what a
 //   checklist row wants when you tap it to keep typing rather than retype.
-//   (An effect, not the a11y-flagged `autoFocus` attribute.)
+//   (An effect, not the a11y-flagged `autoFocus` attribute.) On a touch
+//   device it then scrolls itself clear of the soft keyboard, so a field that
+//   mounts low on screen (a new row below the last, the bottom add-item
+//   composer) animates into view instead of appearing hidden behind the
+//   keyboard.
 // - **Commit / cancel with a double-fire guard.** Enter or blur with a
 //   non-empty trimmed value commits (the `via` argument says which, so a caller
 //   can chain a fresh draft only on Enter); Escape (or a blurred-empty value)
@@ -85,6 +91,18 @@ export function InlineEditField({
     else {
       const end = el.value.length;
       el.setSelectionRange?.(end, end);
+    }
+    // On a touch device the soft keyboard slides up over the field the moment it
+    // takes focus, so a field low on screen — a row typed below the last, the
+    // add-item composer at the bottom of a long list — lands hidden behind it,
+    // and you can't see what you type. Once the keyboard has settled, centre the
+    // field back into the visible viewport. Gated on a coarse pointer: a
+    // precise-pointer device opens no soft keyboard, so recentring an
+    // already-visible field there would be a spurious scroll jump. (We suppress
+    // the browser's own focus-time reveal above with `preventScroll` because it
+    // fires before the keyboard shrinks the viewport, so it under-scrolls.)
+    if (window.matchMedia?.("(pointer: coarse)").matches) {
+      scrollFocusedIntoView(el);
     }
   }, [selectOnFocus]);
   function finish(via: "enter" | "blur") {

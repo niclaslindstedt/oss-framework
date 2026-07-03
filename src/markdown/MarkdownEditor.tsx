@@ -11,6 +11,7 @@ import {
   type Ref,
 } from "react";
 
+import { scrollFocusedIntoView } from "../components/scrollFocusedIntoView.ts";
 import {
   lineElementOf,
   lineIndexOf,
@@ -30,7 +31,6 @@ import {
   sourcePointFromDom,
 } from "./markdown-selection.ts";
 import { RenderedLine } from "./MarkdownLine.tsx";
-import { scrollFocusedIntoView } from "./scrollFocusedIntoView.ts";
 
 // The default placeholder shown on an empty document; override via `labels`.
 const DEFAULT_START_WRITING = "Start writing…";
