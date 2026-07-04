@@ -24,6 +24,7 @@ export default defineConfig({
     "sync/index": "src/sync/index.ts",
     "search/index": "src/search/index.ts",
     "markdown/index": "src/markdown/index.ts",
+    "charts/index": "src/charts/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

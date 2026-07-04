@@ -24,6 +24,7 @@
 //   sync/       — header status glyph + command-centre modal over a sync engine
 //   search/     — progressive-query matcher + highlighting + generic SearchModal
 //   markdown/   — live-preview Markdown editor + dependency-free parser
+//   charts/     — zero-dep SVG charts (line/bar/donut/sparkline) + scale math
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -42,3 +43,4 @@ export * from "./namespaces/index.ts";
 export * from "./sync/index.ts";
 export * from "./search/index.ts";
 export * from "./markdown/index.ts";
+export * from "./charts/index.ts";

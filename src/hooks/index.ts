@@ -37,6 +37,7 @@ export {
   useLocalStorageState,
   type LocalStorageStateOptions,
 } from "./useLocalStorageState.ts";
+export { useMeasuredSize, type MeasuredSize } from "./useMeasuredSize.ts";
 export {
   useRovingTabindex,
   useGridRovingTabindex,
