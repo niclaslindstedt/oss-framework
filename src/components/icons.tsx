@@ -314,11 +314,12 @@ export function DatabaseIcon({ className }: IconProps) {
   );
 }
 
-/** A solid heart — a "made with care" / favourite mark. */
+/** A solid heart — a "made with care" / favourite mark. Traced symmetric
+ *  about the vertical centre axis so the tip and both lobes mirror cleanly. */
 export function HeartIcon({ className }: IconProps) {
   return (
     <Glyph filled className={className}>
-      <path d="M12 21s-7.5-4.6-10-9.3C.6 9 1.6 5.5 4.8 4.6 7 4 9 5 10 6.7 11 5 13 4 15.2 4.6c3.2.9 4.2 4.4 2.8 7.1C19.5 16.4 12 21 12 21z" />
+      <path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3 9.24 3 10.91 3.81 12 5.09 13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5 22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
     </Glyph>
   );
 }
