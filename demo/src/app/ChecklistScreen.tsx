@@ -25,6 +25,8 @@ import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 
 import { ListAppearancePopover } from "./ListAppearancePopover.tsx";
 import { RowContextMenu, type RowMenuTarget } from "./RowContextMenu.tsx";
+import { StatsModal } from "./StatsModal.tsx";
+import { ChartIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import type { AddItemPosition } from "./useAppSettings.ts";
 import type { ChecklistStore } from "./useChecklistStore.ts";
@@ -57,6 +59,7 @@ export function ChecklistScreen({
 }) {
   const t = useT();
   const {
+    data,
     activeList,
     progress,
     setActiveItems,
@@ -81,6 +84,9 @@ export function ChecklistScreen({
   // swipe latches. Touch devices report a coarse pointer and never arm it.
   const desktopPointer = useDesktopPointer();
   const [rowMenu, setRowMenu] = useState<RowMenuTarget | null>(null);
+  // The Statistics dialog — the demo's `/charts` showcase, fed from the same
+  // document the screens render.
+  const [statsOpen, setStatsOpen] = useState(false);
 
   // The pull-to-refresh "sync": a local-first app re-checks where its data
   // lives — here, re-reading the persisted document to pick up edits from
@@ -133,6 +139,12 @@ export function ChecklistScreen({
           onDelete={deleteItem}
         />
       )}
+      <StatsModal
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        data={data}
+      />
+
       <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
         <ListAppearancePopover
           list={activeList}
@@ -182,6 +194,15 @@ export function ChecklistScreen({
           value={listMarkdown}
           labels={{ copy: t("screen.copyList"), copied: t("screen.copied") }}
         />
+        <button
+          type="button"
+          onClick={() => setStatsOpen(true)}
+          aria-label={t("stats.open")}
+          title={t("stats.open")}
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg-bright"
+        >
+          <ChartIcon className="h-5 w-5" />
+        </button>
         {/* The framework sync glyph — morphs over the engine's save state and
             opens the command centre on tap. The pull-to-refresh gesture above
             stays the read-side "sync"; this is the write-side status. */}

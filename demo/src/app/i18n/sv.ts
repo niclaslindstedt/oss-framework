@@ -102,6 +102,17 @@ export const sv: Catalog = {
     switchTo: "Växla till {name}",
     defaultBadge: "Standard",
   },
+  stats: {
+    open: "Statistik",
+    title: "Statistik",
+    activityHeading: "Avklarade rader",
+    activityAlt: "Avklarade rader per dag de senaste 14 dagarna",
+    doneInWindow: "{n} avklarade de senaste 14 dagarna",
+    byListHeading: "Öppna rader per lista",
+    byListAlt: "Andel öppna rader per lista",
+    openTotal: "öppna",
+    other: "Övrigt",
+  },
   screen: {
     addItem: "Lägg till en rad…",
     addItemAria: "Lägg till rad",
