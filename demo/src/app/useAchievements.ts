@@ -64,16 +64,19 @@ export function useAchievements(state: AchState, enabled: boolean) {
   // mechanics are the framework's `applyUnlocks`; the app only owns *where* the
   // ledger lives and the synchronous fresh-ids return the watcher contract
   // needs (React setState is fire-and-forget, so derive fresh from the ref).
-  const record = useCallback((ids: readonly string[]): string[] => {
-    const { fresh } = applyUnlocks(ref.current, ids, Date.now());
-    if (fresh.length === 0) return fresh;
-    setP((prev) => applyUnlocks(prev, ids, Date.now()).next);
-    return fresh;
-  }, []);
+  const record = useCallback(
+    (ids: readonly string[]): string[] => {
+      const { fresh } = applyUnlocks(ref.current, ids, Date.now());
+      if (fresh.length === 0) return fresh;
+      setP((prev) => applyUnlocks(prev, ids, Date.now()).next);
+      return fresh;
+    },
+    [setP],
+  );
 
   const clearUnseen = useCallback(() => {
     setP((prev) => clearUnseenQueue(prev));
-  }, []);
+  }, [setP]);
 
   return {
     unlocked: p.unlocked,

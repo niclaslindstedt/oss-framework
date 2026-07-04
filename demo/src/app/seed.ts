@@ -12,12 +12,25 @@ import type { AppData } from "./types.ts";
 // `color` from the framework's `/glyphs` catalogue, so the side-menu icons and
 // the tab favicon read in the list's own colour out of the box.
 //
-// `checkedAt` stamps use a fixed timestamp so the "sort checked to the bottom"
-// order is deterministic across reloads (no wall-clock in the seed).
+// `checkedAt` stamps are spread across the trailing two weeks — one distinct,
+// monotonically older stamp per checked leaf, in call order — so the "sort
+// checked to the bottom" recency order stays deterministic for a document
+// AND the Statistics view has real activity to chart on first boot. The
+// stamps are minted once at seed time and then persist with the document.
 
+const SEED_TIME = Date.now();
+let checkedSeq = 0;
 const leaf = (id: string, label: string, checked = false): ChecklistNode =>
   checked
-    ? { id, label, checked, checkedAt: `2024-01-01T00:00:00.000Z` }
+    ? {
+        id,
+        label,
+        checked,
+        // ~26h apart: a dozen checked leaves span ~13 days, roughly one a day.
+        checkedAt: new Date(
+          SEED_TIME - ++checkedSeq * 26 * 3_600_000,
+        ).toISOString(),
+      }
     : { id, label, checked };
 
 export const SEED: AppData = {

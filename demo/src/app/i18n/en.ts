@@ -103,6 +103,17 @@ export const en = {
     switchTo: "Switch to {name}",
     defaultBadge: "Default",
   },
+  stats: {
+    open: "Statistics",
+    title: "Statistics",
+    activityHeading: "Completed items",
+    activityAlt: "Completed items per day over the last 14 days",
+    doneInWindow: "{n} done in the last 14 days",
+    byListHeading: "Open items by list",
+    byListAlt: "Share of open items per list",
+    openTotal: "open",
+    other: "Other",
+  },
   screen: {
     addItem: "Add an item…",
     addItemAria: "Add item",

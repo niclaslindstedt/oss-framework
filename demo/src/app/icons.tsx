@@ -71,6 +71,26 @@ export function ScrollTextIcon({ className }: IconProps) {
   );
 }
 
+/** Rising bars — the Statistics surface. */
+export function ChartIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable={false}
+      className={className}
+    >
+      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+      <path d="M18 17V9M13 17V5M8 17v-3" />
+    </svg>
+  );
+}
+
 /** A bulleted list — the "show all" / overview view toggle. */
 export function ListIcon({ className }: IconProps) {
   return (

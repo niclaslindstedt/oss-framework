@@ -81,73 +81,76 @@ import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 The public surface grows as functionality is migrated out of the source apps.
 Today:
 
-| Export                   | From                     | Purpose                                                                                                                    |
-| ------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `useEscapeKey`           | `.` and `./hooks`        | Capture-phase Escape handler gated on an `enabled` flag.                                                                   |
-| `useMediaQuery`          | `.` and `./hooks`        | Subscribe to a CSS media query; `useDesktopPointer` gates right-click affordances.                                         |
-| `useRowSwipe`            | `.` and `./hooks`        | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                                                 |
-| `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.                                        |
-| `useSwipeDownToClose`    | `.` and `./hooks`        | Touch swipe-down-to-dismiss for a modal sheet — arms on the header or at a content scroll-top; `Modal` wires it in.        |
-| `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.                                                 |
-| `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                             |
-| `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                              |
-| `useClipboard`           | `.` and `./hooks`        | Copy-to-clipboard with a self-resetting `copied` flag; `copyTextToClipboard` is the pure, React-free write.                |
-| `useTypeahead`           | `.` and `./hooks`        | List-box "type to select": printable keys jump to a matching option; `matchPrefixRange` marks the matched characters.      |
-| `useRovingTabindex`      | `.` and `./hooks`        | WAI-ARIA roving tabindex for a 1-D listbox / radiogroup / menu — one Tab stop, arrow keys navigate, optional type-ahead.   |
-| `useGridRovingTabindex`  | `.` and `./hooks`        | Roving tabindex for a 2-D grid picker — arrows walk rows/columns, Home/End jump to the corners.                            |
-| `useLocalStorageState`   | `.` and `./hooks`        | `useState` that survives a reload — safe parse, defaults merge, write-through; `parse`/`serialize` overridable.            |
-| `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                             |
-| theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                           |
-| `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                          |
-| `AppearancePicker`       | `.` and `./theme`        | Controlled theme / font / colour editor over a `ThemeAppearance`.                                                          |
-| `styles.css`             | `./styles.css`           | The framework's stylesheet — token map, flavour CSS, drawer keyframes, and every preset palette. One `@import`.            |
-| `installPresetTokens`    | `.` and `./theme`        | Inject the per-preset `[data-theme]` colour blocks at runtime (`PRESET_TOKENS_CSS` for the raw string).                    |
-| `ChangelogModal`         | `.` and `./changelog`    | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                                                                |
-| `parseChangelog`         | `.` and `./changelog`    | Parse a `CHANGELOG.md` into the typed release list it renders.                                                             |
-| `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                                                                    |
-| storage backends         | `.` and `./storage`      | Browser, local-folder, Dropbox, and Google Drive adapters.                                                                 |
-| `createMigrator`         | `.` and `./storage`      | Forward-only document-migration runner (the engine; the chain is yours).                                                   |
-| `backoffDelayMs`         | `.` and `./storage`      | Pure save-path retry policy: equal-jitter backoff + retryable-error predicate.                                             |
-| `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                                                                 |
-| `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                                                        |
-| `LogModal`               | `.` and `./logging`      | Modal showing one operation's step log; opened on demand from a status line.                                               |
-| `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                                                             |
-| `FloatingButton`         | `.` and `./sidebar`      | The draggable, edge-resting FAB the shell floats, reusable on its own.                                                     |
-| `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                                                           |
-| `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.                                                |
-| `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.                                             |
-| `ContextMenu`            | `.` and `./components`   | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, viewport clamping.       |
-| `SwipeableRow`           | `.` and `./components`   | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action (glyphs/colours configurable). |
-| `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                                                                 |
-| `CopyButton`             | `.` and `./components`   | Glyph button that copies a value (string or getter) to the clipboard and flashes a tick; built on `useClipboard`.          |
-| settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.                                                  |
-| `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner.                                       |
-| `ConfirmDialog`          | `.` and `./components`   | In-app `window.confirm` replacement — title, message, confirm/cancel, danger tone.                                         |
-| `PullToRefreshIndicator` | `.` and `./components`   | Slide-down pill that surfaces the `usePullToRefresh` gesture.                                                              |
-| glyph set                | `.` and `./components`   | Dependency-free inline SVG icons, each driven by `className`.                                                              |
-| `Checklist`              | `.` and `./checklist`    | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete.                                       |
-| checklist tree           | `.` and `./checklist`    | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …                                             |
-| glyph picker kit         | `.` and `./glyphs`       | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.                                            |
-| `usePwaUpdate`           | `.` and `./pwa`          | Service-worker update lifecycle singleton: download progress + reload prompt state.                                        |
-| `UpdateToast`            | `.` and `./pwa`          | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.                                                  |
-| `CheckForUpdatesItem`    | `.` and `./pwa`          | Presentational "check for updates" footer row — drives `usePwaUpdate().checkForUpdate`.                                    |
-| `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.                                                |
-| `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.                                                     |
-| `applyUnlocks` / ledger  | `.` and `./achievements` | Pure `record`-contract mechanics: idempotent unlock, fresh-ids, unseen queue (`clearUnseen`) over an `UnlockLedger`.       |
-| achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.                                           |
-| `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.                                                    |
-| `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.                                                |
-| `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs).                                       |
-| `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.                                         |
-| namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).                                           |
-| `NamespaceSwitcher`      | `.` and `./namespaces`   | In-drawer collapsible switcher — switch the active namespace, open the manager, drop items across namespaces.              |
-| `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.                                         |
-| `SyncStatus`             | `.` and `./sync`         | Header glyph that morphs over a `SaveStatus` + `dirty`/`offline`; opens the details.                                       |
-| `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.                                          |
-| search matcher           | `.` and `./search`       | `compileQuery` / `searchItems` / `segmentMatches` / `clipAround` — progressive query + ranges.                             |
-| `SearchModal`            | `.` and `./search`       | Generic search overlay (field + empty states); your rows via a render prop. `Highlighted` too.                             |
-| `MarkdownEditor`         | `.` and `./markdown`     | Live-preview Markdown editor (formats every line but the caret's); controlled via `body` + `onChange`.                     |
-| Markdown parser          | `.` and `./markdown`     | `classifyLines` / `parseInline` / `shortenUrl` — pure, DOM-free block + inline parse you can render yourself.              |
+| Export                   | From                     | Purpose                                                                                                                     |
+| ------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `useEscapeKey`           | `.` and `./hooks`        | Capture-phase Escape handler gated on an `enabled` flag.                                                                    |
+| `useMediaQuery`          | `.` and `./hooks`        | Subscribe to a CSS media query; `useDesktopPointer` gates right-click affordances.                                          |
+| `useRowSwipe`            | `.` and `./hooks`        | Swipe-to-reveal / swipe-to-dismiss gesture for a list row.                                                                  |
+| `usePullToRefresh`       | `.` and `./hooks`        | Touch pull-to-refresh gesture at a scroll region's top; fires an async `onRefresh`.                                         |
+| `useSwipeDownToClose`    | `.` and `./hooks`        | Touch swipe-down-to-dismiss for a modal sheet — arms on the header or at a content scroll-top; `Modal` wires it in.         |
+| `useUndoRedoShortcuts`   | `.` and `./hooks`        | Global Cmd/Ctrl+Z · Cmd/Ctrl+Shift+Z / Ctrl+Y bound to a document history.                                                  |
+| `useLongPress`           | `.` and `./hooks`        | Press-and-hold gesture; fires past a delay, cancels on drag, swallows the tap.                                              |
+| `isModalOpen`            | `.` and `./hooks`        | `true` while any framework dialog (`[aria-modal="true"]`) is mounted — the shared modal gate.                               |
+| `useClipboard`           | `.` and `./hooks`        | Copy-to-clipboard with a self-resetting `copied` flag; `copyTextToClipboard` is the pure, React-free write.                 |
+| `useTypeahead`           | `.` and `./hooks`        | List-box "type to select": printable keys jump to a matching option; `matchPrefixRange` marks the matched characters.       |
+| `useRovingTabindex`      | `.` and `./hooks`        | WAI-ARIA roving tabindex for a 1-D listbox / radiogroup / menu — one Tab stop, arrow keys navigate, optional type-ahead.    |
+| `useGridRovingTabindex`  | `.` and `./hooks`        | Roving tabindex for a 2-D grid picker — arrows walk rows/columns, Home/End jump to the corners.                             |
+| `useLocalStorageState`   | `.` and `./hooks`        | `useState` that survives a reload — safe parse, defaults merge, write-through; `parse`/`serialize` overridable.             |
+| `useMeasuredSize`        | `.` and `./hooks`        | ResizeObserver-backed element size (null until first measure) — responsive charts, canvases, virtualised lists.             |
+| `useApplyTheme`          | `.` and `./theme`        | Projects the chosen appearance onto `<html>` as CSS variables.                                                              |
+| theme data               | `.` and `./theme`        | Preset vocabulary, per-preset palettes, `CustomTheme` + helpers.                                                            |
+| `SettingsModal`          | `.` and `./theme`        | Self-contained dialog over the appearance picker.                                                                           |
+| `AppearancePicker`       | `.` and `./theme`        | Controlled theme / font / colour editor over a `ThemeAppearance`.                                                           |
+| `styles.css`             | `./styles.css`           | The framework's stylesheet — token map, flavour CSS, drawer keyframes, and every preset palette. One `@import`.             |
+| `installPresetTokens`    | `.` and `./theme`        | Inject the per-preset `[data-theme]` colour blocks at runtime (`PRESET_TOKENS_CSS` for the raw string).                     |
+| `ChangelogModal`         | `.` and `./changelog`    | "What's new" dialog over a Keep-a-Changelog `CHANGELOG.md`.                                                                 |
+| `parseChangelog`         | `.` and `./changelog`    | Parse a `CHANGELOG.md` into the typed release list it renders.                                                              |
+| `StorageAdapter`         | `.` and `./storage`      | Byte-level persistence contract for swappable backends.                                                                     |
+| storage backends         | `.` and `./storage`      | Browser, local-folder, Dropbox, and Google Drive adapters.                                                                  |
+| `createMigrator`         | `.` and `./storage`      | Forward-only document-migration runner (the engine; the chain is yours).                                                    |
+| `backoffDelayMs`         | `.` and `./storage`      | Pure save-path retry policy: equal-jitter backoff + retryable-error predicate.                                              |
+| `createLogStore`         | `.` and `./logging`      | In-app log ring buffer + capture mirror; the storage sink.                                                                  |
+| `LogViewer`              | `.` and `./logging`      | Live Logs panel over a store (filter, copy, clear); `useLogs` hook.                                                         |
+| `LogModal`               | `.` and `./logging`      | Modal showing one operation's step log; opened on demand from a status line.                                                |
+| `Sidebar`                | `.` and `./sidebar`      | Responsive nav shell: docked sidebar / floating-button drawer.                                                              |
+| `FloatingButton`         | `.` and `./sidebar`      | The draggable, edge-resting FAB the shell floats, reusable on its own.                                                      |
+| `Modal`                  | `.` and `./components`   | Portalled accessible dialog (backdrop, focus trap, scroll lock).                                                            |
+| `Button` / form          | `.` and `./components`   | `Button`, `Checkbox`, `ClearableInput`, `SelectPicker`, `SegmentedControl`.                                                 |
+| `RowActionMenu`          | `.` and `./components`   | A row's right-click / long-press action menu, floated and anchored to the row.                                              |
+| `ContextMenu`            | `.` and `./components`   | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, viewport clamping.        |
+| `SwipeableRow`           | `.` and `./components`   | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action (glyphs/colours configurable).  |
+| `Badge` / `Fab`          | `.` and `./components`   | A count pill and a floating action button.                                                                                  |
+| `CopyButton`             | `.` and `./components`   | Glyph button that copies a value (string or getter) to the clipboard and flashes a tick; built on `useClipboard`.           |
+| settings layout          | `.` and `./components`   | `Section`, `Field`, `ToggleRow` — building blocks for a settings surface.                                                   |
+| `CipherGlyph`            | `.` and `./components`   | An "encryptish" busy indicator — re-scrambling cipher glyphs, in place of a spinner.                                        |
+| `ConfirmDialog`          | `.` and `./components`   | In-app `window.confirm` replacement — title, message, confirm/cancel, danger tone.                                          |
+| `PullToRefreshIndicator` | `.` and `./components`   | Slide-down pill that surfaces the `usePullToRefresh` gesture.                                                               |
+| glyph set                | `.` and `./components`   | Dependency-free inline SVG icons, each driven by `className`.                                                               |
+| `Checklist`              | `.` and `./checklist`    | Nested checkable list — items, child checklists, cascade, progress, swipe-to-delete.                                        |
+| checklist tree           | `.` and `./checklist`    | Pure tree ops: `toggleNode`, `setAllChecked`, `removeNode`, `countProgress`, …                                              |
+| glyph picker kit         | `.` and `./glyphs`       | Icon catalogue + `Glyph`, `GlyphPicker`, `ColorPalette`, and a favicon builder.                                             |
+| `usePwaUpdate`           | `.` and `./pwa`          | Service-worker update lifecycle singleton: download progress + reload prompt state.                                         |
+| `UpdateToast`            | `.` and `./pwa`          | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.                                                   |
+| `CheckForUpdatesItem`    | `.` and `./pwa`          | Presentational "check for updates" footer row — drives `usePwaUpdate().checkForUpdate`.                                     |
+| `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.                                                 |
+| `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.                                                      |
+| `applyUnlocks` / ledger  | `.` and `./achievements` | Pure `record`-contract mechanics: idempotent unlock, fresh-ids, unseen queue (`clearUnseen`) over an `UnlockLedger`.        |
+| achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.                                            |
+| `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.                                                     |
+| `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.                                                 |
+| `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs).                                        |
+| `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.                                          |
+| namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).                                            |
+| `NamespaceSwitcher`      | `.` and `./namespaces`   | In-drawer collapsible switcher — switch the active namespace, open the manager, drop items across namespaces.               |
+| `NamespacesModal`        | `.` and `./namespaces`   | Manage workspaces — create / switch / rename / restyle / delete; favicon resolver.                                          |
+| `SyncStatus`             | `.` and `./sync`         | Header glyph that morphs over a `SaveStatus` + `dirty`/`offline`; opens the details.                                        |
+| `SyncDetailsModal`       | `.` and `./sync`         | Sync command centre — status + why, Save now / Reconnect / Reload, location grid.                                           |
+| search matcher           | `.` and `./search`       | `compileQuery` / `searchItems` / `segmentMatches` / `clipAround` — progressive query + ranges.                              |
+| `SearchModal`            | `.` and `./search`       | Generic search overlay (field + empty states); your rows via a render prop. `Highlighted` too.                              |
+| `MarkdownEditor`         | `.` and `./markdown`     | Live-preview Markdown editor (formats every line but the caret's); controlled via `body` + `onChange`.                      |
+| Markdown parser          | `.` and `./markdown`     | `classifyLines` / `parseInline` / `shortenUrl` — pure, DOM-free block + inline parse you can render yourself.               |
+| chart components         | `.` and `./charts`       | `LineChart`, `BarChart`, `DonutChart`, `Sparkline` — zero-dep SVG charts painted with the theme's token palette.            |
+| chart math               | `.` and `./charts`       | Pure scales/ticks/paths: `linearScale`, `timeScale`, `bandScale`, `linearTicks`, `timeTicks`, `stackSeries`, `donutArcs`, … |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed

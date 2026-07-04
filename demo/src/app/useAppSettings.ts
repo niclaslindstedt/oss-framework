@@ -59,10 +59,10 @@ export function useAppSettings() {
   const update = useCallback(
     <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
       setSettings((prev) => ({ ...prev, [key]: value })),
-    [],
+    [setSettings],
   );
 
-  const reset = useCallback(() => setSettings(DEFAULT_SETTINGS), []);
+  const reset = useCallback(() => setSettings(DEFAULT_SETTINGS), [setSettings]);
 
   return { settings, update, reset, setSettings };
 }
