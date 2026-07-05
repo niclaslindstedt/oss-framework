@@ -6,6 +6,83 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-05
+
+### Added
+
+- **Charts** — New `charts` module: zero-dependency SVG charts (`LineChart`, `BarChart`,
+  `DonutChart`, `Sparkline`) painted with the theme's token palette, over an
+  exported pure core of scales, ticks, stacking, path and donut-arc math — plus
+  a `useMeasuredSize` hook for container-responsive sizing.
+- **ZIP archives** — New `zip` module: a dependency-free ZIP reader/writer (`createZip`, `readZip`)
+  over the platform's `CompressionStream`/`DecompressionStream`, with CRC-32
+  checksums and a stored-entry fallback where the raw-deflate codec is missing.
+- **Generic icon set** — The icon family gains nineteen generic marks upstreamed from the contacts app —
+  `PersonIcon`, `PhoneIcon`, `MailIcon`, `BuildingIcon`, `CalendarIcon`,
+  `GiftIcon`, `GlobeIcon`, `PaperclipIcon`, `FileIcon`, `MapPinIcon`, `InfoIcon`,
+  `DownloadIcon`, `UploadIcon`, `StarIcon`, `ImageUpIcon`, `CropIcon`,
+  `ListIcon`, `CheckSquareIcon`, and `CodeIcon`.
+- **Files** — New `files` module: browser file plumbing — save rendered documents and binary
+  payloads to disk (`downloadText` / `downloadBlob` + `MIME_*` constants), open
+  them in a new tab (`openBlobInTab`, `openDataUrlInTab`, `saveDataUrl`), read
+  picked files to inline data URLs with a byte-size cap (`readFilesWithLimit`),
+  and the base64 data-URL ⇄ bytes codec underneath (`dataUrlToBytes` /
+  `bytesToDataUrl`).
+- **Format** — New `format` module (first slice of the roadmap's `Intl` wrappers): URL
+  tidying (`normalizeUrl` / `displayUrl`), digit-grouping primitives
+  (`digitsOnly`, `groupDigits`, `groupPairsLeadingTriple`), and
+  `formatBytes(bytes, locale?)` over cached `Intl.NumberFormat` instances.
+- **Calendar (slice 1)** — New `calendar` module, first slice: importable iCalendar (RFC 5545) file
+  serialization — all-day events, yearly recurrence, text escaping, 75-octet
+  line folding — plus a pure recurring-date core (year-optional date parsing,
+  years-since, next-occurrence and days-until math with no DST-unsafe
+  millisecond arithmetic); the month-grid and date-picker components follow in
+  a later slice.
+- **Modal backdrop appearance** — Two new global `UiStyle` axes — `backdropDarkness` and `backdropBlur` — let an
+  app tune how the page behind an open dialog is dimmed and blurred; the engine
+  projects them as `--modal-backdrop-darkness` / `--modal-backdrop-blur`, with
+  defaults matching the original 50% black, no-blur scrim.
+- **Toast stack** — New toast primitives in `components`: a `createToastStore()` external store
+  (capped stack, `push`/`dismiss`/`subscribe`, an action slot for undo-style
+  buttons, a `useToasts` hook) and a `ToastViewport` that renders it as an
+  accessible `aria-live` region with auto-dismiss timers that pause on hover
+  and focus, honoring reduced-motion preferences.
+- **Custom glyph catalogues** — `Glyph` accepts a `paths` table to draw from an app-supplied catalogue instead
+  of the built-in one, and a `fallback` node rendered when a name resolves to
+  nothing.
+- **GlyphPicker custom paths** — `GlyphPicker` accepts the same `paths` table as `Glyph`, threaded to every
+  cell, so a picker can present an app's own glyph vocabulary.
+- **Section title icons** — `Section` takes an optional `icon` node drawn before the title text, so each
+  settings group can carry a small identifying mark.
+- **Inline editor input attributes** — `InlineEditField` and `InlineEditRow` accept `inputProps` for extra `<input>`
+  attributes — soft-keyboard hints like `autoCapitalize`, `inputMode`,
+  `enterKeyHint`, and `spellCheck` — without touching the managed wiring.
+- **Modal gesture and backdrop control** — `Modal` takes `swipeToClose={false}` to disable the swipe-down-to-close
+  gesture for pan/zoom content, and its backdrop darkness and blur are now
+  themeable via the `--modal-backdrop-darkness` and `--modal-backdrop-blur`
+  custom properties (defaults unchanged).
+- **Avatar** — `Avatar` draws an entity's round face at five sizes with a layered fallback
+  cascade — image, then a caller-picked glyph, then an initials monogram, then a
+  last-resort mark — tinted by an optional per-entity accent colour.
+- **Labeled fields** — `LabeledInput` and `LabeledTextarea` stack a caption over a bordered field
+  that holds its draft locally and commits on blur (or Enter), so a settled
+  edit reaches the store as one undoable step; the shared look is exported as
+  `LABELED_FIELD_CLASS`.
+- **useFileDrop** — `useFileDrop` watches the window or an element for drag-and-drop file intake —
+  depth-counted enter/leave, an `accepts` gate, and a `claim` mode that lets a
+  nested zone coexist with an enclosing one — with `dragHasFiles`,
+  `dragHasFilesOfType`, `firstFileOfType`, and `filesFromDataTransfer` helpers.
+- **Media viewer** — New `viewer` module: a full-screen `Lightbox` with swipe/arrow-key paging and
+  swipe-to-dismiss, a circular-mask `ImageCropper` dialog with pan, pinch, wheel,
+  and slider zoom, plus the pure pan/zoom geometry core (`ViewTransform`,
+  `zoomAboutPoint`, `clampTransform`, `fitContain`), a `usePanZoom` hook, and
+  canvas helpers (`readImageSource`, `bakeCrop`).
+
+### Fixed
+
+- **Heart icon symmetry** — `HeartIcon` is now traced symmetric about its vertical centre axis — the tip
+  and both lobes mirror cleanly, replacing the previous skewed shape.
+
 ## [2.1.1] - 2026-07-03
 
 ### Fixed
