@@ -80,6 +80,12 @@ type Props<T> = {
   /** Fired with the trimmed query whenever it changes (including ""). Use it
    *  for analytics or an achievement that watches the search gesture. */
   onQueryChange?: (query: string) => void;
+  /** Seed the field with this text at the moment the modal opens — pair it
+   *  with `useSearchShortcuts` so the keystroke that opened the modal becomes
+   *  the first character of the query. Read only when `open` flips true (a
+   *  later change doesn't reset a live query); absent/empty keeps the classic
+   *  clear-on-open behaviour. The caret lands after the seed. */
+  initialQuery?: string;
   labels?: Partial<SearchModalLabels>;
 };
 
@@ -89,6 +95,7 @@ export function SearchModal<T>({
   search,
   children,
   onQueryChange,
+  initialQuery,
   labels,
 }: Props<T>) {
   const l = { ...DEFAULT_LABELS, ...labels };
@@ -102,13 +109,27 @@ export function SearchModal<T>({
   );
   const trimmed = query.trim();
 
-  // Clear any stale query each time the modal opens, so it never reopens onto a
-  // previous search. Focus is owned by `Modal` via `initialFocusRef={inputRef}`:
-  // it focuses the field in a layout effect, so when the open is dispatched
-  // inside `flushSync` from the tap that triggered it, focus lands within the
-  // gesture and iOS raises the soft keyboard.
+  // Reset the query each time the modal opens — to the `initialQuery` seed
+  // when one is passed (type-to-open hands the opening keystroke through), or
+  // to empty, so it never reopens onto a previous search. The seed is read
+  // through a ref so only the `open` flip resets the field. Focus is owned by
+  // `Modal` via `initialFocusRef={inputRef}`: it focuses the field in a layout
+  // effect, so when the open is dispatched inside `flushSync` from the tap
+  // that triggered it, focus lands within the gesture and iOS raises the soft
+  // keyboard.
+  const initialQueryRef = useRef(initialQuery);
+  initialQueryRef.current = initialQuery;
   useEffect(() => {
-    if (open) setQuery("");
+    if (!open) return;
+    const seed = initialQueryRef.current ?? "";
+    setQuery(seed);
+    if (!seed) return;
+    // Park the caret after the seed once the controlled value has committed,
+    // so the next keystroke continues the query rather than prepending.
+    const raf = requestAnimationFrame(() => {
+      inputRef.current?.setSelectionRange(seed.length, seed.length);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [open]);
 
   // Notify the host of the live query (the achievement / analytics seam).

@@ -27,6 +27,10 @@ export {
   type UndoRedoShortcutsParams,
 } from "./useUndoRedoShortcuts.ts";
 export {
+  useSearchShortcuts,
+  type SearchShortcutsParams,
+} from "./useSearchShortcuts.ts";
+export {
   useClipboard,
   copyTextToClipboard,
   type UseClipboardOptions,

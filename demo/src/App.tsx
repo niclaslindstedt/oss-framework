@@ -21,6 +21,7 @@ import { ChangelogModal } from "@niclaslindstedt/oss-framework/changelog";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
 import {
   useMediaQuery,
+  useSearchShortcuts,
   useUndoRedoShortcuts,
 } from "@niclaslindstedt/oss-framework/hooks";
 import {
@@ -78,6 +79,15 @@ export function App() {
   const store = useChecklistStore(ns.activeSlug);
   const [namespacesOpen, setNamespacesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // What the search field opens onto: "" from the menu button / Cmd+K, the
+  // typed character when just starting to type opened it (quick find).
+  const [searchSeed, setSearchSeed] = useState("");
+  useSearchShortcuts({
+    onOpen: (seed) => {
+      setSearchSeed(seed);
+      setSearchOpen(true);
+    },
+  });
   // The top-level view the main area shows: the active checklist, or the Archive
   // page (reached from the side menu's Archive button). Selecting or creating a
   // list from the menu drops back to the checklist view.
@@ -287,7 +297,10 @@ export function App() {
             setDrawerOpen(false);
             setSettingsOpen(true);
           }}
-          onOpenSearch={() => setSearchOpen(true)}
+          onOpenSearch={() => {
+            setSearchSeed("");
+            setSearchOpen(true);
+          }}
           onOpenChangelog={() => {
             setDrawerOpen(false);
             setChangelogOpen(true);
@@ -478,9 +491,11 @@ export function App() {
       {/* Full-text search over the document — the framework `SearchModal` +
           matcher, with the corpus (grouped per list) and the result rows owned
           by the app (`SearchOverlay` / `search.ts`). Opened from the side menu's
-          search button; picking a result selects that list. */}
+          search button, Cmd/Ctrl+K, or by just starting to type
+          (`useSearchShortcuts` above); picking a result selects that list. */}
       <SearchOverlay
         open={searchOpen}
+        initialQuery={searchSeed}
         onClose={() => setSearchOpen(false)}
         store={store}
         onNavigate={() => {
