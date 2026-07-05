@@ -8,6 +8,7 @@
 // strings that face the user (a dialog's close label, an input's clear
 // label) inject as props with English defaults.
 
+export { Avatar, type AvatarSize } from "./Avatar.tsx";
 export { Button, type ButtonVariant } from "./Button.tsx";
 export { Badge, type BadgeTone } from "./Badge.tsx";
 export { Fab } from "./Fab.tsx";
@@ -24,6 +25,11 @@ export {
   InlineEditField,
   INLINE_EDIT_FIELD_CLASS,
 } from "./InlineEditField.tsx";
+export {
+  LabeledInput,
+  LabeledTextarea,
+  LABELED_FIELD_CLASS,
+} from "./LabeledField.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
@@ -49,6 +55,18 @@ export {
   PullToRefreshIndicator,
   type PullToRefreshLabels,
 } from "./PullToRefreshIndicator.tsx";
+export {
+  createToastStore,
+  defaultToastStore,
+  useToasts,
+  type Toast,
+  type ToastAction,
+  type ToastInput,
+  type ToastKind,
+  type ToastStore,
+  type ToastStoreOptions,
+} from "./toast.ts";
+export { ToastViewport, type ToastViewportLabels } from "./ToastViewport.tsx";
 export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 export {
   useFloatingPosition,

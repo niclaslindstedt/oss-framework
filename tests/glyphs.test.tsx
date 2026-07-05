@@ -96,6 +96,55 @@ describe("Glyph", () => {
       pathData(GLYPH_PATHS[DEFAULT_GLYPH]!),
     );
   });
+
+  // A caller-supplied catalogue — bare inner-SVG markup keyed by name, the
+  // same shape as GLYPH_PATHS.
+  const CUSTOM_PATHS: Record<string, string> = {
+    wave: '<path d="M2 12h20"/>',
+    ring: '<path d="M12 3a9 9 0 1 0 0 18"/>',
+  };
+
+  it("draws from a caller-supplied path table", () => {
+    const { container } = render(<Glyph name="wave" paths={CUSTOM_PATHS} />);
+    expect(renderedPathData(container)).toEqual(pathData(CUSTOM_PATHS.wave!));
+  });
+
+  it("renders the fallback node when the name misses the active table", () => {
+    const { container } = render(
+      <Glyph
+        name="bogus"
+        paths={CUSTOM_PATHS}
+        fallback={<span data-testid="custom-fallback">person</span>}
+      />,
+    );
+    expect(
+      container.querySelector('[data-testid="custom-fallback"]'),
+    ).not.toBeNull();
+    // The fallback replaces the SVG shell entirely — the caller's node is
+    // rendered as-is.
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("still draws the built-in default on a miss when no fallback is given", () => {
+    const { container } = render(<Glyph name="bogus" paths={CUSTOM_PATHS} />);
+    expect(renderedPathData(container)).toEqual(
+      pathData(GLYPH_PATHS[DEFAULT_GLYPH]!),
+    );
+  });
+
+  it("ignores the fallback when the name resolves", () => {
+    const { container } = render(
+      <Glyph
+        name="ring"
+        paths={CUSTOM_PATHS}
+        fallback={<span data-testid="custom-fallback" />}
+      />,
+    );
+    expect(
+      container.querySelector('[data-testid="custom-fallback"]'),
+    ).toBeNull();
+    expect(renderedPathData(container)).toEqual(pathData(CUSTOM_PATHS.ring!));
+  });
 });
 
 // --- GlyphPicker ----------------------------------------------------------
@@ -139,6 +188,38 @@ describe("GlyphPicker", () => {
     );
     const clear = screen.getByRole("radio", { name: "No icon" });
     expect(clear.querySelector('[data-testid="kind-default"]')).not.toBeNull();
+  });
+
+  it("threads a caller-supplied path table to every cell", () => {
+    const CUSTOM_PATHS: Record<string, string> = {
+      wave: '<path d="M2 12h20"/>',
+      ring: '<path d="M12 3a9 9 0 1 0 0 18"/>',
+    };
+    render(
+      <GlyphPicker
+        glyphs={["wave", "ring"]}
+        value={null}
+        onChange={() => {}}
+        noneLabel="No icon"
+        ariaLabelPrefix="Icon"
+        paths={CUSTOM_PATHS}
+      />,
+    );
+    // Each named cell draws its glyph from the custom table.
+    const wave = screen.getByRole("radio", { name: "Icon wave" });
+    expect(wave.querySelector("path")?.getAttribute("d")).toBe("M2 12h20");
+    // With no `defaultIcon`, the clear cell still renders something sensible:
+    // the custom table carries no default glyph, so the cell's Glyph falls
+    // back to the built-in DEFAULT_GLYPH mark.
+    const clear = screen.getByRole("radio", { name: "No icon" });
+    const clearD = [...clear.querySelectorAll("path")].map((p) =>
+      p.getAttribute("d"),
+    );
+    expect(clearD).toEqual(
+      [...GLYPH_PATHS[DEFAULT_GLYPH]!.matchAll(/d="([^"]*)"/g)].map(
+        (m) => m[1],
+      ),
+    );
   });
 
   it("tints the selected cell with the accent colour", () => {

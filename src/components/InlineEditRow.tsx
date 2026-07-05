@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { type ReactNode } from "react";
+import { type InputHTMLAttributes, type ReactNode } from "react";
 
 import {
   INLINE_EDIT_FIELD_CLASS,
@@ -41,6 +41,9 @@ type Props = {
   inputClassName?: string;
   /** Accessible label for the field; defaults to `placeholder`. */
   ariaLabel?: string;
+  /** Extra `<input>` attributes (soft-keyboard hints like `autoCapitalize`),
+   *  threaded to {@link InlineEditField}; its managed props always win. */
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
 };
 
 export function InlineEditRow({
@@ -54,6 +57,7 @@ export function InlineEditRow({
   iconClassName = "shrink-0 text-muted",
   inputClassName = DEFAULT_INPUT_CLASS,
   ariaLabel,
+  inputProps,
 }: Props) {
   return (
     <div
@@ -68,6 +72,7 @@ export function InlineEditRow({
         onCommit={onCommit}
         onCancel={onCancel}
         className={inputClassName}
+        inputProps={inputProps}
       />
     </div>
   );

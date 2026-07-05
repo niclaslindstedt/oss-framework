@@ -19,9 +19,18 @@ import { Checkbox } from "./Checkbox.tsx";
 /** A labelled settings group rendered as a bordered fieldset. */
 export function Section({
   title,
+  icon,
   children,
 }: {
   title: string;
+  /**
+   * Leading adornment drawn before the title text — a small mark (~1em, e.g.
+   * `className="h-3.5 w-3.5"`) that lets each group scan at a glance. It sits
+   * centred on the title line and inherits the caption's muted colour (a
+   * `currentColor` glyph needs no tinting of its own); it is decorative, so
+   * only the title names the group for assistive tech.
+   */
+  icon?: ReactNode;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -33,8 +42,13 @@ export function Section({
     >
       <div
         id={titleId}
-        className="mb-2 text-xs font-bold tracking-wide text-muted uppercase"
+        className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted uppercase"
       >
+        {icon != null && (
+          <span aria-hidden="true" className="shrink-0">
+            {icon}
+          </span>
+        )}
         {title}
       </div>
       <div className="flex flex-col gap-3">{children}</div>

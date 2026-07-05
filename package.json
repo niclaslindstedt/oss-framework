@@ -112,6 +112,31 @@
       "types": "./dist/charts/index.d.ts",
       "import": "./dist/charts/index.js",
       "require": "./dist/charts/index.cjs"
+    },
+    "./zip": {
+      "types": "./dist/zip/index.d.ts",
+      "import": "./dist/zip/index.js",
+      "require": "./dist/zip/index.cjs"
+    },
+    "./calendar": {
+      "types": "./dist/calendar/index.d.ts",
+      "import": "./dist/calendar/index.js",
+      "require": "./dist/calendar/index.cjs"
+    },
+    "./files": {
+      "types": "./dist/files/index.d.ts",
+      "import": "./dist/files/index.js",
+      "require": "./dist/files/index.cjs"
+    },
+    "./format": {
+      "types": "./dist/format/index.d.ts",
+      "import": "./dist/format/index.js",
+      "require": "./dist/format/index.cjs"
+    },
+    "./viewer": {
+      "types": "./dist/viewer/index.d.ts",
+      "import": "./dist/viewer/index.js",
+      "require": "./dist/viewer/index.cjs"
     }
   },
   "scripts": {

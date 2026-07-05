@@ -37,6 +37,14 @@ export {
   useLocalStorageState,
   type LocalStorageStateOptions,
 } from "./useLocalStorageState.ts";
+export {
+  useFileDrop,
+  dragHasFiles,
+  dragHasFilesOfType,
+  firstFileOfType,
+  filesFromDataTransfer,
+  type FileDropOptions,
+} from "./useFileDrop.ts";
 export { useMeasuredSize, type MeasuredSize } from "./useMeasuredSize.ts";
 export {
   useRovingTabindex,

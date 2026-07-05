@@ -17,9 +17,10 @@
 //   3. `--app-font-scale` multiplier the body font-size reads.
 //   4. UI-style overrides: the shape vars (radius / density / border-width),
 //      the shadow scale (elevation), the control-radius var (control shape),
-//      and the `data-button-style` / `data-control-style` / `data-elevation` /
-//      `data-reduce-motion` attributes. Written for *every* theme — these are
-//      global look knobs independent of the colour palette.
+//      the modal-backdrop vars (darkness / blur), and the `data-button-style` /
+//      `data-control-style` / `data-elevation` / `data-reduce-motion`
+//      attributes. Written for *every* theme — these are global look knobs
+//      independent of the colour palette.
 //   5. Custom-palette colour overrides: the 18 colour vars. Only written when
 //      `theme === "custom"`, so flipping back to a preset cleans every inline
 //      colour out of the style attribute.
@@ -35,6 +36,8 @@ import {
   DEFAULT_FONT_SCALE,
   DEFAULT_THEME,
   FONT_FAMILIES,
+  type BackdropBlurPreset,
+  type BackdropDarknessPreset,
   type BorderWidthPreset,
   type ControlStylePreset,
   type DensityPreset,
@@ -72,6 +75,25 @@ const CONTROL_RADIUS: Record<ControlStylePreset, string> = {
   square: "0px",
   rounded: "4px",
   circle: "9999px",
+};
+
+// The black-alpha each darkness step dims the modal backdrop to, written to
+// `--modal-backdrop-darkness` (a unitless 0..1 alpha). `medium` matches the
+// historical `bg-black/50` scrim.
+const BACKDROP_DARKNESS: Record<BackdropDarknessPreset, string> = {
+  none: "0",
+  subtle: "0.35",
+  medium: "0.5",
+  dark: "0.75",
+};
+
+// The blur radius each step applies behind an open dialog, written to
+// `--modal-backdrop-blur` (a px length).
+const BACKDROP_BLUR_PX: Record<BackdropBlurPreset, string> = {
+  none: "0px",
+  subtle: "2px",
+  medium: "4px",
+  strong: "8px",
 };
 
 function root(): HTMLElement {
@@ -132,9 +154,9 @@ export function applyFontScale(
 
 /**
  * (4) Write the global UI-style overrides — the radius / density / border-width
- * vars, the control-radius var, and the `data-button-style` /
- * `data-control-style` / `data-elevation` / `data-reduce-motion` attributes —
- * clearing any previously-written set first. Applied for every theme; these are
+ * vars, the control-radius var, the modal-backdrop darkness / blur vars, and
+ * the `data-button-style` / `data-control-style` / `data-elevation` /
+ * `data-reduce-motion` attributes — clearing any previously-written set first. Applied for every theme; these are
  * look knobs independent of the colour palette. The shadow depth rides on the
  * `data-elevation` attribute (host CSS owns the shadow rules, like it owns the
  * `[data-theme]` palettes).
@@ -153,6 +175,10 @@ export function applyUiStyle(ui: UiStyle, el: HTMLElement = root()): void {
   vars.push(["--density-row-py", d.py], ["--density-row-px", d.px]);
   vars.push(["--border-width", BORDER_WIDTH_PX[ui.borderWidth]]);
   vars.push(["--control-radius", CONTROL_RADIUS[ui.controlStyle]]);
+  vars.push(
+    ["--modal-backdrop-darkness", BACKDROP_DARKNESS[ui.backdropDarkness]],
+    ["--modal-backdrop-blur", BACKDROP_BLUR_PX[ui.backdropBlur]],
+  );
 
   for (const [name, value] of vars) el.style.setProperty(name, value);
 
@@ -256,4 +282,11 @@ export function useApplyTheme(appearance: ThemeAppearance): void {
 
 // The shape pixel maps are exported for a Custom editor that wants to preview
 // the concrete value a preset resolves to (e.g. show "6px" next to "Medium").
-export { RADIUS_PX, DENSITY, BORDER_WIDTH_PX, CONTROL_RADIUS };
+export {
+  RADIUS_PX,
+  DENSITY,
+  BORDER_WIDTH_PX,
+  CONTROL_RADIUS,
+  BACKDROP_DARKNESS,
+  BACKDROP_BLUR_PX,
+};

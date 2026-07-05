@@ -101,6 +101,8 @@ against.
 | Density row padding | `--density-row-py`, `--density-row-px`                                                                                                                                                                                | always                          |
 | Border width        | `--border-width`                                                                                                                                                                                                      | always                          |
 | Control radius      | `--control-radius` (checkbox / radio corner)                                                                                                                                                                          | always                          |
+| Backdrop darkness   | `--modal-backdrop-darkness` (unitless 0..1 black alpha)                                                                                                                                                               | always                          |
+| Backdrop blur       | `--modal-backdrop-blur` (px length)                                                                                                                                                                                   | always                          |
 | Button flavour      | `data-button-style="soft \| solid \| outline \| ghost"`                                                                                                                                                               | always                          |
 | Control flavour     | `data-control-style="square \| rounded \| circle"`                                                                                                                                                                    | always                          |
 | Elevation           | `data-elevation="flat \| raised \| floating"`                                                                                                                                                                         | always                          |
@@ -115,6 +117,21 @@ the per-`theme` choice: for every non-`custom` preset, **CSS owns the palette**
 (your `[data-theme="dracula"] { … }` rules); the engine only sets `data-theme`.
 The inline colour vars are written exclusively for the `custom` preset and
 removed again the moment the user switches back to a preset.
+
+### The dialog backdrop
+
+The `backdropDarkness` / `backdropBlur` axes of `UiStyle` control how the page
+behind an open dialog looks. Darkness steps `none | subtle | medium | dark`
+project a unitless black alpha (`0`, `0.35`, `0.5`, `0.75`) onto
+`--modal-backdrop-darkness`; blur steps `none | subtle | medium | strong`
+project a px radius (`0px`, `2px`, `4px`, `8px`) onto `--modal-backdrop-blur`.
+The defaults (`medium` / `none`) reproduce the original chrome exactly — the
+historical `bg-black/50` scrim with no blur — so an adopter that never touches
+the axes sees no change. A scrim rule consumes them as
+`background: rgba(0, 0, 0, var(--modal-backdrop-darkness))` and
+`backdrop-filter: blur(var(--modal-backdrop-blur))`. The concrete step values
+are exported as the `BACKDROP_DARKNESS` / `BACKDROP_BLUR_PX` maps for an editor
+that wants to preview them.
 
 `--control-radius` is the one flavour the framework's own `Checkbox` reads
 directly. The `data-button-style` / `data-control-style` / `data-elevation`
@@ -239,7 +256,8 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
   `FONT_FAMILIES`, `DEFAULT_FONT_FAMILY`, `isFontFamily`; `FONT_SCALE_PRESETS`,
   `FONT_SCALES`, `MIN/MAX/DEFAULT_FONT_SCALE`, `isFontScale`; `RadiusPreset`,
   `DensityPreset`, `BorderWidthPreset`, `ElevationPreset`, `ButtonStylePreset`,
-  `ControlStylePreset` + their `*_PRESETS` lists and guards.
+  `ControlStylePreset`, `BackdropDarknessPreset`, `BackdropBlurPreset` + their
+  `*_PRESETS` lists and guards.
 - **`palettes.ts`** — `CustomThemeColors`, `COLOR_KEYS`,
   `COLOR_KEY_TO_CSS_VAR`, `COLOR_LABELS`, `COLOR_GROUPS`, `PRESET_PALETTES`,
   `DEFAULT_CUSTOM_THEME_COLORS_DARK/LIGHT`.
@@ -256,7 +274,8 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
   `DEFAULT_THEME_APPEARANCE`), and the pure primitives `applyThemePreset`,
   `applyFontFamily`, `applyFontScale`, `applyUiStyle`, `clearUiStyle`,
   `applyCustomTheme`, `clearCustomTheme`, plus the shape maps `RADIUS_PX`,
-  `DENSITY`, `BORDER_WIDTH_PX`, `CONTROL_RADIUS` for previewing concrete values.
+  `DENSITY`, `BORDER_WIDTH_PX`, `CONTROL_RADIUS`, `BACKDROP_DARKNESS`,
+  `BACKDROP_BLUR_PX` for previewing concrete values.
 - **`ThemePreview.tsx`** — `ThemePreview`: a self-contained, inline-styled
   miniature of the chrome rendered from a palette, for theme galleries / live
   previews.

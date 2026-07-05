@@ -249,6 +249,43 @@ describe("Modal swipe-down-to-close", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("does not swipe-close a sheet with swipeToClose={false}", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open swipeToClose={false} onClose={onClose} labelledBy="t">
+        <h2 id="t">Sheet</h2>
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+
+    // The gesture is gated off at the hook's `enabled` option, so the drag
+    // never arms: the card never moves and the release closes nothing.
+    dispatchTouch(dialog, "touchstart", { x: 20, y: 10 });
+    dispatchTouch(dialog, "touchmove", { x: 20, y: 200 });
+    expect(dialog.style.transform).toBe("");
+    dispatchTouch(dialog, "touchend", null);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("still closes a swipeToClose={false} sheet via Escape and the backdrop", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal
+        open
+        swipeToClose={false}
+        onClose={onClose}
+        labelledBy="t"
+        closeLabel="Close"
+      >
+        <h2 id="t">Sheet</h2>
+      </Modal>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
   it("still closes a centered card via the backdrop", () => {
     const onClose = vi.fn();
     render(

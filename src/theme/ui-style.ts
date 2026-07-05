@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The global UI style: the shape / "flavour" knobs that apply to *every* theme,
 // preset or custom — corner radius, row density, border weight, shadow depth,
-// button treatment, control shape, and reduced motion. Unlike the colour
-// palette (which the `theme` preset picks), these shape the chrome itself, so a
-// user can run any palette with sharp corners, bold borders, pill checkboxes,
-// flat or floating surfaces, and so on.
+// button treatment, control shape, dialog-backdrop look, and reduced motion.
+// Unlike the colour palette (which the `theme` preset picks), these shape the
+// chrome itself, so a user can run any palette with sharp corners, bold
+// borders, pill checkboxes, flat or floating surfaces, and so on.
 //
 // This is the home for what used to live cramped inside `CustomTheme` and only
 // took effect in Custom mode (`radius` / `density` / `borderWidth` /
@@ -15,12 +15,16 @@
 // defensive coercion for stored / synced JSON.
 
 import {
+  isBackdropBlurPreset,
+  isBackdropDarknessPreset,
   isBorderWidthPreset,
   isButtonStylePreset,
   isControlStylePreset,
   isDensityPreset,
   isElevationPreset,
   isRadiusPreset,
+  type BackdropBlurPreset,
+  type BackdropDarknessPreset,
   type BorderWidthPreset,
   type ButtonStylePreset,
   type ControlStylePreset,
@@ -38,6 +42,11 @@ export type UiStyle = {
   elevation: ElevationPreset;
   buttonStyle: ButtonStylePreset;
   controlStyle: ControlStylePreset;
+  // How the page behind an open dialog looks: how far it is dimmed toward
+  // black and how far it is blurred. Projected as the
+  // `--modal-backdrop-darkness` / `--modal-backdrop-blur` vars the scrim reads.
+  backdropDarkness: BackdropDarknessPreset;
+  backdropBlur: BackdropBlurPreset;
   // Globally short-circuits transition / animation durations via a
   // high-specificity rule keyed off `[data-reduce-motion="true"]`.
   reduceMotion: boolean;
@@ -45,7 +54,9 @@ export type UiStyle = {
 
 // The pristine UI style: the historical defaults each axis sat at when these
 // knobs lived in `CustomTheme`, plus `raised` / `soft` / `rounded` for the
-// three new axes (the look the chrome already shipped).
+// three new axes (the look the chrome already shipped). The backdrop defaults
+// reproduce the original scrim exactly — a bg-black/50 dim (`medium` = 0.5)
+// with no blur.
 export const DEFAULT_UI_STYLE: UiStyle = {
   radius: "md",
   density: "comfortable",
@@ -53,6 +64,8 @@ export const DEFAULT_UI_STYLE: UiStyle = {
   elevation: "raised",
   buttonStyle: "soft",
   controlStyle: "rounded",
+  backdropDarkness: "medium",
+  backdropBlur: "none",
   reduceMotion: false,
 };
 
@@ -86,6 +99,12 @@ export function coerceUiStyle(
     controlStyle: isControlStylePreset(obj.controlStyle)
       ? obj.controlStyle
       : fallback.controlStyle,
+    backdropDarkness: isBackdropDarknessPreset(obj.backdropDarkness)
+      ? obj.backdropDarkness
+      : fallback.backdropDarkness,
+    backdropBlur: isBackdropBlurPreset(obj.backdropBlur)
+      ? obj.backdropBlur
+      : fallback.backdropBlur,
     reduceMotion:
       typeof obj.reduceMotion === "boolean"
         ? obj.reduceMotion

@@ -229,6 +229,76 @@ export function ArrowDownIcon({ className }: IconProps) {
   );
 }
 
+/** A downward tray arrow — the export / download affordance. */
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+    </Glyph>
+  );
+}
+
+/** An upward tray arrow — the import / upload affordance, the mirror of
+ *  {@link DownloadIcon}. */
+export function UploadIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 8l5-5 5 5M12 3v12" />
+    </Glyph>
+  );
+}
+
+/** An image with an up-arrow — an "upload image" affordance. */
+export function ImageUpIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M14.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.5" />
+      <path d="m4 16 4-4a2 2 0 0 1 2.7-.1L16 16" />
+      <path d="M14 14l1-1a2 2 0 0 1 2.7-.1L20 14" />
+      <circle cx="9" cy="9" r="1.4" />
+      <path d="M19 8V2M16 5l3-3 3 3" />
+    </Glyph>
+  );
+}
+
+/** A crop frame — an "adjust / re-frame image" affordance. */
+export function CropIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+      <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+    </Glyph>
+  );
+}
+
+/** A five-point star — a "primary" / rated mark. Outline by default; `filled`
+ *  paints the body with `currentColor` (keeping the stroke) so a toggle reads
+ *  its state at a glance. */
+export function StarIcon({
+  className,
+  filled,
+}: IconProps & { filled?: boolean }) {
+  return (
+    <Glyph className={className}>
+      <path
+        fill={filled ? "currentColor" : "none"}
+        d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.3l6.5-.9z"
+      />
+    </Glyph>
+  );
+}
+
+/** A square with an overflowing checkmark — a "select" / multi-select
+ *  affordance. */
+export function CheckSquareIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </Glyph>
+  );
+}
+
 // --- Chrome + status (24×24 grid) -----------------------------------------
 
 /** Three stacked bars — the hamburger / menu trigger. */
@@ -267,6 +337,16 @@ export function HelpCircleIcon({ className }: IconProps) {
       <circle cx="12" cy="12" r="10" />
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
       <path d="M12 17h.01" />
+    </Glyph>
+  );
+}
+
+/** An "i" in a circle — an informational / details marker. */
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
     </Glyph>
   );
 }
@@ -324,6 +404,15 @@ export function HeartIcon({ className }: IconProps) {
   );
 }
 
+/** Angle brackets — a developer / code surface. */
+export function CodeIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="m8 16-4-4 4-4M16 8l4 4-4 4M14 4l-4 16" />
+    </Glyph>
+  );
+}
+
 // --- list / nav (24×24 grid) ----------------------------------------------
 
 /** Six dots — the drag-handle grip on a reorderable row. */
@@ -350,6 +439,19 @@ export function ChecklistIcon({ className }: IconProps) {
       <path d="M11 18h10" />
       <path d="M3.5 12h.01" />
       <path d="M3.5 18h.01" />
+    </Glyph>
+  );
+}
+
+/** A row of lines with leading dots — a plain list / overview surface, the
+ *  dotted twin of {@link ChecklistIcon}. */
+export function ListIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <circle cx="3.5" cy="6" r="1" />
+      <circle cx="3.5" cy="12" r="1" />
+      <circle cx="3.5" cy="18" r="1" />
     </Glyph>
   );
 }
@@ -487,6 +589,111 @@ export function NoteIcon({ className }: IconProps) {
       <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
       <path d="M14 3v4h4" />
       <path d="M8 12h7M8 16h7" />
+    </Glyph>
+  );
+}
+
+// --- Field / entity marks (24×24 grid) -------------------------------------
+// The small vocabulary of "what kind of thing is this row" glyphs — a person,
+// a phone, an email, an address — that a detail card or form leans on.
+
+/** A person silhouette — a user / contact / profile mark. */
+export function PersonIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a7 7 0 0 1 16 0v1" />
+    </Glyph>
+  );
+}
+
+/** A handset — a phone number / call affordance. */
+export function PhoneIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2z" />
+    </Glyph>
+  );
+}
+
+/** An envelope — an email / compose affordance. */
+export function MailIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m2 7 10 6 10-6" />
+    </Glyph>
+  );
+}
+
+/** A briefcase — a company / organisation mark. */
+export function BuildingIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </Glyph>
+  );
+}
+
+/** A calendar — a date mark. */
+export function CalendarIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M8 2v4M16 2v4M3 10h18" />
+    </Glyph>
+  );
+}
+
+/** A wrapped gift — a celebration / special-occasion mark, set apart from
+ *  {@link CalendarIcon}'s plain date. */
+export function GiftIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8" />
+      <path d="M2 7h20v5H2zM12 22V7" />
+      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+    </Glyph>
+  );
+}
+
+/** A globe — a website / URL mark. */
+export function GlobeIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" />
+    </Glyph>
+  );
+}
+
+/** A map pin — an address / location mark. */
+export function MapPinIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </Glyph>
+  );
+}
+
+/** A paperclip — an attachment mark. */
+export function PaperclipIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M21.4 11.1 12.3 20.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.3 3.3 0 0 1 4.7 4.7l-9.2 9.2a1.7 1.7 0 0 1-2.4-2.4l8.5-8.5" />
+    </Glyph>
+  );
+}
+
+/** A blank document with a folded corner — a generic file mark, the plain twin
+ *  of {@link NoteIcon}. */
+export function FileIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
     </Glyph>
   );
 }
