@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-07-05
+
+### Added
+
+- **Intl wrapper set in `format`** — The `format` module now ships the full `Intl` wrapper set over cached
+  formatter instances: `formatNumber`, `formatCompact`, `formatDate`,
+  `formatRelative`, `formatDuration`, `weekdayNames` (rotated by week start),
+  and `monthName` — locale always a parameter, `undefined` = browser default.
+- **Calendar grid + DatePicker** — The `calendar` module now ships its UI half: a pure day-grid core (`DayKey`
+  identity, `addDays`/`addMonths` end-of-month clamped, `startOfWeek`,
+  `isoWeek`, `buildMonthGrid`, `buildWeekStrip`, day ranges) plus the
+  `MonthGrid` component (ARIA grid pattern, roving tabindex, `renderDay`
+  marker seam, min/max/disabled days) and a `DatePicker` field built on it.
+- **Quick-find keyboard wiring** — New `useSearchShortcuts` hook opens your search surface on Cmd/Ctrl+K or by
+  just starting to type, and `SearchModal` gained an `initialQuery` prop so the
+  opening keystroke seeds the query with the caret parked after it.
+
 ## [2.2.0] - 2026-07-05
 
 ### Added
