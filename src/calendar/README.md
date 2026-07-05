@@ -1,17 +1,10 @@
 <!-- SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
 
-# `calendar` — recurring-date math and iCalendar serialization
+# `calendar` — date math, iCalendar files, month grid + date picker
 
-**This is slice 1 of the calendar module**: pure date math plus `.ics` file
-serialization, DOM-free and dependency-free. The UI half planned in the
-[expansion roadmap](../../docs/expansion-roadmap.md#5--calendar--calendar-ml-high)
-— `buildMonthGrid`, the `MonthGrid` component, and the `DatePicker` — is
-**still pending** and lands in a later slice.
-
-Local-first apps accumulate notable yearly dates — an anniversary, a name
-day, a renewal — and want two things from them: at-a-glance math ("in how
-many days?", "how many years now?") and a hand-off to the device calendar the
-user already looks at. This slice is those two things, as pure functions:
+Date _math_ is the mechanism; "event", "appointment", "due date" are app
+words and stay out. The module has a pure, DOM-free core with two components
+layered on top:
 
 - **`date-math.ts`** — parse a year-optional stored date and do calendar-field
   arithmetic over it. No millisecond arithmetic across DST; `now` is always a
@@ -20,6 +13,27 @@ user already looks at. This slice is those two things, as pure functions:
   envelope, all-day VEVENTs, optional yearly recurrence, text escaping, and
   75-octet line folding. iOS Calendar, Google Calendar, and Outlook all
   import the output.
+- **`grid.ts`** — day identity as a `DayKey` (`"2026-07-04"` —
+  serialization-safe, compares chronologically as a string) and the grid
+  math over it: `addDays`, `addMonths` (end-of-month clamped), `startOfWeek`,
+  `isoWeek` (ISO-8601 Thursday rule), `daysBetween`, `buildMonthGrid(year,
+month, { weekStartsOn, fixedWeeks, today })` → `GridCell[][]`,
+  `buildWeekStrip`. All arithmetic runs on the UTC day line, so DST can't
+  shear a row; nothing reads the clock.
+- **`range.ts`** — inclusive `DayRange` over `DayKey`s: `dayRange`,
+  `isInRange`, `extendRange` (plain string comparison, no `Date`s).
+- **`MonthGrid.tsx`** — the WAI-ARIA grid pattern over the framework's
+  `useGridRovingTabindex`: one Tab stop, arrows walk days, Home/End jump,
+  PageUp/PageDown page the month via `onMonthNav`. Weekday headers and
+  spoken day names come from the `format` module's locale wrappers.
+  `renderDay` is the app's marker seam; `min`/`max`/`isDisabled` gate days
+  (disabled days stay focusable, per the pattern). `autoFocus` (off by
+  default) seats keyboard focus for popover use.
+- **`DatePicker.tsx`** — a bordered trigger field floating a month grid via
+  `FloatingPanel`: month paging header, optional clear row, focus return on
+  commit. Labels inject with English defaults
+  (`DEFAULT_DATE_PICKER_LABELS`); the trigger renders the value through
+  `formatDate` unless `formatValue` overrides it.
 
 ```ts
 import {
@@ -104,17 +118,60 @@ opaque default. `buildIcsEvent` returns one event's unfolded content lines for
 callers composing a larger file, and `escapeIcsText` / `foldIcsLine` expose
 the RFC 5545 text rules on their own.
 
+## The grid and the components
+
+```tsx
+import {
+  buildMonthGrid,
+  MonthGrid,
+  DatePicker,
+  type DayKey,
+} from "@niclaslindstedt/oss-framework/calendar";
+
+// Pure: five-to-six week rows of { key, day, inMonth, isToday } cells.
+const weeks = buildMonthGrid(2026, 7, { weekStartsOn: 1, today: "2026-07-04" });
+
+// The app owns what a day means: markers via renderDay, vetoes via
+// isDisabled, and whatever onSelect does with the picked DayKey.
+<MonthGrid
+  year={2026}
+  month={7}
+  selected={selectedDay}
+  onSelect={setSelectedDay}
+  today={todayKey}
+  locale="sv-SE"
+  renderDay={(cell) => (hasEntries(cell.key) ? <Dot /> : null)}
+/>;
+
+<DatePicker
+  value={due} // DayKey | null — what you store is what you get
+  onChange={setDue}
+  min={todayKey}
+  locale={locale}
+  clearable
+  labels={{ placeholder: t("pickDay") }}
+/>;
+```
+
 ## What it owns vs. what stays in your app
 
 | In the framework                                   | In your app                                          |
 | -------------------------------------------------- | ---------------------------------------------------- |
 | parsing, years-since, next-occurrence, day counts  | what the dates mean (whose day, which reminder)      |
 | the `.ics` envelope, escaping, folding, recurrence | UIDs, translated summaries, the download/share glue  |
+| grid math, keyboard/ARIA wiring, popover plumbing  | day markers, blackout rules, item storage per day    |
 | `null` for invalid input                           | deciding what to show when a stored value is invalid |
+
+Recurrence is deliberately out (full RFC 5545 is a library in itself — the
+`.ics` half emits `RRULE:FREQ=YEARLY` and stops there), and so is an agenda
+view: `DayKey → items[]` plus `renderDay` is the whole seam an agenda needs.
 
 ## Verification
 
-- `npx vitest run tests/calendar-date-math.test.ts tests/calendar-ics.test.ts`
+- `npx vitest run tests/calendar-date-math.test.ts tests/calendar-ics.test.ts
+tests/calendar-grid.test.ts tests/calendar-components.test.tsx`
 - Import a generated file into a real calendar app and confirm one all-day
   entry appears on the right date, recurs yearly, and a re-import with the
   same UID updates it in place.
+- The demo's Statistics dialog drives both components against live data
+  (`demo/src/app/StatsModal.tsx`).

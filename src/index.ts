@@ -26,9 +26,9 @@
 //   markdown/   — live-preview Markdown editor + dependency-free parser
 //   charts/     — zero-dep SVG charts (line/bar/donut/sparkline) + scale math
 //   zip/        — dependency-free ZIP read/write over CompressionStream
-//   calendar/   — recurring-date math + iCalendar (.ics) serialization
+//   calendar/   — date math, iCalendar (.ics) files, month grid + date picker
 //   files/      — browser file plumbing (save/open, data-URL codec, intake)
-//   format/     — pure formatting helpers (URLs, digit grouping, byte sizes)
+//   format/     — pure formatting helpers (URLs, digits, bytes, Intl wrappers)
 //   viewer/     — media viewing (pure view-transform core, lightbox, cropper)
 
 export * from "./hooks/index.ts";
