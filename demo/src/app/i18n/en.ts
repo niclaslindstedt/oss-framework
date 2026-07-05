@@ -188,6 +188,9 @@ export const en = {
       "Your session with {name} has expired — reconnect to continue.",
   },
   settings: {
+    title: "Settings",
+    chooseSection: "Choose a section",
+    sections: "Settings sections",
     tabs: {
       general: "General",
       appearance: "Appearance",

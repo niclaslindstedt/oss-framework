@@ -185,6 +185,9 @@ export const sv: Catalog = {
       "Din session med {name} har gått ut — återanslut för att fortsätta.",
   },
   settings: {
+    title: "Inställningar",
+    chooseSection: "Välj en sektion",
+    sections: "Inställningssektioner",
     tabs: {
       general: "Allmänt",
       appearance: "Utseende",
