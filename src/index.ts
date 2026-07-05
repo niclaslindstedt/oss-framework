@@ -25,6 +25,11 @@
 //   search/     — progressive-query matcher + highlighting + generic SearchModal
 //   markdown/   — live-preview Markdown editor + dependency-free parser
 //   charts/     — zero-dep SVG charts (line/bar/donut/sparkline) + scale math
+//   zip/        — dependency-free ZIP read/write over CompressionStream
+//   calendar/   — recurring-date math + iCalendar (.ics) serialization
+//   files/      — browser file plumbing (save/open, data-URL codec, intake)
+//   format/     — pure formatting helpers (URLs, digit grouping, byte sizes)
+//   viewer/     — media viewing (pure view-transform core, lightbox, cropper)
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -44,3 +49,8 @@ export * from "./sync/index.ts";
 export * from "./search/index.ts";
 export * from "./markdown/index.ts";
 export * from "./charts/index.ts";
+export * from "./zip/index.ts";
+export * from "./calendar/index.ts";
+export * from "./files/index.ts";
+export * from "./format/index.ts";
+export * from "./viewer/index.ts";

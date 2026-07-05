@@ -34,21 +34,21 @@ belong to the framework at all:
 
 ## Status
 
-| #   | Module / item              | Subpath              | Size | Priority     | Status                                    |
-| --- | -------------------------- | -------------------- | ---- | ------------ | ----------------------------------------- |
-| 1   | Charts                     | `charts`             | L    | High         | **Landed** (this roadmap's first tranche) |
-| 2   | Toast stack                | `components`         | S    | High         | Pending                                   |
-| 3   | Tabs primitive             | `components`         | S    | High         | Pending                                   |
-| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | Pending                                   |
-| 5   | Calendar                   | `calendar`           | M/L  | High         | Pending                                   |
-| 6   | Media viewer               | `viewer`             | M    | Med-high     | Pending                                   |
-| 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                   |
-| 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                   |
-| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | Pending                                   |
-| —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                   |
-| —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                  |
-| —   | Form validation layer      | —                    | —    | —            | **Rejected**                              |
-| —   | Recurrence rules (RRULE)   | —                    | —    | —            | Deferred                                  |
+| #   | Module / item              | Subpath              | Size | Priority     | Status                                                                                                                        |
+| --- | -------------------------- | -------------------- | ---- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Charts                     | `charts`             | L    | High         | **Landed** (this roadmap's first tranche)                                                                                     |
+| 2   | Toast stack                | `components`         | S    | High         | **Landed** (contacts consolidation)                                                                                           |
+| 3   | Tabs primitive             | `components`         | S    | High         | Pending                                                                                                                       |
+| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | Partial — subpath landed with URL/digit/byte helpers; the `Intl` date/number wrapper set is still pending                     |
+| 5   | Calendar                   | `calendar`           | M/L  | High         | Partial — subpath landed with recurring-date math + `.ics` serialization; `MonthGrid`/`DatePicker` still pending              |
+| 6   | Media viewer               | `viewer`             | M    | Med-high     | **Landed** (contacts consolidation: `Lightbox`, `ImageCropper`, `usePanZoom`, transform core; `ZoomPane` can still grow here) |
+| 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                       |
+| 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                       |
+| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | Pending                                                                                                                       |
+| —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
+| —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
+| —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
+| —   | Recurrence rules (RRULE)   | —                    | —    | —            | Deferred                                                                                                                      |
 
 ## Suggested phasing
 

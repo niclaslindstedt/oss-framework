@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // @vitest-environment jsdom
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InlineEditField } from "../src/components/InlineEditField.tsx";
@@ -96,5 +96,58 @@ describe("InlineEditField soft-keyboard reveal", () => {
     fireViewportResize();
     vi.advanceTimersByTime(1000);
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("InlineEditField inputProps", () => {
+  it("spreads soft-keyboard hints onto the input", () => {
+    render(
+      <InlineEditField
+        onCommit={noop}
+        onCancel={noop}
+        ariaLabel="Name"
+        inputProps={{
+          autoCapitalize: "words",
+          inputMode: "text",
+          enterKeyHint: "done",
+          spellCheck: false,
+        }}
+      />,
+    );
+    const input = screen.getByLabelText("Name");
+    expect(input.getAttribute("autocapitalize")).toBe("words");
+    expect(input.getAttribute("inputmode")).toBe("text");
+    expect(input.getAttribute("enterkeyhint")).toBe("done");
+    expect(input.getAttribute("spellcheck")).toBe("false");
+  });
+
+  it("cannot clobber the managed value / commit wiring", () => {
+    const onCommit = vi.fn();
+    const foreignChange = vi.fn();
+    render(
+      <InlineEditField
+        initial="Seed"
+        ariaLabel="Name"
+        onCommit={onCommit}
+        onCancel={noop}
+        inputProps={{
+          value: "hijack",
+          onChange: foreignChange,
+          className: "foreign",
+          "aria-label": "hijack",
+        }}
+      />,
+    );
+    // The managed props spread after inputProps, so they win: the field shows
+    // its own state, keeps its label and class, and edits flow through the
+    // field's own onChange (the foreign one never fires).
+    const input = screen.getByLabelText("Name") as HTMLInputElement;
+    expect(input.value).toBe("Seed");
+    expect(input.className).not.toBe("foreign");
+    fireEvent.change(input, { target: { value: "Typed" } });
+    expect(input.value).toBe("Typed");
+    expect(foreignChange).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onCommit).toHaveBeenCalledWith("Typed", "enter");
   });
 });

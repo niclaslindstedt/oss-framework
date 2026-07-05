@@ -144,6 +144,26 @@ export default defineConfig({
         replacement: here("../src/charts/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/zip",
+        replacement: here("../src/zip/index.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/calendar",
+        replacement: here("../src/calendar/index.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/files",
+        replacement: here("../src/files/index.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/format",
+        replacement: here("../src/format/index.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/viewer",
+        replacement: here("../src/viewer/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

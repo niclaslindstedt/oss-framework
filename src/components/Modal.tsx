@@ -56,6 +56,12 @@ type Props = {
   // Accessible label for the dismissing backdrop button. Inject your app's
   // translated "Close" string; defaults to English `"Close"`.
   closeLabel?: string;
+  // Gate for the swipe-down-to-close gesture on the full-screen mobile sheet
+  // (default true). Set false when the card hosts its own pan/zoom touch
+  // surface (an image viewer, a map) that would otherwise have to
+  // stopPropagation on native touch events to coexist with the gesture.
+  // Escape, the backdrop, and any close button keep working.
+  swipeToClose?: boolean;
   // An optional bar pinned to the bottom of the card, below the scrolling
   // content (a button row: Cancel / Save, a single Reset). Passing it here
   // instead of as the last child lets the Modal own the iOS-PWA
@@ -77,6 +83,7 @@ export function Modal({
   centered = false,
   size = "max-w-md",
   closeLabel = "Close",
+  swipeToClose = true,
   footer,
   children,
 }: Props) {
@@ -96,9 +103,11 @@ export function Modal({
   // Swipe-down-to-close, the mobile-sheet dismiss gesture. Only the
   // full-screen mobile layout reads as a sheet, so a centered card (a
   // confirmation, a picker) opts out — and the hook is touch-only, so a desktop
-  // pointer never trips it regardless. A downward drag that starts on the
-  // header, or in content already scrolled to its top, pulls the card with the
-  // finger; releasing past the threshold closes. `dragOffset` translates the
+  // pointer never trips it regardless. `swipeToClose={false}` opts a sheet out
+  // too, leaving its touch surface entirely to the content (the hook's
+  // `enabled` gate skips attaching the listeners). A downward drag that starts
+  // on the header, or in content already scrolled to its top, pulls the card
+  // with the finger; releasing past the threshold closes. `dragOffset` translates the
   // card and `dragging` gates its transition (live drag tracks 1:1, the
   // snap-back animates). `closing` is true once a release past the threshold
   // commits to dismiss: the card then glides the rest of the way down and fades
@@ -108,7 +117,9 @@ export function Modal({
     offset: dragOffset,
     dragging,
     closing,
-  } = useSwipeDownToClose(cardRef, onClose, { enabled: open && !centered });
+  } = useSwipeDownToClose(cardRef, onClose, {
+    enabled: open && !centered && swipeToClose,
+  });
 
   // Focus runs in a layout effect, not a passive one, so it fires
   // synchronously on commit. When the open is dispatched inside `flushSync`
@@ -167,10 +178,20 @@ export function Modal({
     ? `relative flex max-h-[85svh] w-full ${size} flex-col overflow-hidden rounded-lg border border-line bg-surface text-fg shadow-xl outline-none`
     : "relative flex h-full w-full flex-col overflow-hidden bg-surface text-fg shadow-xl outline-none sm:h-[min(90svh,42rem)] sm:max-w-3xl sm:rounded-lg sm:border sm:border-line";
 
+  // The backdrop's paint is var-driven so a theme can restyle it without a
+  // prop: `--modal-backdrop-darkness` scales the black scrim's alpha and
+  // `--modal-backdrop-blur` frosts the content behind it. The fallbacks keep
+  // the classic look (a 50% black scrim, no blur) when neither var is set.
+  const backdropAppearance = {
+    backgroundColor: "rgb(0 0 0 / var(--modal-backdrop-darkness, 0.5))",
+    backdropFilter: "blur(var(--modal-backdrop-blur, 0px))",
+    WebkitBackdropFilter: "blur(var(--modal-backdrop-blur, 0px))",
+  };
   // Fade the backdrop as the sheet is dragged away so the chrome behind it
   // surfaces in step with the dismiss — clamped so it never fully clears mid
   // gesture. Once the dismiss commits (`closing`), it eases the rest of the way
-  // to clear in step with the card gliding out.
+  // to clear in step with the card gliding out. The fade animates `opacity`,
+  // which composes cleanly over the var-driven background colour above.
   const dragProgress = Math.min(dragOffset / 240, 0.6);
   // The exit transition the card and backdrop share once a dismiss commits:
   // glide down (accelerating away, Material's "leaving the screen" easing) while
@@ -179,12 +200,13 @@ export function Modal({
   const exitEase = "cubic-bezier(0.4, 0, 1, 1)";
   const backdropStyle = closing
     ? {
+        ...backdropAppearance,
         opacity: 0,
         transition: `opacity ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}`,
       }
     : dragOffset > 0
-      ? { opacity: 1 - dragProgress }
-      : undefined;
+      ? { ...backdropAppearance, opacity: 1 - dragProgress }
+      : backdropAppearance;
   const cardStyle = closing
     ? {
         transform: `translateY(${dragOffset}px)`,
@@ -205,7 +227,7 @@ export function Modal({
         aria-label={closeLabel}
         tabIndex={-1}
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/50"
+        className="absolute inset-0 cursor-default"
         style={backdropStyle}
       />
       <div

@@ -85,12 +85,52 @@ describe("ui-style overrides", () => {
     expect(html().getAttribute("data-reduce-motion")).toBe("false");
   });
 
+  it("defaults the backdrop vars to the original look — a 0.5 dim, no blur", () => {
+    applyUiStyle(DEFAULT_UI_STYLE);
+    expect(html().style.getPropertyValue("--modal-backdrop-darkness")).toBe(
+      "0.5",
+    );
+    expect(html().style.getPropertyValue("--modal-backdrop-blur")).toBe("0px");
+  });
+
+  it("writes the backdrop var for each darkness step", () => {
+    const steps: [UiStyle["backdropDarkness"], string][] = [
+      ["none", "0"],
+      ["subtle", "0.35"],
+      ["medium", "0.5"],
+      ["dark", "0.75"],
+    ];
+    for (const [backdropDarkness, alpha] of steps) {
+      applyUiStyle({ ...DEFAULT_UI_STYLE, backdropDarkness });
+      expect(html().style.getPropertyValue("--modal-backdrop-darkness")).toBe(
+        alpha,
+      );
+    }
+  });
+
+  it("writes the backdrop var for each blur step", () => {
+    const steps: [UiStyle["backdropBlur"], string][] = [
+      ["none", "0px"],
+      ["subtle", "2px"],
+      ["medium", "4px"],
+      ["strong", "8px"],
+    ];
+    for (const [backdropBlur, radius] of steps) {
+      applyUiStyle({ ...DEFAULT_UI_STYLE, backdropBlur });
+      expect(html().style.getPropertyValue("--modal-backdrop-blur")).toBe(
+        radius,
+      );
+    }
+  });
+
   it("clears exactly what it wrote", () => {
     applyUiStyle(DEFAULT_UI_STYLE);
     clearUiStyle();
     expect(html().style.getPropertyValue("--radius-md")).toBe("");
     expect(html().style.getPropertyValue("--border-width")).toBe("");
     expect(html().style.getPropertyValue("--control-radius")).toBe("");
+    expect(html().style.getPropertyValue("--modal-backdrop-darkness")).toBe("");
+    expect(html().style.getPropertyValue("--modal-backdrop-blur")).toBe("");
     expect(html().hasAttribute("data-button-style")).toBe(false);
     expect(html().hasAttribute("data-reduce-motion")).toBe(false);
   });
@@ -102,11 +142,17 @@ describe("ui-style overrides", () => {
       radius: "none",
       controlStyle: "circle",
       buttonStyle: "outline",
+      backdropDarkness: "dark",
+      backdropBlur: "strong",
       reduceMotion: true,
     };
     applyUiStyle(tweaked);
     expect(html().style.getPropertyValue("--radius-md")).toBe("0px");
     expect(html().style.getPropertyValue("--control-radius")).toBe("9999px");
+    expect(html().style.getPropertyValue("--modal-backdrop-darkness")).toBe(
+      "0.75",
+    );
+    expect(html().style.getPropertyValue("--modal-backdrop-blur")).toBe("8px");
     expect(html().getAttribute("data-button-style")).toBe("outline");
     expect(html().getAttribute("data-reduce-motion")).toBe("true");
   });

@@ -41,6 +41,13 @@ type Props = {
    * varies by entity kind) so the cell matches what clearing actually shows.
    */
   defaultIcon?: ReactNode;
+  /**
+   * The path table the cells draw from, threaded to every cell's `Glyph`.
+   * Defaults to the built-in catalogue; pass an app's own table (with `glyphs`
+   * naming its entries) to present a custom glyph vocabulary. The clear cell
+   * still paints `DEFAULT_GLYPH` unless `defaultIcon` overrides it.
+   */
+  paths?: Record<string, string>;
 };
 
 export function GlyphPicker({
@@ -51,6 +58,7 @@ export function GlyphPicker({
   noneLabel,
   ariaLabelPrefix,
   defaultIcon,
+  paths,
 }: Props) {
   // The leading clear cell is index 0; the named glyphs follow. The cursor
   // seats on whatever is selected (the clear cell when `value` is null).
@@ -84,7 +92,9 @@ export function GlyphPicker({
         }`}
         style={tintStyle(value === null)}
       >
-        {defaultIcon ?? <Glyph name={DEFAULT_GLYPH} className="h-3.5 w-3.5" />}
+        {defaultIcon ?? (
+          <Glyph name={DEFAULT_GLYPH} paths={paths} className="h-3.5 w-3.5" />
+        )}
       </button>
       {glyphs.map((name, i) => {
         const selected = name === value;
@@ -109,7 +119,7 @@ export function GlyphPicker({
             }`}
             style={tintStyle(selected)}
           >
-            <Glyph name={name} className="h-3.5 w-3.5" />
+            <Glyph name={name} paths={paths} className="h-3.5 w-3.5" />
           </button>
         );
       })}

@@ -150,6 +150,19 @@ describe("InlineEditRow", () => {
     expect(screen.getByLabelText("Folder name")).toBeTruthy();
   });
 
+  it("threads inputProps through to the input", () => {
+    render(
+      <InlineEditRow
+        placeholder="Name"
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+        inputProps={{ autoCapitalize: "words" }}
+      />,
+    );
+    const input = screen.getByRole("textbox");
+    expect(input.getAttribute("autocapitalize")).toBe("words");
+  });
+
   it("prefers an explicit ariaLabel over the placeholder", () => {
     render(
       <InlineEditRow

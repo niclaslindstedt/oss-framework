@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
 
 import { scrollFocusedIntoView } from "./scrollFocusedIntoView.ts";
 
@@ -64,6 +64,13 @@ type Props = {
   ariaLabel?: string;
   /** Utilities for the `<input>`; defaults to the borderless transparent field. */
   className?: string;
+  /**
+   * Extra attributes spread onto the `<input>` — the soft-keyboard hints a
+   * bare text field can't guess (`autoCapitalize`, `inputMode`, `enterKeyHint`,
+   * `spellCheck`, …). Spread before the managed props, so the field's own
+   * value/commit/cancel wiring (and `className` / `aria-label`) always wins.
+   */
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
 };
 
 export function InlineEditField({
@@ -75,6 +82,7 @@ export function InlineEditField({
   selectOnFocus = true,
   ariaLabel,
   className = INLINE_EDIT_FIELD_CLASS,
+  inputProps,
 }: Props) {
   const [value, setValue] = useState(initial);
   // A ref, not state — the latch must flip synchronously within one event so
@@ -114,6 +122,7 @@ export function InlineEditField({
   }
   return (
     <input
+      {...inputProps}
       ref={ref}
       type="text"
       value={value}

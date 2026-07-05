@@ -348,6 +348,17 @@ describe("Modal", () => {
     expect(card.innerHTML).not.toContain("env(safe-area-inset-bottom)");
   });
 
+  it("paints the backdrop through the appearance custom properties", () => {
+    render(<TitledModal onClose={() => {}} />);
+    const backdrop = screen.getByRole("button", { name: "Dismiss" });
+    // The scrim's darkness and blur are var-driven with the classic defaults
+    // (a 50% black scrim, no blur), replacing the old hardcoded bg class.
+    expect(backdrop.className).not.toContain("bg-black/50");
+    const style = backdrop.getAttribute("style") ?? "";
+    expect(style).toContain("var(--modal-backdrop-darkness, 0.5)");
+    expect(style).toContain("blur(var(--modal-backdrop-blur, 0px))");
+  });
+
   it("omits the bottom inset spacer for a centered card", () => {
     render(
       <Modal
@@ -399,6 +410,23 @@ describe("Section", () => {
     );
     const group = screen.getByRole("group", { name: "Appearance" });
     expect(group.textContent).toContain("body");
+  });
+
+  it("renders a leading icon in the title row without renaming the group", () => {
+    render(
+      <Section title="Identity" icon={<svg data-testid="mark" />}>
+        <span>body</span>
+      </Section>,
+    );
+    // The adornment is decorative — the group still answers to the bare title.
+    const group = screen.getByRole("group", { name: "Identity" });
+    const mark = within(group).getByTestId("mark");
+    // Wrapped aria-hidden so an arbitrary node can't leak into the name, and
+    // seated inside the title row, before the title text.
+    expect(mark.parentElement?.getAttribute("aria-hidden")).toBe("true");
+    const titleRow = mark.parentElement?.parentElement;
+    expect(titleRow?.id).toBe(group.getAttribute("aria-labelledby"));
+    expect(titleRow?.textContent).toBe("Identity");
   });
 });
 

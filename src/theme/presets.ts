@@ -205,11 +205,12 @@ export function isFontScale(v: unknown): v is number {
 // Shape & "flavour" presets the UI-style controls offer. These are global
 // look knobs that apply to *every* theme (preset or custom) — they shape the
 // chrome (corner rounding, row density, border weight, shadow depth, button
-// treatment, control shape, motion) independently of the colour palette, so
-// "One Dark with sharp corners and pill buttons" is a thing you can pick. The
-// numeric pixel/rem/shadow mapping for each one lives in the projection engine
-// (`engine.ts`); this module fixes only the vocabulary. The `UiStyle` bundle
-// that carries a chosen value per axis lives in `ui-style.ts`.
+// treatment, control shape, dialog backdrop, motion) independently of the
+// colour palette, so "One Dark with sharp corners and pill buttons" is a
+// thing you can pick. The numeric pixel/rem/shadow mapping for each one lives
+// in the projection engine (`engine.ts`); this module fixes only the
+// vocabulary. The `UiStyle` bundle that carries a chosen value per axis lives
+// in `ui-style.ts`.
 export type RadiusPreset = "none" | "sm" | "md" | "lg";
 export type DensityPreset = "compact" | "comfortable" | "spacious";
 export type BorderWidthPreset = "thin" | "normal" | "bold";
@@ -225,6 +226,14 @@ export type ButtonStylePreset = "soft" | "solid" | "outline" | "ghost";
 // `rounded` softens the corners, `circle` makes them fully round. Projected
 // both as a `--control-radius` var and as `data-control-style`.
 export type ControlStylePreset = "square" | "rounded" | "circle";
+// How far the page behind an open dialog is dimmed. `none` leaves it in full
+// view; the rest fade it toward black in increasing steps (`medium` is the
+// historical bg-black/50 scrim). Projected as `--modal-backdrop-darkness`.
+export type BackdropDarknessPreset = "none" | "subtle" | "medium" | "dark";
+// How far the page behind an open dialog is blurred. `none` keeps it crisp
+// (the default); the rest soften it in increasing steps. Projected as
+// `--modal-backdrop-blur`.
+export type BackdropBlurPreset = "none" | "subtle" | "medium" | "strong";
 
 export const RADIUS_PRESETS: readonly RadiusPreset[] = [
   "none",
@@ -258,6 +267,18 @@ export const CONTROL_STYLE_PRESETS: readonly ControlStylePreset[] = [
   "rounded",
   "circle",
 ];
+export const BACKDROP_DARKNESS_PRESETS: readonly BackdropDarknessPreset[] = [
+  "none",
+  "subtle",
+  "medium",
+  "dark",
+];
+export const BACKDROP_BLUR_PRESETS: readonly BackdropBlurPreset[] = [
+  "none",
+  "subtle",
+  "medium",
+  "strong",
+];
 
 export function isRadiusPreset(v: unknown): v is RadiusPreset {
   return (RADIUS_PRESETS as readonly string[]).includes(v as string);
@@ -276,4 +297,12 @@ export function isButtonStylePreset(v: unknown): v is ButtonStylePreset {
 }
 export function isControlStylePreset(v: unknown): v is ControlStylePreset {
   return (CONTROL_STYLE_PRESETS as readonly string[]).includes(v as string);
+}
+export function isBackdropDarknessPreset(
+  v: unknown,
+): v is BackdropDarknessPreset {
+  return (BACKDROP_DARKNESS_PRESETS as readonly string[]).includes(v as string);
+}
+export function isBackdropBlurPreset(v: unknown): v is BackdropBlurPreset {
+  return (BACKDROP_BLUR_PRESETS as readonly string[]).includes(v as string);
 }
