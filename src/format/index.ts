@@ -1,11 +1,25 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Public `format` surface: pure string / value formatting helpers. This is the
-// first slice of the roadmap's `format` module — URL tidying (`url.ts`),
-// digit-grouping primitives (`digits.ts`), and byte counts over cached
-// `Intl.NumberFormat` instances (`bytes.ts`). The rest of the `Intl` wrapper
-// set (numbers, dates, relative time, durations, weekday / month names) lands
-// in later slices. See ./README.md.
+// Public `format` surface: pure string / value formatting helpers — URL
+// tidying (`url.ts`), digit-grouping primitives (`digits.ts`), and the
+// `Intl` wrapper set over cached formatter instances: byte counts
+// (`bytes.ts`), numbers (`number.ts`), dates / relative time / durations
+// (`datetime.ts`), and weekday / month names (`names.ts`). Locale is always
+// a parameter, `undefined` = the browser default — no i18n inside the
+// library. See ./README.md.
 
 export { normalizeUrl, displayUrl } from "./url.ts";
 export { digitsOnly, groupDigits, groupPairsLeadingTriple } from "./digits.ts";
 export { formatBytes } from "./bytes.ts";
+export { formatNumber, formatCompact } from "./number.ts";
+export {
+  formatDate,
+  formatRelative,
+  formatDuration,
+  type DurationWidth,
+} from "./datetime.ts";
+export {
+  weekdayNames,
+  monthName,
+  type NameWidth,
+  type WeekdayIndex,
+} from "./names.ts";
