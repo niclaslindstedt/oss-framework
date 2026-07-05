@@ -24,12 +24,21 @@ import type { ChecklistStore } from "./useChecklistStore.ts";
 type Props = {
   open: boolean;
   onClose: () => void;
+  // Seed for the field when the overlay opens — the character that opened it
+  // via type-to-open (see `useSearchShortcuts` in App), or "" for a clean open.
+  initialQuery?: string;
   store: ChecklistStore;
   // Close the phone drawer after navigating (a no-op when the sidebar is docked).
   onNavigate: () => void;
 };
 
-export function SearchOverlay({ open, onClose, store, onNavigate }: Props) {
+export function SearchOverlay({
+  open,
+  onClose,
+  initialQuery,
+  store,
+  onNavigate,
+}: Props) {
   const t = useT();
   const data = store.data;
 
@@ -41,6 +50,7 @@ export function SearchOverlay({ open, onClose, store, onNavigate }: Props) {
     <SearchModal<ListResult>
       open={open}
       onClose={onClose}
+      initialQuery={initialQuery}
       search={search}
       // Searching is a feature, so it's a trophy. The unlock bus dedupes, so
       // firing on every keystroke records it only once.

@@ -139,6 +139,35 @@ const search = useCallback(
 below it. The empty (untyped), no-results, and invalid-regex states are handled
 for you.
 
+### 4. Opening it from the keyboard
+
+`useSearchShortcuts` (from `…/hooks`) is the global "quick find" wiring:
+Cmd/Ctrl+K from anywhere, plus — by default — any bare printable character
+typed while nothing editable has focus (the "just start typing" gesture).
+Pass the seed it hands you into the modal's `initialQuery` so the opening
+keystroke becomes the first character of the query, with the caret parked
+after it:
+
+```tsx
+const [searchSeed, setSearchSeed] = useState("");
+
+useSearchShortcuts({
+  onOpen: (seed) => {
+    setSearchSeed(seed); // "" for Cmd/Ctrl+K, the typed character otherwise
+    setOpen(true);
+  },
+});
+
+<SearchModal open={open} initialQuery={searchSeed} /* … */ />;
+```
+
+Both gestures gate themselves while any `[aria-modal="true"]` dialog is up
+(including the search modal itself), and type-to-open ignores editable
+targets and modified keys (except AltGr, which types a character), so app
+and browser chords pass through untouched. Only a hardware keyboard produces
+printable keydowns outside an input, so touch devices are unaffected. Pass
+`typeToOpen: false` to keep only the chord.
+
 ### The full label set
 
 Every visible string is overridable; English defaults ship. `noResults` and
