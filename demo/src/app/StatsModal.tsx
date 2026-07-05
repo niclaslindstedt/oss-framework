@@ -1,51 +1,72 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import {
   BarChart,
   DonutChart,
   Sparkline,
 } from "@niclaslindstedt/oss-framework/charts";
+import {
+  DatePicker,
+  MonthGrid,
+  addDays,
+  dayKeyOf,
+  parseDayKey,
+  type DayKey,
+} from "@niclaslindstedt/oss-framework/calendar";
+import {
+  formatDate,
+  formatNumber,
+  monthName,
+} from "@niclaslindstedt/oss-framework/format";
 import { flattenNodes } from "@niclaslindstedt/oss-framework/checklist";
 import { CloseIcon, Modal } from "@niclaslindstedt/oss-framework/components";
 
-import { useT } from "./i18n/index.ts";
+import { i18n, useLang, useT } from "./i18n/index.ts";
 import type { AppData } from "./types.ts";
 
 // The Statistics dialog — the demo's showcase for the framework's `/charts`
-// surface. Everything here is the app-side half of that module's seam: the
-// app decides what a series *means* (completions per day, open items per
-// list — its own "archived"/"checked" vocabulary), buckets its own data, and
-// hands the framework plain values. The charts render them through the
-// active theme's token palette, so every preset restyles this dialog for
-// free.
+// surface plus the `/calendar` components and `/format` wrappers. Everything
+// here is the app-side half of those modules' seams: the app decides what a
+// series or a day marker *means* (completions per day, open items per list —
+// its own "archived"/"checked" vocabulary), buckets its own data, and hands
+// the framework plain values. The charts and the month grid render them
+// through the active theme's token palette, so every preset restyles this
+// dialog for free.
 
 const WINDOW_DAYS = 14;
 
-// Bucket the live document's checked items by local day over the trailing
-// window. `checkedAt` is stamped by the framework's `toggleNode` on every
-// false→true flip, so this is pure derivation — nothing extra is stored.
-function computeActivity(data: AppData): {
-  labels: string[];
-  counts: number[];
-} {
-  const now = new Date();
-  const days: Date[] = [];
-  for (let i = WINDOW_DAYS - 1; i >= 0; i--) {
-    days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
-  }
-  const key = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-  const slotByDay = new Map(days.map((d, i) => [key(d), i]));
-  const counts = new Array<number>(days.length).fill(0);
+// Every checked item bucketed by the local day it was completed —
+// `checkedAt` is stamped by the framework's `toggleNode` on every false→true
+// flip, so this is pure derivation, nothing extra is stored. Feeds both the
+// activity window and the month grid's day markers.
+function completionsByDay(data: AppData): Map<DayKey, number> {
+  const byDay = new Map<DayKey, number>();
   for (const list of data.lists) {
     if (list.archived) continue;
     for (const item of flattenNodes(list.items)) {
       if (!item.checked || !item.checkedAt || item.archived) continue;
-      const slot = slotByDay.get(key(new Date(item.checkedAt)));
-      if (slot !== undefined) counts[slot] = (counts[slot] ?? 0) + 1;
+      const key = dayKeyOf(new Date(item.checkedAt));
+      byDay.set(key, (byDay.get(key) ?? 0) + 1);
     }
   }
-  return { labels: days.map((d) => String(d.getDate())), counts };
+  return byDay;
+}
+
+// The trailing activity window: counts for the WINDOW_DAYS days ending at
+// `end` (the DatePicker's anchor — today unless the user looks back).
+function computeActivity(
+  byDay: Map<DayKey, number>,
+  end: DayKey,
+): { labels: string[]; counts: number[] } {
+  const labels: string[] = [];
+  const counts: number[] = [];
+  for (let i = WINDOW_DAYS - 1; i >= 0; i--) {
+    const key = addDays(end, -i);
+    labels.push(String(parseDayKey(key)?.day ?? ""));
+    counts.push(byDay.get(key) ?? 0);
+  }
+  return { labels, counts };
 }
 
 // Open (unchecked, live) items per live list, largest first — the top five
@@ -79,13 +100,38 @@ export function StatsModal({
   data: AppData;
 }) {
   const t = useT();
-  const { labels, counts } = useMemo(() => computeActivity(data), [data]);
+  const locale = i18n.toBcp47(useLang());
+  const todayKey = dayKeyOf(new Date());
+  // Where the activity window ends — null means "today" (the live view);
+  // picking a past day inspects that fortnight instead.
+  const [windowEnd, setWindowEnd] = useState<DayKey | null>(null);
+  const anchor = windowEnd ?? todayKey;
+
+  const byDay = useMemo(() => completionsByDay(data), [data]);
+  const { labels, counts } = useMemo(
+    () => computeActivity(byDay, anchor),
+    [byDay, anchor],
+  );
   const byList = useMemo(
     () => computeOpenByList(data, t("stats.other")),
     [data, t],
   );
   const doneInWindow = counts.reduce((sum, n) => sum + n, 0);
   const totalOpen = byList.reduce((sum, s) => sum + s.value, 0);
+
+  // The month the activity calendar paints — wherever the anchor sits.
+  const gridMonth = parseDayKey(anchor) ?? parseDayKey(todayKey)!;
+  const anchorDate = useMemo(() => {
+    const p = parseDayKey(anchor);
+    return p ? new Date(p.year, p.month - 1, p.day) : new Date();
+  }, [anchor]);
+
+  const pickerLabels = {
+    placeholder: t("stats.windowEndToday"),
+    prevMonth: t("stats.prevMonth"),
+    nextMonth: t("stats.nextMonth"),
+    clear: t("stats.windowEndToday"),
+  };
 
   return (
     <Modal
@@ -113,13 +159,35 @@ export function StatsModal({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-6">
         <section className="mb-6">
-          <h3 className="pt-1 pb-2 text-xs font-semibold tracking-wider text-muted uppercase">
-            {t("stats.activityHeading")}
-          </h3>
+          <div className="flex items-center justify-between gap-2 pt-1 pb-2">
+            <h3 className="text-xs font-semibold tracking-wider text-muted uppercase">
+              {t("stats.activityHeading")}
+            </h3>
+            {/* The framework `DatePicker` anchors the activity window: null =
+                today (the placeholder / clear row both read "Today"), a past
+                day inspects that fortnight. */}
+            <DatePicker
+              value={windowEnd}
+              onChange={setWindowEnd}
+              max={todayKey}
+              today={todayKey}
+              locale={locale}
+              clearable
+              labels={pickerLabels}
+              ariaLabel={t("stats.windowEnd")}
+            />
+          </div>
           {/* Stat tile: the window's headline number + its inline trend. */}
           <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-line bg-surface-2 px-3 py-2">
             <span className="text-sm text-fg">
-              {t("stats.doneInWindow", { n: doneInWindow })}
+              {windowEnd
+                ? t("stats.doneInWindowTo", {
+                    n: formatNumber(doneInWindow, locale),
+                    date: formatDate(anchorDate, locale),
+                  })
+                : t("stats.doneInWindow", {
+                    n: formatNumber(doneInWindow, locale),
+                  })}
             </span>
             <Sparkline values={counts} showLastDot />
           </div>
@@ -129,6 +197,37 @@ export function StatsModal({
             height={160}
             ariaLabel={t("stats.activityAlt")}
           />
+        </section>
+
+        <section className="mb-6">
+          <h3 className="pt-1 pb-2 text-xs font-semibold tracking-wider text-muted uppercase">
+            {t("stats.calendarHeading")}
+          </h3>
+          {/* The framework `MonthGrid` as an activity calendar: the app's
+              marker seam (`renderDay`) paints a dot on days with completions;
+              picking a day re-anchors the activity window above. */}
+          <div className="mx-auto max-w-xs">
+            <div className="pb-1 text-center text-sm font-medium text-fg-bright">
+              {monthName(gridMonth.month, locale)} {gridMonth.year}
+            </div>
+            <MonthGrid
+              year={gridMonth.year}
+              month={gridMonth.month}
+              selected={windowEnd}
+              onSelect={(key) => setWindowEnd(key === todayKey ? null : key)}
+              max={todayKey}
+              today={todayKey}
+              locale={locale}
+              renderDay={(cell) => (
+                <span
+                  aria-hidden
+                  className={`mt-0.5 h-1 w-1 rounded-full ${
+                    byDay.has(cell.key) && cell.inMonth ? "bg-accent" : ""
+                  }`.trim()}
+                />
+              )}
+            />
+          </div>
         </section>
 
         {byList.length > 0 && (
@@ -144,7 +243,7 @@ export function StatsModal({
                 innerLabel={
                   <div>
                     <div className="text-2xl font-bold text-fg-bright tabular-nums">
-                      {totalOpen}
+                      {formatNumber(totalOpen, locale)}
                     </div>
                     <div className="text-xs text-muted">
                       {t("stats.openTotal")}

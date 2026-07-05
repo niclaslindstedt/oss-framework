@@ -39,8 +39,8 @@ belong to the framework at all:
 | 1   | Charts                     | `charts`             | L    | High         | **Landed** (this roadmap's first tranche)                                                                                     |
 | 2   | Toast stack                | `components`         | S    | High         | **Landed** (contacts consolidation)                                                                                           |
 | 3   | Tabs primitive             | `components`         | S    | High         | Pending                                                                                                                       |
-| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | Partial — subpath landed with URL/digit/byte helpers; the `Intl` date/number wrapper set is still pending                     |
-| 5   | Calendar                   | `calendar`           | M/L  | High         | Partial — subpath landed with recurring-date math + `.ics` serialization; `MonthGrid`/`DatePicker` still pending              |
+| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | **Landed** (URL/digit/byte helpers, then the full `Intl` wrapper set)                                                         |
+| 5   | Calendar                   | `calendar`           | M/L  | High         | **Landed** (recurring-date math + `.ics`, then the grid core + `MonthGrid`/`DatePicker`)                                      |
 | 6   | Media viewer               | `viewer`             | M    | Med-high     | **Landed** (contacts consolidation: `Lightbox`, `ImageCropper`, `usePanZoom`, transform core; `ZoomPane` can still grow here) |
 | 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                       |
 | 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                       |
@@ -114,16 +114,29 @@ automatic activation on arrow keys) built on the existing `useRovingTabindex`.
 `SegmentedControl` stays — it is a value picker, not a panel switcher. Demo
 dogfood: refit the settings dialog's hand-rolled tab strip.
 
-## 4. `format` — `Intl` wrappers (S, high — infra)
+## 4. `format` — `Intl` wrappers (landed)
 
 Pure utilities over cached `Intl` instances (they are expensive to construct):
 `formatNumber`, `formatCompact`, `formatBytes`, `formatDate`,
-`formatRelative`, `formatDuration`, `weekdayNames(locale, width)` (rotated by
-week start), `monthName`. Locale is always a parameter, `undefined` = browser
-default — consistent with "no i18n inside the library". Consumed by calendar
-(weekday/month headers) and handed by apps to charts' `formatValue` props.
+`formatRelative`, `formatDuration`, `weekdayNames(locale, width,
+weekStartsOn)` (rotated by week start), `monthName`. Locale is always a
+parameter, `undefined` = browser default — consistent with "no i18n inside
+the library". Consumed by calendar (weekday/month headers) and handed by apps
+to charts' `formatValue` props.
 
-## 5. Calendar — `calendar` (M/L, high)
+Decisions of record:
+
+- **`formatRelative(date, now, locale?)` takes `now` explicitly** — nothing
+  in the module reads the clock, matching the calendar core's convention, so
+  every wrapper is deterministic under test.
+- **`formatDuration` avoids `Intl.DurationFormat`** (still uneven across
+  engines); it composes `Intl.NumberFormat` unit style instead and renders
+  the largest unit plus its non-zero adjacent neighbour ("1 hr 23 min", but
+  "1 hr" — never "1 hr 30 sec" — when the minutes are zero).
+- **Weekday indices use `Date.getDay()` numbering** (0 = Sunday), default
+  week start Monday (ISO-8601) — shared with the calendar module.
+
+## 5. Calendar — `calendar` (landed)
 
 Date _math_ is the mechanism; "event"/"appointment"/"due date" are app words
 and stay out.
@@ -140,6 +153,24 @@ month, { weekStartsOn, fixedWeeks })` → `GridCell[][]` (`inMonth`,
   `FloatingPanel`/`useFloatingPosition` + `MonthGrid`).
 - **Testing focus:** DST transitions, ISO week 52/53/1 boundaries, Jan 31 +
   1 month, `weekStartsOn` rotations, leap years.
+
+Decisions of record (as landed):
+
+- **"Today" is a caller-supplied `DayKey`** throughout the pure core
+  (`MonthGridOptions.today`); only the components default it to the local
+  clock, and both accept an explicit `today` for deterministic renders.
+- **Arrow keys navigate the rendered grid only** (the roving-tabindex
+  seam); crossing a month boundary is PageUp / PageDown (`onMonthNav`) or
+  selecting a spill day — not an arrow walking off the row. Full
+  APG-style arrow paging can layer on later without an API break.
+- **`MonthGrid` never steals focus by default** — `autoFocus` (off unless
+  the grid sits in a popover, as in `DatePicker`) maps to the roving
+  hook's `active` flag.
+- **Disabled days stay focusable** (`aria-disabled`, no action) per the
+  ARIA grid pattern, so keyboard users can still survey the month.
+- **Range selection ships as pure helpers only** (`dayRange`, `isInRange`,
+  `extendRange`); a two-ended range _picker_ is app assembly on top of
+  `MonthGrid` until a second consumer shows the shape a component needs.
 - **Recurrence is deliberately out of v1** — full RFC 5545 is a library in
   itself. If a consumer app needs repeats, add a bounded `repeat.ts`
   (`freq`/`interval`/`byWeekday`/`until|count` +
