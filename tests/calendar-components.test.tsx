@@ -168,6 +168,71 @@ describe("DatePicker", () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
+  it("jumps to a month via the month grid the caption opens", () => {
+    const onChange = vi.fn();
+    render(
+      <DatePicker
+        value={null}
+        onChange={onChange}
+        today="2026-07-04"
+        locale="en-US"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /pick a date/i }));
+    // The caption is a button that zooms out to the twelve months of the year.
+    fireEvent.click(screen.getByRole("button", { name: "July 2026" }));
+    expect(screen.getByRole("grid", { name: "2026" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "October 2026" }));
+    // Back on the day grid, now paged to the chosen month.
+    expect(screen.getByRole("grid", { name: "October 2026" })).toBeTruthy();
+  });
+
+  it("jumps a year via the year page the month grid opens", () => {
+    render(
+      <DatePicker
+        value={null}
+        onChange={() => {}}
+        today="2026-07-04"
+        locale="en-US"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /pick a date/i }));
+    fireEvent.click(screen.getByRole("button", { name: "July 2026" }));
+    // The year caption zooms out again to a twelve-year page (2016–2027).
+    fireEvent.click(screen.getByRole("button", { name: "2026" }));
+    expect(screen.getByRole("grid", { name: "2016–2027" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "2019" }));
+    // Land back on the month grid for the chosen year.
+    expect(screen.getByRole("grid", { name: "2019" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "July 2019" }));
+    expect(screen.getByRole("grid", { name: "July 2019" })).toBeTruthy();
+  });
+
+  it("pages the year page and disables it past max", () => {
+    render(
+      <DatePicker
+        value={null}
+        onChange={() => {}}
+        today="2026-07-04"
+        max="2026-12-31"
+        locale="en-US"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /pick a date/i }));
+    fireEvent.click(screen.getByRole("button", { name: "July 2026" }));
+    // A month after max is not activatable.
+    const nextYear = screen.getByRole("button", { name: "Next year" });
+    expect(nextYear).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "2026" }));
+    // The page holding max can't advance past it.
+    expect(screen.getByRole("button", { name: "Next years" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Previous years" }));
+    expect(screen.getByRole("grid", { name: "2004–2015" })).toBeTruthy();
+  });
+
   it("re-anchors the view on the selected month when reopened", () => {
     render(
       <DatePicker
