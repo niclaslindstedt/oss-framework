@@ -31,7 +31,13 @@ month, { weekStartsOn, fixedWeeks, today })` → `GridCell[][]`,
   default) seats keyboard focus for popover use.
 - **`DatePicker.tsx`** — a bordered trigger field floating a month grid via
   `FloatingPanel`: month paging header, optional clear row, focus return on
-  commit. Labels inject with English defaults
+  commit. The header caption is a button that zooms out to a month grid, and
+  the year there zooms out again to a twelve-year page — the quick month/year
+  jump a native control gives, so a far-off date is a couple of taps rather
+  than a long paging drag (and, being ordinary in-panel interaction, it
+  survives an iOS PWA where a native `<input type="date">` dismisses its own
+  popover on a month change). `min`/`max` gate whole months and years the way
+  they gate days. Labels inject with English defaults
   (`DEFAULT_DATE_PICKER_LABELS`); the trigger renders the value through
   `formatDate` unless `formatValue` overrides it.
 
