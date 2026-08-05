@@ -121,6 +121,10 @@ logPanel={devMode ? <LogViewer store={logStore} /> : undefined}
 When `logPanel` is omitted the whole section disappears. The framework doesn't
 decide who sees the log — you do.
 
+`LogViewer` lists the newest line first, so the sync that just failed is at the
+top of the section rather than a scroll away; pass `order="oldest-first"` (or a
+comparator) to read the run chronologically instead.
+
 ### Labels (i18n)
 
 Every visible string is injectable. `SyncStatus` takes `labels?:

@@ -42,20 +42,21 @@ backend's `logger` option.
 
 ## API
 
-| Export                     | What it is                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------- |
-| `createLogStore(options?)` | Build an isolated store on your keys. Returns a `LogStore`.                        |
-| `defaultLogStore`          | A ready store on the framework's default keys (simple apps / demos).               |
-| `LogStore`                 | `createLogger`, `getLogs`, `clearLogs`, `subscribeToLogs`, capture + gate setters. |
-| `ScopedLogger`             | What `createLogger(scope)` returns: `info`/`warn`/`error`/`time`.                  |
-| `LogEntry`, `LogLevel`     | The captured-line shape and its severities.                                        |
-| `LogStoreOptions`          | `logsKey`, `captureKey`, `maxEntries`, `saveDebounceMs`, `enabled`.                |
-| `formatLogTime(ts)`        | `HH:MM:SS` for a panel's per-entry timestamp.                                      |
-| `formatLogLine(entry)`     | `HH:MM:SS [scope] LEVEL message` — one plain line for "Copy logs".                 |
-| `useLogs(store)`           | Subscribe a component to a store's buffer with a cached, stable snapshot.          |
-| `LogViewer`                | A ready Logs panel over a store: level filter, copy, clear, coloured entries.      |
-| `LogModal`                 | A modal showing one **operation's** step log — passed entries, opened on demand.   |
-| `LogModalEntry`            | A modal line: `{ ts, level, text }` — `text` is your already-rendered string.      |
+| Export                     | What it is                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `createLogStore(options?)` | Build an isolated store on your keys. Returns a `LogStore`.                               |
+| `defaultLogStore`          | A ready store on the framework's default keys (simple apps / demos).                      |
+| `LogStore`                 | `createLogger`, `getLogs`, `clearLogs`, `subscribeToLogs`, capture + gate setters.        |
+| `ScopedLogger`             | What `createLogger(scope)` returns: `info`/`warn`/`error`/`time`.                         |
+| `LogEntry`, `LogLevel`     | The captured-line shape and its severities.                                               |
+| `LogStoreOptions`          | `logsKey`, `captureKey`, `maxEntries`, `saveDebounceMs`, `enabled`.                       |
+| `formatLogTime(ts)`        | `HH:MM:SS` for a panel's per-entry timestamp.                                             |
+| `formatLogLine(entry)`     | `HH:MM:SS [scope] LEVEL message` — one plain line for "Copy logs".                        |
+| `useLogs(store)`           | Subscribe a component to a store's buffer with a cached, stable snapshot.                 |
+| `LogViewer`                | A ready Logs panel over a store: level filter, copy, clear, coloured entries.             |
+| `LogOrder`                 | `LogViewer`'s entry order: `"newest-first"` (default), `"oldest-first"`, or a comparator. |
+| `LogModal`                 | A modal showing one **operation's** step log — passed entries, opened on demand.          |
+| `LogModalEntry`            | A modal line: `{ ts, level, text }` — `text` is your already-rendered string.             |
 
 `useLogs` is the React binding for the buffer: `store.getLogs()` returns a fresh
 array each call, which `useSyncExternalStore` cannot consume directly (a new
@@ -66,6 +67,23 @@ injects via `labels`, English by default); its level → colour mapping rides th
 theme's `meta`/`flag`/`negative` slots (info/warn/error) and `link` (the scope).
 Keep rendering your own panel from `useLogs` + `formatLogLine` if you need a
 different layout.
+
+### Entry order
+
+The panel shows the **newest entry first** — a live buffer grows past a
+screenful fast, and the line that just landed is the one being read. Pass
+`order` for anything else:
+
+```tsx
+<LogViewer store={logStore} />                        // newest first (default)
+<LogViewer store={logStore} order="oldest-first" />   // buffer order — read a run top-down
+<LogViewer store={logStore} order={(a, b) => a.scope.localeCompare(b.scope)} />
+```
+
+A comparator gets the filtered `LogEntry` list (a copy — the buffer is never
+mutated) and runs through `Array.prototype.sort`, so ties keep their relative
+order. Whatever the order, **Copy writes the lines exactly as shown**, so a
+pasted log matches the panel it came from.
 
 ### `LogModal` — one operation's trace
 

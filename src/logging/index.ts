@@ -24,6 +24,7 @@ export { useLogs } from "./useLogs.ts";
 export {
   LogViewer,
   DEFAULT_LOG_VIEWER_LABELS,
+  type LogOrder,
   type LogViewerLabels,
 } from "./LogViewer.tsx";
 export {

@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { Button } from "../components/Button.tsx";
 import { SelectPicker } from "../components/SelectPicker.tsx";
 import { formatLogLine, formatLogTime } from "./format.ts";
-import type { LogLevel, LogStore } from "./log-store.ts";
+import type { LogEntry, LogLevel, LogStore } from "./log-store.ts";
 import { useLogs } from "./useLogs.ts";
 
 // A live view of a {@link LogStore}'s buffer — the Logs panel both source apps
 // grew, as a reusable component. It renders each entry as a coloured
-// `HH:MM:SS LEVEL [scope]` header over its message, with a level filter, a
-// "copy to clipboard" of the (filtered) lines, and a clear button. The store
-// stays the app's (it owns the keys, the capture gate, the sink); the
+// `HH:MM:SS LEVEL [scope]` header over its message, newest first, with a level
+// filter, a "copy to clipboard" of the (filtered) lines, and a clear button.
+// The store stays the app's (it owns the keys, the capture gate, the sink); the
 // framework owns this read-only projection of it.
 //
 // Every visible string injects via `labels` (English defaults) so the panel
@@ -20,6 +20,22 @@ import { useLogs } from "./useLogs.ts";
 // so it follows the active theme.
 
 type LevelFilter = "all" | LogLevel;
+
+/**
+ * How the panel orders the entries it shows — and, because Copy writes exactly
+ * what's on screen, the order of the copied lines too.
+ *
+ * - `"newest-first"` (the default) — most recent at the top, so the line that
+ *   just landed is visible without scrolling a long buffer.
+ * - `"oldest-first"` — the store's own chronological buffer order, for reading
+ *   a run as a narrative from its first line down.
+ * - a comparator — anything else (group by level, sort by scope, …), applied to
+ *   a copy of the filtered entries with `Array.prototype.sort`.
+ */
+export type LogOrder =
+  | "newest-first"
+  | "oldest-first"
+  | ((a: LogEntry, b: LogEntry) => number);
 
 export type LogViewerLabels = {
   filter: string;
@@ -58,6 +74,8 @@ type Props = {
   store: LogStore;
   // Tailwind max-height for the scrolling body; defaults to `max-h-64`.
   maxHeight?: string;
+  /** Entry order; defaults to `"newest-first"`. See {@link LogOrder}. */
+  order?: LogOrder;
   labels?: Partial<LogViewerLabels>;
   className?: string;
 };
@@ -65,6 +83,7 @@ type Props = {
 export function LogViewer({
   store,
   maxHeight = "max-h-64",
+  order = "newest-first",
   labels,
   className = "",
 }: Props) {
@@ -73,11 +92,21 @@ export function LogViewer({
   const [level, setLevel] = useState<LevelFilter>("all");
   const [copied, setCopied] = useState(false);
 
-  const shown = useMemo(
-    () =>
-      level === "all" ? entries : entries.filter((e) => e.level === level),
-    [entries, level],
-  );
+  const shown = useMemo(() => {
+    const filtered =
+      level === "all" ? entries : entries.filter((e) => e.level === level);
+    // The store hands back the ring buffer oldest-first, which is already the
+    // `"oldest-first"` answer — no copy, no sort.
+    if (order === "oldest-first") return filtered;
+    if (typeof order === "function") return filtered.slice().sort(order);
+    // Reverse *before* the stable sort so entries sharing a millisecond (a
+    // burst of lines from one op) also read newest-first, rather than keeping
+    // buffer order within the tie.
+    return filtered
+      .slice()
+      .reverse()
+      .sort((a, b) => b.ts - a.ts);
+  }, [entries, level, order]);
 
   async function copy() {
     try {

@@ -19,6 +19,14 @@ function freshStore() {
   return store;
 }
 
+// The rendered messages, top to bottom — the panel's entry order.
+function messages(container: HTMLElement): string[] {
+  return Array.from(
+    container.querySelectorAll(".whitespace-pre-wrap"),
+    (el) => el.textContent ?? "",
+  );
+}
+
 beforeEach(() => localStorage.clear());
 afterEach(() => {
   document.body.style.overflow = "";
@@ -62,5 +70,69 @@ describe("LogViewer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(screen.queryByText("list_folder → 200")).toBeNull();
     expect(screen.getByText("No log lines yet.")).toBeTruthy();
+  });
+
+  it("shows the newest entry first by default", () => {
+    const store = freshStore();
+    const log = store.createLogger("sync");
+    log.info("first");
+    log.info("second");
+    log.info("third");
+
+    const { container } = render(<LogViewer store={store} />);
+    expect(messages(container)).toEqual(["third", "second", "first"]);
+  });
+
+  it("keeps the store's buffer order when asked for oldest-first", () => {
+    const store = freshStore();
+    const log = store.createLogger("sync");
+    log.info("first");
+    log.info("second");
+
+    const { container } = render(
+      <LogViewer store={store} order="oldest-first" />,
+    );
+    expect(messages(container)).toEqual(["first", "second"]);
+  });
+
+  it("orders by a caller-supplied comparator", () => {
+    const store = freshStore();
+    store.createLogger("b").info("from b");
+    store.createLogger("a").info("from a");
+
+    const { container } = render(
+      <LogViewer
+        store={store}
+        order={(x, y) => x.scope.localeCompare(y.scope)}
+      />,
+    );
+    expect(messages(container)).toEqual(["from a", "from b"]);
+  });
+
+  it("copies the lines in the order shown", async () => {
+    const store = freshStore();
+    const log = store.createLogger("sync");
+    log.info("first");
+    log.info("second");
+
+    const written: string[] = [];
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: (t: string) => {
+          written.push(t);
+          return Promise.resolve();
+        },
+      },
+    });
+
+    render(<LogViewer store={store} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    });
+
+    const lines = written[0]?.split("\n") ?? [];
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain("second");
+    expect(lines[1]).toContain("first");
   });
 });
