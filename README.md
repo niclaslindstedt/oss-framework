@@ -30,7 +30,8 @@ implementation to maintain instead of two.
 
 - [Node.js](https://nodejs.org/) 22+ (see `.nvmrc`)
 - npm 10+
-- React 19 (peer dependency) in the consuming app
+- React 19 (peer dependency) in the consuming app — or Preact via
+  `preact/compat`, see [Running on Preact](#running-on-preact)
 
 ## Install
 
@@ -75,6 +76,61 @@ rest:
 ```ts
 import { useEscapeKey } from "@niclaslindstedt/oss-framework/hooks";
 ```
+
+## Running on Preact
+
+The framework is written against React and ships **no React bytes** — `react`
+and `react-dom` are peer dependencies and are marked `external` in the bundle.
+That leaves the choice of runtime entirely to your app: alias React to
+[`preact/compat`](https://preactjs.com/guide/v10/switching-to-preact/) in your
+bundler and every framework component renders on Preact instead, with no change
+to your imports and no fork of this package.
+
+The whole React surface this library uses — hooks, `forwardRef`, `memo`,
+`useId`, `useSyncExternalStore` and `createPortal` — is implemented by
+`preact/compat`, so the swap is configuration, not a migration.
+
+```bash
+npm install preact
+```
+
+```ts
+// vite.config.ts — most-specific first, as Vite matches aliases in order.
+resolve: {
+  alias: [
+    { find: "react-dom/client", replacement: "preact/compat/client" },
+    { find: "react-dom", replacement: "preact/compat" },
+    { find: "react/jsx-dev-runtime", replacement: "preact/jsx-dev-runtime" },
+    { find: "react/jsx-runtime", replacement: "preact/jsx-runtime" },
+    { find: "react", replacement: "preact/compat" },
+  ],
+},
+```
+
+Mirror the same aliases in your test config (`vitest.config.ts`) if your suite
+renders components, so tests exercise the runtime you actually ship.
+
+**Keep `@types/react` installed and keep type-checking against it.** The alias
+is a bundler-level substitution; the framework's public types are React's, and
+`preact/compat`'s own type definitions diverge from them in ways that are
+type-level only (`RefObject<T | null>` vs `RefObject<T>`, `spellCheck` vs
+`spellcheck`, event-type arity). Pointing TypeScript's `paths` at
+`preact/compat` will surface those mismatches even though the runtime behaviour
+is identical — so don't.
+
+### What it costs and what it saves
+
+This repo's own preview app runs on Preact, so the numbers are measured rather
+than estimated. The same production build, React vs Preact:
+
+| Build  | Bundle    | gzip                 |
+| ------ | --------- | -------------------- |
+| React  | 503.30 kB | 153.97 kB            |
+| Preact | 318.06 kB | **101.49 kB** (−34%) |
+
+See [`demo/vite.config.ts`](demo/vite.config.ts) for the wiring in context.
+Both runtimes stay supported: `src/` keeps importing from `"react"`, and the
+published package works unchanged for React consumers.
 
 ## API
 

@@ -2,13 +2,19 @@
 
 # Demo — OSS Framework reference app
 
-A small Vite + React app — **a real, working local-first checklist PWA** built
+A small Vite app — **a real, working local-first checklist PWA** built
 entirely from the framework's shared surface, in the apps' own black/green look.
 Deployed to GitHub Pages by
 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml). It builds
 **against the framework's TypeScript source** (via the aliases in
 [`vite.config.ts`](./vite.config.ts)), so every deploy reflects the exact commit
 it was built from — not a published package.
+
+It renders on **Preact** via `preact/compat` — the framework itself still
+targets React and ships no React bytes, so the runtime is the app's choice. The
+demo takes the Preact option to keep the deployed preview small (−34% gzipped)
+and to dogfood the path adopters get in the root README's "Running on Preact".
+The source still imports from `"react"`; only the bundler aliases differ.
 
 It is the **reference app the framework is meant to seed**: a new app can lift
 [`src/app/`](./src/app) as a starting point. Everything visible is

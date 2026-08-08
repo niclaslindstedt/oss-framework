@@ -11,8 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "preact": "10.29.8",
     "workbox-window": "^7.0.0"
   },
   "devDependencies": {
