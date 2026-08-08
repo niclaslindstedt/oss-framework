@@ -82,6 +82,16 @@ stubs you don't want; see REWIRE).
 - In your `vite.config.ts`, add **no** framework aliases — resolve the package
   from `node_modules` like any dependency.
 
+**Optionally run on Preact.** The framework ships no React bytes (`react` /
+`react-dom` are external peers), so the adopter picks the runtime. Ask if bundle
+size matters to this app; if it does, `npm install preact` and add the five
+`react` → `preact/compat` aliases from the root
+[`README.md`](../../../README.md) "Running on Preact" section — it is worth
+~34% of the gzipped bundle and costs no API changes. Keep `@types/react`
+installed and keep type-checking against it; do **not** point `tsconfig`
+`paths` at `preact/compat`. This is the one alias block a new app may legitimately
+carry (it is runtime plumbing, not source-build plumbing).
+
 ### 3. Wire the styling (REWIRE)
 
 A published app needs **one import**, not the demo's source-build dance:

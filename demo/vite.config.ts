@@ -167,6 +167,20 @@ export default defineConfig({
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
+      // Render the preview on Preact instead of React. The framework keeps
+      // React as its peer dependency and `src/` keeps importing from "react",
+      // so this is purely a bundler-level swap — exactly the one an adopter
+      // makes in their own app (see README "Running on Preact"). It costs the
+      // demo nothing in API surface (`preact/compat` implements the hooks,
+      // `forwardRef`, `memo`, `createPortal` and `useSyncExternalStore` this
+      // tree uses) and takes ~35 kB gzip off the shipped bundle.
+      //
+      // Listed most-specific-first, as with the framework subpaths above.
+      { find: "react-dom/client", replacement: "preact/compat/client" },
+      { find: "react-dom", replacement: "preact/compat" },
+      { find: "react/jsx-dev-runtime", replacement: "preact/jsx-dev-runtime" },
+      { find: "react/jsx-runtime", replacement: "preact/jsx-runtime" },
+      { find: "react", replacement: "preact/compat" },
       // The theme font loaders dynamically import optional `@fontsource/*` CSS
       // that isn't installed here; stub every such specifier so a build that
       // pulls the theme graph still resolves (mirrors `vitest.config.ts`).
