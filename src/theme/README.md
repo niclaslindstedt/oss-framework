@@ -24,16 +24,16 @@ import {
 
 ## What the framework owns vs. what stays in your app
 
-| Owned here (shared)                                                   | Stays in your app (app-specific)                                           |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Preset ids, families, labels, `themeFamily` (`presets.ts`)            | The **appearance / settings store** that persists the user's choice        |
-| Font families + stacks, font-scale steps, shape/flavour presets       | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough |
-| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)          | Where values are persisted/synced (localStorage, a settings file, …)       |
-| `UiStyle` (global shape/flavour axes) + `CustomTheme` colour palette  | Any app-only settings that happen to live beside the theme code            |
-| `customThemeSeed`, `coerceUiStyle`, `coerceCustomTheme`               | Your **app-shell layout** (the viewport / reset CSS — see the demo)        |
-| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*` | Optional: hand-tuned overrides layered on top of the shipped stylesheet    |
-| **The stylesheet** (`styles.css`): token map, flavour CSS, presets    | Mounting it: one `@import` (or `installPresetTokens()` against source)     |
-| The webfont loaders (`fonts.ts`)                                      | The static import of the default `mono` font in your entry module          |
+| Owned here (shared)                                                   | Stays in your app (app-specific)                                                                |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Preset ids, families, labels, `themeFamily` (`presets.ts`)            | The **appearance / settings store** that persists the user's choice                             |
+| Font families + stacks, font-scale steps, shape/flavour presets       | A **custom** Appearance UI, if the bundled `AppearancePicker` isn't enough                      |
+| Colour-slot vocabulary + per-preset palettes (`palettes.ts`)          | Where values are persisted/synced (localStorage, a settings file, …)                            |
+| `UiStyle` (global shape/flavour axes) + `CustomTheme` colour palette  | Any app-only settings that happen to live beside the theme code                                 |
+| `customThemeSeed`, `coerceUiStyle`, `coerceCustomTheme`               | Your **app-shell layout** (the viewport / reset CSS — see the demo)                             |
+| The projection engine: `useApplyTheme` + the pure `apply*` / `clear*` | Optional: hand-tuned overrides layered on top of the shipped stylesheet                         |
+| **The stylesheet** (`styles.css`): token map, flavour CSS, presets    | Mounting it: one `@import` (or `installPresetTokens()` against source)                          |
+| _When_ a webfont family is needed (`fonts.ts`)                        | _Where_ its bytes come from — a loader per family, or the opt-in `./theme/fontsource` batteries |
 
 The **store is deliberately not part of this module.** An app's appearance
 state is usually fused with concerns the framework knows nothing about (editor
@@ -238,15 +238,47 @@ const customTheme = coerceCustomTheme(raw.customTheme); // never throws
 ### Fonts
 
 The default `mono` family is expected to be statically imported by your app's
-entry module (so it precaches for offline first paint). The other three
-families load on demand the first time they're selected — `useApplyTheme` calls
-`loadFontFamily` for you. The font CSS comes from `@fontsource/*`, which are
-**optional peer dependencies**: install the ones you use, or drop a loader and
-ship your own font set.
+entry module (so it precaches for offline first paint). The other families load
+on demand the first time they're selected — `useApplyTheme` calls
+`loadFontFamily` for you.
+
+The framework knows _when_ a family is needed; it does not know _where the
+bytes come from_. Your app registers a loader per family:
+
+```ts
+import { registerFontLoaders } from "@niclaslindstedt/oss-framework/theme";
+
+registerFontLoaders({
+  sans: () => import("@fontsource/inter/latin-400.css"),
+});
+```
+
+The batteries are included behind one opt-in import, which registers the three
+families the presets name (latin + latin-ext subsets only) from the
+`@fontsource/*` **optional peer dependencies**:
 
 ```bash
 npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexic
 ```
+
+```ts
+// once, near your entry module
+import "@niclaslindstedt/oss-framework/theme/fontsource";
+```
+
+**Why it is a separate import.** A bundler resolves every specifier in a module
+graph _before_ it shakes anything out of it, so a bare `@fontsource/…` inside
+the theme module would make an app that imported nothing but a `Button` fail to
+build unless it installed font packages it never asked for. Keeping those
+specifiers in one opt-in module means importing it is the app saying it did
+install them. (The package's `sideEffects` list names this module, so the bare
+import is never shaken away.)
+
+With nothing registered every non-default family resolves to a no-op: the UI
+keeps the bundled default face rather than failing. `loadableFontFamilies()`
+reports what is registered. The `AppearancePicker` deliberately still offers
+every family in `FONT_FAMILIES` — an app may serve a face from its own
+stylesheet with no loader at all, and hiding it would be wrong.
 
 ## API surface
 
@@ -269,7 +301,10 @@ npm install @fontsource/inter @fontsource/source-serif-4 @fontsource/opendyslexi
   `DEFAULT_UI_STYLE`, `coerceUiStyle`.
 - **`custom-theme.ts`** — `CustomTheme` (now just the colour palette),
   `DEFAULT_CUSTOM_THEME`, `customThemeSeed`, `coerceCustomTheme`.
-- **`fonts.ts`** — `loadFontFamily`, `loadAllFontFamilies`.
+- **`fonts.ts`** — `registerFontLoaders`, `loadFontFamily`,
+  `loadAllFontFamilies`, `loadableFontFamilies` (+ `FontLoader`, `FontLoaders`,
+  `NonDefaultFamily`). The `@fontsource/*` batteries live behind the separate
+  `./theme/fontsource` import.
 - **`engine.ts`** — `useApplyTheme` (+ `ThemeAppearance`,
   `DEFAULT_THEME_APPEARANCE`), and the pure primitives `applyThemePreset`,
   `applyFontFamily`, `applyFontScale`, `applyUiStyle`, `clearUiStyle`,

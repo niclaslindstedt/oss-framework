@@ -1,7 +1,7 @@
 # Standard developer entry points (OSS_SPEC §9). CI invokes these exact
 # targets so local and CI environments stay in sync.
 
-.PHONY: build release test lint fmt fmt-check clean candidates clone-apps bump changelog check-changeset dev-demo build-demo
+.PHONY: build release test lint fmt fmt-check size clean candidates clone-apps bump changelog check-changeset dev-demo build-demo
 
 build: ## Developer build (ESM + CJS + d.ts)
 	npm run build
@@ -19,6 +19,9 @@ fmt: ## Format the codebase in place
 
 fmt-check: ## Verify formatting without modifying files
 	npm run fmt:check
+
+size: ## Check what one import costs against the budgets (needs a build)
+	npm run size:check
 
 clean: ## Remove build artifacts
 	rm -rf dist

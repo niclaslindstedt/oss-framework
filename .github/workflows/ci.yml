@@ -25,6 +25,9 @@ jobs:
       - run: make lint
       - run: make test
       - run: make build
+      # What one import costs. Runs against the freshly built dist/ so it
+      # measures the published package, resolution rules and all.
+      - run: make size
 
   changeset:
     # Enforce that every PR touching the published `src/` surface drops a

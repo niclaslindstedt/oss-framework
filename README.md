@@ -132,6 +132,71 @@ See [`demo/vite.config.ts`](demo/vite.config.ts) for the wiring in context.
 Both runtimes stay supported: `src/` keeps importing from `"react"`, and the
 published package works unchanged for React consumers.
 
+## Importing only what you need
+
+Every export is reachable three ways, and they cost the same:
+
+```ts
+import { Button } from "@niclaslindstedt/oss-framework"; //         the root barrel
+import { Button } from "@niclaslindstedt/oss-framework/components"; // a module
+import { Button } from "@niclaslindstedt/oss-framework/components/Button"; // one file
+```
+
+The barrels are re-export maps, not bundles: the package is ESM-first with
+`sideEffects` declared, so a bundler drops everything you didn't name. Measured
+on the published `dist/`, minified, `react` external — `make size` prints this
+table and CI fails a PR that breaks it:
+
+| Import                                | Cost   |
+| ------------------------------------- | ------ |
+| `formatBytes` (root **or** `/format`) | 374 B  |
+| `Button` (root, `/components`, deep)  | 727 B  |
+| `useEscapeKey` (deep)                 | 259 B  |
+| `Modal` (portal, focus trap, lock)    | 4.5 kB |
+| `compileQuery` (the search matcher)   | 2.4 kB |
+
+So **reach for the root barrel** unless you have a reason not to. The deep
+per-file subpaths (`./components/*`, `./hooks/*`) exist for the two consumers
+that get no tree-shaking: a CommonJS `require()`, which pulls every module
+behind a barrel it touches (`require(".../components")` is 106 kB;
+`require(".../components/Button")` is 1.1 kB), and a browser loading the
+package over an import map, which fetches whole files.
+
+### Stylesheets
+
+CSS is the one part of the package a bundler cannot shake, so it is split
+instead. The zero-config import carries all thirteen built-in themes; the split
+path carries the ones you offer:
+
+```css
+/* everything — 14.3 kB */
+@import "@niclaslindstedt/oss-framework/styles.css";
+
+/* or: structure, plus the themes this app actually offers — 9.7 kB */
+@import "@niclaslindstedt/oss-framework/styles/base.css";
+@import "@niclaslindstedt/oss-framework/styles/theme/nord.css";
+@import "@niclaslindstedt/oss-framework/styles/theme/dracula.css";
+```
+
+Both are generated from the same palette data, so they cannot drift.
+`installPresetTokens(["nord", "dracula"])` is the runtime equivalent for an app
+that injects its colours rather than importing them.
+
+### Webfonts
+
+The framework knows _when_ a family is needed, not where its bytes come from —
+so nothing in the published output names a font package you might not have
+installed. Opt into the bundled loaders with one import, or register your own:
+
+```ts
+import "@niclaslindstedt/oss-framework/theme/fontsource"; // needs the @fontsource/* peers
+// …or
+registerFontLoaders({ sans: () => import("./my-font.css") });
+```
+
+With neither, non-default families resolve to a no-op and the UI keeps the
+default face. See [`src/theme/README.md`](src/theme/README.md#fonts).
+
 ## API
 
 The public surface grows as functionality is migrated out of the source apps.

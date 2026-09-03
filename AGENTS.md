@@ -20,14 +20,15 @@ each other.
 
 Use the Makefile targets (OSS_SPEC §9); CI invokes the same ones.
 
-| Command          | What it does                                                  |
-| ---------------- | ------------------------------------------------------------- |
-| `make build`     | Bundle the library with tsup (ESM + CJS + d.ts)               |
-| `make test`      | Run the Vitest suite                                          |
-| `make lint`      | ESLint + `tsc --noEmit` (library **and** demo), zero warnings |
-| `make fmt`       | Format in place with Prettier                                 |
-| `make fmt-check` | Verify formatting without writing                             |
-| `make clean`     | Remove `dist/`                                                |
+| Command          | What it does                                                    |
+| ---------------- | --------------------------------------------------------------- |
+| `make build`     | Bundle the library with tsup (ESM + CJS + d.ts)                 |
+| `make test`      | Run the Vitest suite                                            |
+| `make lint`      | ESLint + `tsc --noEmit` (library **and** demo), zero warnings   |
+| `make fmt`       | Format in place with Prettier                                   |
+| `make fmt-check` | Verify formatting without writing                               |
+| `make size`      | Check what one import costs against the budgets (after a build) |
+| `make clean`     | Remove `dist/`                                                  |
 
 `npm run <script>` works for every target too (see `package.json`). `make lint`
 type-checks the `demo/` workspace as well as the library (`npm run typecheck
@@ -41,9 +42,10 @@ you finish — no matter who introduced it.** A pre-existing failure is not
 someone else's problem to route around; treat "it was already broken" as a bug
 to close, not an excuse to leave it. Concretely:
 
-- Never land work while `make lint`, `make test`, `make build`, or `make
-fmt-check` is red. If a check you didn't touch is failing, fix it (or, if it's
-  genuinely out of scope, say so explicitly rather than ignoring it).
+- Never land work while `make lint`, `make test`, `make build`, `make
+fmt-check`, or `make size` is red. If a check you didn't touch is failing, fix
+  it (or, if it's genuinely out of scope, say so explicitly rather than
+  ignoring it).
 - When you run a check that isn't yet in the gate (e.g. you type-check a
   workspace by hand) and it surfaces errors, fix them **and** wire that check
   into the gate so they can't come back. Errors you can see but the gate can't
@@ -126,6 +128,7 @@ src/
 | Encryption / migration logic     | `src/encryption/`                                                           |
 | A test                           | `tests/<name>.test.ts` (see below)                                          |
 | A new public subpath export      | `src/<mod>/index.ts` + `tsup.config.ts` + `package.json` `exports`          |
+| A new component / hook           | Just the file — its deep subpath is globbed (see "What one import costs")   |
 | A user-facing change (changelog) | a `.changes/unreleased/` fragment (see "Cutting a release")                 |
 | Showing off a component          | wire it into the reference app under `demo/src/app/` (see `demo/README.md`) |
 
@@ -139,6 +142,31 @@ skill — it ranks what to pull next and how to treat each tier.
 - Source files must stay under **1000 physical lines** (§20.5). When
   extracting a large app file (e.g. `useStorageBackend.ts`, ~2000 lines),
   split it by concern as part of the migration — do not lift the monolith.
+
+## What one import costs
+
+The package is ESM-first with `sideEffects` declared, so importing one symbol
+pulls that symbol and nothing else — from the root barrel exactly as from a
+module subpath. `make size` (CI runs it after `make build`) measures that
+against the built `dist/` through a real `node_modules` symlink, so the
+`exports` map and `sideEffects` list are exercised the way a consumer exercises
+them. Budgets live in [`scripts/size/budgets.mjs`](scripts/size/budgets.mjs).
+
+Two rules follow, and they are easy to break by accident:
+
+- **Never put a bare specifier for an optional peer in a module anything else
+  imports.** A bundler resolves every specifier in a graph _before_ it shakes
+  anything out of it, so one stray `import("@some/optional-thing")` makes an
+  app that wanted a `Button` fail to build. Put it behind its own opt-in entry
+  (`src/theme/fontsource.ts` is the worked example) and add that entry to the
+  `sideEffects` array so the bare import survives shaking. The size check fails
+  with the offending specifier named.
+- **Keep module barrels free of side effects.** A barrel that runs code on
+  import — registering something, touching `document`, installing a style —
+  cannot be shaken, and every consumer of the module pays for all of it.
+
+When a budget moves for a good reason, move the number in the same commit and
+say why in the message.
 
 ## Cutting a release
 
