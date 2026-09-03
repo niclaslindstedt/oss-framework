@@ -5,6 +5,7 @@ import {
   bandScale,
   linearScale,
   linearTicks,
+  niceTicks,
   timeScale,
   timeTicks,
 } from "../src/charts/index.ts";
@@ -161,5 +162,60 @@ describe("timeTicks", () => {
   it("handles a zero-span domain", () => {
     const d = new Date(2026, 6, 4);
     expect(timeTicks([d, d])).toEqual([{ value: d, unit: "day" }]);
+  });
+});
+
+describe("niceTicks", () => {
+  it("returns the densest 1/2/5 scale that fits under the cap", () => {
+    // Six lines are allowed, so 0…10 gets the step-2 lattice rather than
+    // settling for the three lines step 5 would give.
+    expect(niceTicks([0, 10], 6)).toEqual({
+      values: [0, 2, 4, 6, 8, 10],
+      decimals: 0,
+    });
+    // The same domain under a tighter cap steps back to the next size up.
+    expect(niceTicks([0, 10], 3)).toEqual({ values: [0, 5, 10], decimals: 0 });
+    expect(niceTicks([0, 10], 2)).toEqual({ values: [0, 10], decimals: 0 });
+  });
+
+  it("never returns more values than the cap allows", () => {
+    for (const max of [1, 2, 3, 4, 5, 8, 13]) {
+      for (const hi of [1, 7, 36.9, 250, 1e5]) {
+        expect(niceTicks([0, hi], max).values.length).toBeLessThanOrEqual(max);
+      }
+    }
+  });
+
+  it("reports the step's own precision, and rounds the labels to it", () => {
+    // The case the decimals exist for: an axis over body temperature, where
+    // an un-snapped step prints 36.500000000000004.
+    const ticks = niceTicks([36.1, 37.4], 4);
+    expect(ticks.decimals).toBe(1);
+    expect(ticks.values).toEqual([36.5, 37]);
+    expect(niceTicks([0, 0.3], 7).decimals).toBe(2);
+    expect(niceTicks([0, 1000], 3).decimals).toBe(0);
+  });
+
+  it("only emits ticks inside the domain", () => {
+    const { values } = niceTicks([3, 17], 5);
+    expect(values[0]).toBeGreaterThanOrEqual(3);
+    expect(values[values.length - 1]).toBeLessThanOrEqual(17);
+  });
+
+  it("keeps a tick that lands exactly on an end", () => {
+    expect(niceTicks([0, 0.6], 7).values).toContain(0.6);
+    expect(niceTicks([2, 8], 4).values).toEqual([2, 4, 6, 8]);
+  });
+
+  it("has no scale worth labelling for a degenerate domain", () => {
+    const none = { values: [], decimals: 0 };
+    expect(niceTicks([5, 5], 5)).toEqual(none);
+    expect(niceTicks([0, Number.NaN], 5)).toEqual(none);
+    expect(niceTicks([0, Number.POSITIVE_INFINITY], 5)).toEqual(none);
+    expect(niceTicks([0, 10], 0)).toEqual(none);
+  });
+
+  it("reads a reversed domain the same way round", () => {
+    expect(niceTicks([10, 0], 6)).toEqual(niceTicks([0, 10], 6));
   });
 });

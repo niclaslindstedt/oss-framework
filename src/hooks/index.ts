@@ -23,6 +23,7 @@ export {
   type PullToRefreshState,
 } from "./usePullToRefresh.ts";
 export { useSwipeDownToClose } from "./useSwipeDownToClose.ts";
+export { useSwipeNav, type SwipeNavOptions } from "./useSwipeNav.ts";
 export {
   useUndoRedoShortcuts,
   type UndoRedoShortcutsParams,

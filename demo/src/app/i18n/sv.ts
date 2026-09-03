@@ -114,6 +114,8 @@ export const sv: Catalog = {
     calendarHeading: "Aktivitetskalender",
     prevMonth: "Föregående månad",
     nextMonth: "Nästa månad",
+    calendarHint:
+      "Tryck på en dag för att avsluta perioden där; håll in en för att återgå till idag.",
     byListHeading: "Öppna rader per lista",
     byListAlt: "Andel öppna rader per lista",
     openTotal: "öppna",

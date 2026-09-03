@@ -163,6 +163,15 @@ export function MonthGrid({
               <div
                 key={cell.key}
                 role="gridcell"
+                // The day this cell stands for, in the markup rather than
+                // only in the closure. A gesture added from *outside* the
+                // grid — a press-and-hold, a drag across a span (see
+                // `useDayPress`) — listens on the element the grid sits in
+                // and has no handler of its own on the cell, so it needs a
+                // way to ask which day it landed on. This is that way, and it
+                // is a smaller claim on the markup than reading the button's
+                // accessible name, which is a localized date string.
+                data-day={cell.key}
                 aria-selected={isSelected || undefined}
                 className="p-0.5"
               >

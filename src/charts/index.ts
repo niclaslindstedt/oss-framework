@@ -7,6 +7,8 @@
 export {
   linearScale,
   linearTicks,
+  niceTicks,
+  type NiceTicks,
   timeScale,
   timeTicks,
   bandScale,

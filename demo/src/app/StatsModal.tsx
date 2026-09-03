@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
   BarChart,
@@ -8,16 +8,17 @@ import {
 } from "@niclaslindstedt/oss-framework/charts";
 import {
   DatePicker,
-  MonthGrid,
+  MonthCalendar,
   addDays,
   dayKeyOf,
+  dayKeyToDate,
   parseDayKey,
+  useDayPress,
   type DayKey,
 } from "@niclaslindstedt/oss-framework/calendar";
 import {
   formatDate,
   formatNumber,
-  monthName,
 } from "@niclaslindstedt/oss-framework/format";
 import {
   ExpressionText,
@@ -144,12 +145,21 @@ export function StatsModal({
   const doneInWindow = counts.reduce((sum, n) => sum + n, 0);
   const totalOpen = byList.reduce((sum, s) => sum + s.value, 0);
 
-  // The month the activity calendar paints — wherever the anchor sits.
-  const gridMonth = parseDayKey(anchor) ?? parseDayKey(todayKey)!;
-  const anchorDate = useMemo(() => {
-    const p = parseDayKey(anchor);
-    return p ? new Date(p.year, p.month - 1, p.day) : new Date();
-  }, [anchor]);
+  // Hold any day in the calendar to drop the window back to the live view —
+  // the shortcut the `DatePicker`'s clear button also offers, as a gesture.
+  const calendarRef = useRef<HTMLDivElement>(null);
+  useDayPress(
+    calendarRef,
+    useCallback(() => setWindowEnd(null), []),
+  );
+
+  // `dayKeyToDate` rather than a hand-rolled `new Date(anchor)`: a `DayKey`
+  // is a calendar day, and parsing the string directly reads it as UTC — a
+  // day early for every reader west of Greenwich.
+  const anchorDate = useMemo(
+    () => dayKeyToDate(anchor) ?? new Date(),
+    [anchor],
+  );
 
   const pickerLabels = {
     placeholder: t("stats.windowEndToday"),
@@ -228,21 +238,26 @@ export function StatsModal({
           <h3 className="pt-1 pb-2 text-xs font-semibold tracking-wider text-muted uppercase">
             {t("stats.calendarHeading")}
           </h3>
-          {/* The framework `MonthGrid` as an activity calendar: the app's
-              marker seam (`renderDay`) paints a dot on days with completions;
-              picking a day re-anchors the activity window above. */}
-          <div className="mx-auto max-w-xs">
-            <div className="pb-1 text-center text-sm font-medium text-fg-bright">
-              {monthName(gridMonth.month, locale)} {gridMonth.year}
-            </div>
-            <MonthGrid
-              year={gridMonth.year}
-              month={gridMonth.month}
+          {/* The framework `MonthCalendar` as an activity calendar — the
+              paging `MonthGrid`, so the heading, the arrows, PageUp/PageDown
+              and the swipe all come with it and this app writes none of them.
+              What stays app-side is what a day *means*: the marker seam
+              (`renderDay`) paints a dot on days with completions, and picking
+              a day re-anchors the activity window above. `useDayPress` adds
+              the second gesture from outside the grid — holding any day drops
+              the window back to the live view. */}
+          <div ref={calendarRef} className="mx-auto max-w-xs">
+            <MonthCalendar
+              anchor={anchor}
               selected={windowEnd}
               onSelect={(key) => setWindowEnd(key === todayKey ? null : key)}
               max={todayKey}
               today={todayKey}
               locale={locale}
+              labels={{
+                prevMonth: t("stats.prevMonth"),
+                nextMonth: t("stats.nextMonth"),
+              }}
               renderDay={(cell) => (
                 <span
                   aria-hidden
@@ -252,6 +267,9 @@ export function StatsModal({
                 />
               )}
             />
+            <p className="pt-2 text-center text-xs text-muted">
+              {t("stats.calendarHint")}
+            </p>
           </div>
         </section>
 
