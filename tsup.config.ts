@@ -1,14 +1,41 @@
+import { readdirSync } from "node:fs";
+
 import { defineConfig } from "tsup";
 
 // Library build. Each entry becomes its own subpath export (see the
 // `exports` map in package.json) so consumers can `import { useEscapeKey }
 // from "@niclaslindstedt/oss-framework"` or pull a narrower slice from
 // `.../hooks` and let their bundler tree-shake the rest.
+//
+// Tree-shaking already makes the barrels cost nothing they shouldn't (the
+// `size` target measures it). The per-file entries below are for the consumers
+// that get no tree-shaking at all: a `require()` of a barrel pulls every
+// module in it, and a browser loading the package over an import map fetches
+// whole files rather than symbols. Those consumers can reach one component or
+// one hook directly — `.../components/Button`, `.../hooks/useEscapeKey` —
+// which the `./components/*` and `./hooks/*` wildcard exports resolve.
+//
+// The list is globbed rather than written out: a new component is a new
+// subpath the moment it lands, with nothing to remember to update, and no way
+// for the two lists to drift apart.
+function moduleEntries(dir: string): Record<string, string> {
+  return Object.fromEntries(
+    readdirSync(`src/${dir}`)
+      .filter(
+        (f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && f !== "index.ts",
+      )
+      .map((f) => [`${dir}/${f.replace(/\.tsx?$/, "")}`, `src/${dir}/${f}`]),
+  );
+}
+
 export default defineConfig({
   entry: {
+    ...moduleEntries("components"),
+    ...moduleEntries("hooks"),
     index: "src/index.ts",
     "hooks/index": "src/hooks/index.ts",
     "theme/index": "src/theme/index.ts",
+    "theme/fontsource": "src/theme/fontsource.ts",
     "changelog/index": "src/changelog/index.ts",
     "storage/index": "src/storage/index.ts",
     "logging/index": "src/logging/index.ts",

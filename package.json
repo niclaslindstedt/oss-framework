@@ -5,7 +5,11 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css",
+    "./dist/theme/fontsource.js",
+    "./dist/theme/fontsource.cjs"
+  ],
   "workspaces": [
     "demo"
   ],
@@ -26,13 +30,25 @@
       "import": "./dist/hooks/index.js",
       "require": "./dist/hooks/index.cjs"
     },
+    "./hooks/*": {
+      "types": "./dist/hooks/*.d.ts",
+      "import": "./dist/hooks/*.js",
+      "require": "./dist/hooks/*.cjs"
+    },
     "./theme": {
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js",
       "require": "./dist/theme/index.cjs"
     },
     "./styles.css": "./dist/styles.css",
+    "./styles/base.css": "./dist/styles/base.css",
+    "./styles/theme/*.css": "./dist/styles/theme/*.css",
     "./theme/framework.css": "./dist/theme/framework.css",
+    "./theme/fontsource": {
+      "types": "./dist/theme/fontsource.d.ts",
+      "import": "./dist/theme/fontsource.js",
+      "require": "./dist/theme/fontsource.cjs"
+    },
     "./changelog": {
       "types": "./dist/changelog/index.d.ts",
       "import": "./dist/changelog/index.js",
@@ -57,6 +73,11 @@
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js",
       "require": "./dist/components/index.cjs"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js",
+      "require": "./dist/components/*.cjs"
     },
     "./checklist": {
       "types": "./dist/checklist/index.d.ts",
@@ -141,6 +162,8 @@
   },
   "scripts": {
     "build": "tsup",
+    "size": "npm run build && node scripts/size/check.mjs",
+    "size:check": "node scripts/size/check.mjs",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -157,12 +180,24 @@
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "peerDependencies": {
+    "@fontsource/inter": "^5.0.0",
+    "@fontsource/opendyslexic": "^5.0.0",
+    "@fontsource/source-serif-4": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "workbox-window": "^7.0.0"
   },
   "peerDependenciesMeta": {
     "workbox-window": {
+      "optional": true
+    },
+    "@fontsource/inter": {
+      "optional": true
+    },
+    "@fontsource/opendyslexic": {
+      "optional": true
+    },
+    "@fontsource/source-serif-4": {
       "optional": true
     }
   },
@@ -176,6 +211,7 @@
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.9",
+    "esbuild": "0.27.7",
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
