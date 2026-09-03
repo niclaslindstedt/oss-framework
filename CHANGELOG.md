@@ -6,6 +6,56 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-09-03
+
+### Added
+
+- **`expression` — infix arithmetic as text** — New `expression` subpath: a zero-dependency evaluator (`evaluate`,
+  `isEvaluable`, `closeParens`, `formatResult`, `formatHex`), the reading behind
+  operator chips and bracket colouring (`expressionSegments`, `depthClass`,
+  `toggleSign`), chain folding for "= then keep going" runs (`chainExpression`),
+  clipboard candidates (`pasteCandidate`), and the two renderers `ExpressionText`
+  and `RevealText`.
+- **Sidebar collapse rails** — `SidebarCollapseRail` folds a docked sidebar away from a click-through rail on
+  its inner edge — revealing itself only as the pointer approaches — and
+  `CollapseRail` is the horizontal strip that folds a footer or a section below
+  it; the pointer tracking behind both ships as the `useEdgeHover` hook.
+- **ActionPill and AnchoredFlash** — `ActionPill` raises a floating pill of two or three verbs over the content they
+  act on — the bar a long press or a selection puts on screen — and
+  `AnchoredFlash` is the small "Copied" label that flicks up over the value it
+  just happened to.
+- **Device-local records and bulk-transfer politeness** — `createIdbStore` gives an app a best-effort keyed record store over IndexedDB
+  for what a device keeps rather than what a backend holds, and
+  `mapLimit` / `withTransientRetries` keep a sweep over hundreds of files inside
+  a provider's throttle and a browser's connection budget.
+- **Phone and postal-address formatting** — `format` gains `parsePhone` / `toStoredPhone` / `phoneDialString` /
+  `extSuffix` for pulling a free-typed phone number apart and spelling it back
+  out, and `addressLines` / `formatAddress` / `mapsUrl` / `parseAddress` for a
+  postal address kept as street, zip and city.
+- **ReorderButtons and LabeledDateInput** — `ReorderButtons` is the tight up/down chevron pair a row hand-orders itself
+  with where there is no width for a drag handle, and `LabeledDateInput` is the
+  uncontrolled date field that survives iOS Safari's wheel picker (which a
+  controlled `<input type="date">` dismisses on every change).
+- **Per-theme stylesheets** — `styles/base.css` plus `styles/theme/<id>.css` let an app import only the
+  themes it offers instead of all thirteen (14.3 kB → 9.7 kB for two), and
+  `installPresetTokens(["nord"])` does the same for the runtime path.
+- **Per-component and per-hook subpaths** — Every component and hook is now reachable as its own file — `.../components/Button`,
+  `.../hooks/useEscapeKey` — which matters for a CommonJS `require()` (106 kB for
+  the components barrel, 1.1 kB for one component) and for loading the package
+  over an import map.
+
+### Changed
+
+- **LogViewer shows the newest line first** — The `LogViewer` panel (the one the sync command centre's "View sync log"
+  section renders) now orders entries newest-first instead of buffer order, and
+  takes an `order` prop — `"newest-first"`, `"oldest-first"`, or a `LogEntry`
+  comparator — that also governs what "Copy" writes.
+- **Webfont loaders are registered by the app** — The `@fontsource/*` imports moved out of the theme module and behind an opt-in
+  `@niclaslindstedt/oss-framework/theme/fontsource` import (or your own
+  `registerFontLoaders`), so the published package no longer names font packages
+  a consumer may not have installed — which previously broke the build of any app
+  that imported so much as a `Button`.
+
 ## [2.4.0] - 2026-07-16
 
 ### Added
