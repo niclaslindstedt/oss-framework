@@ -45,6 +45,9 @@ belong to the framework at all:
 | 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                       |
 | 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                       |
 | 9   | Expression evaluator       | `expression`         | S/M  | Medium       | **Landed** (calc consolidation: evaluator, segment reading, chain folding, paste, `ExpressionText`/`RevealText`)              |
+| 10  | App shell                  | `components`/`hooks` | M    | High         | **Landed** (meds/cycle consolidation: `BottomNav` + `stepDirection`, `useSwipeNav`, `MonthCalendar`, `useDayPress`)           |
+| 11  | Local-first document       | `document`           | L    | High         | Pending (meds/cycle consolidation — the largest remaining duplication)                                                        |
+| 12  | Probability + statistics   | `stats`              | M    | Medium       | Pending (cycle consolidation)                                                                                                 |
 | —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
 | —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
 | —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
@@ -258,6 +261,80 @@ Decisions of record:
 vocabulary; the generic ingredients (`Button`, `useGridRovingTabindex`)
 already exist. Extract a pad only if consumer apps duplicate one.
 
+## 10. App shell — `components` / `hooks` / `calendar` (landed)
+
+Landed from the `meds` and `cycle` consolidation. Both apps are phone-shaped
+local-first PWAs — four bottom tabs, a swipe along them, a month view — and
+both had grown their own copy of the same shell, in places byte for byte
+(`chartAxis.ts` was identical; `useSwipeNav.ts` and `MonthCalendar.tsx`
+differed only in comments).
+
+What landed and why it is the framework's rather than an app's:
+
+- **`BottomNav`** — the `Sidebar`'s counterpart for an app with a handful of
+  destinations used one-handed. With **`stepDirection`**, the pure "which way
+  along the order is this move" function that the screen transition and the
+  swipe must both read, or the animation contradicts the finger.
+- **`useSwipeNav`** — a touch swipe that steps one place along an ordered
+  axis. The interesting part is the refusals (sliders, dialogs, sideways
+  scrollers) and that `data-swipe-ignore` is a _claim_ rather than a veto, so
+  a paging month grid nests inside a paging screen.
+- **`MonthCalendar`** — `MonthGrid` is deliberately just the grid, but every
+  caller that pages it writes the same cursor, heading, arrows and swipe.
+- **`useDayPress`** — press-and-hold on a day cell, added from outside the
+  grid so the grid keeps its one gesture. `MonthGrid` now marks each cell with
+  `data-day`, which is what lets an outside listener answer "which day?"
+  without the app planting a marker inside `renderDay`.
+- **`niceTicks`** — `linearTicks`' sibling: a _cap_ on the tick count rather
+  than a target, plus the label precision, which is the half a caller
+  otherwise re-derives and gets wrong.
+- **`formatDayKey` / `formatMonthLabel` / `dayKeyToDate`** — rendering a
+  `DayKey` as local midnight. `new Date("2026-07-05")` parses as UTC and lands
+  a day early west of Greenwich; that conversion should exist once.
+- **`weekdayOrder`** — `weekdayNames`' index-returning sibling.
+
+## 11. Local-first document — `document` (L, high)
+
+**The largest remaining duplication between the sibling apps**: `meds` and
+`cycle` each carry ~750 lines of near-identical document plumbing, and the
+diff between the two copies of the 490-line sync engine is 60 lines of
+comments, app-name strings and one function reference.
+
+What is generic, and what stays with the app:
+
+| Generic (the framework's)                                                                                                     | The app's                       |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| The `DocBackend` seam and the localStorage backend over an injected codec                                                     | What a document _is_            |
+| Non-destructive read (quarantine unreadable bytes, never blank the key)                                                       | The migration steps             |
+| The store lifecycle: load-on-mount, write-through, `editCount`, `loaded`, `writeFailures`                                     | The edit vocabulary             |
+| The sync engine: adapter selection, debounced push, baseline pull, conflict/auth/throttle handling, OAuth redirect completion | The merge function              |
+| An in-memory backend that _takes over_ storage (the demo-data pattern)                                                        | What the demo document contains |
+| Backup download / restore over the same codec                                                                                 | The file name                   |
+
+Shape: a `useDocument<T>` over `{ key, codec, backend }` exposing
+`update(fn)` for the app to build its own edits on, and a `useSyncEngine<T>`
+parameterized by `{ slug, fileName, appFolder, codec, merge }`. The engine is
+~490 lines and the module-file ceiling is 1000, but it wants splitting by
+concern regardless (credentials, adapter selection, the push/pull loop).
+
+Note the one thing that must **not** cross: the merge. "Last edit wins per
+day" (`cycle`) and "union of taps" (`meds`) are both correct for their app and
+neither is the framework's to choose.
+
+## 12. Probability + statistics — `stats` (M, medium)
+
+`cycle`'s `src/app/stats.ts` is ~300 lines of textbook numerics with no
+domain in it at all: `logGamma`, `regularizedIncompleteBeta`, Student-t
+pdf/cdf, weighted moments, `median`, and a discrete-distribution set
+(`normalize`, `pmfMean`, `pmfStdev`, `pmfQuantile`, `credibleInterval`,
+`convolve`, `pmfMassBetween`). It already has textbook-value tests.
+
+Zero dependencies, pure, no DOM — it is the numeric floor a forecasting or
+scoring app needs and is the reason such an app currently has to vendor its
+own. Pairs naturally with `charts`. One judgement to make on extraction:
+whether the `Pmf` shape (a `{ start, values }` discrete distribution) is
+general enough to publish as-is, or wants a slimmer contract.
+
 ## Rejected / deferred
 
 - **Form validation layer — rejected.** Validation _rules_ are domain by
@@ -265,6 +342,18 @@ already exist. Extract a pad only if consumer apps duplicate one.
   there is no observed duplication across the source apps to extract. What is
   generic already shipped (`ClearableInput`, `InlineEditField` commit/cancel).
 - **Recurrence (RRULE) — deferred** with the calendar module's reasoning.
+- **A percentage formatter — routed to the refactoring roadmap.** Both apps
+  floor a share to a whole percent, print `"<1%"` rather than `"0%"` for a
+  small-but-real value, and reserve a flat `"0%"` for a genuine zero; they
+  differ only on whether a true 1.0 may print as `"100%"`. That is a
+  `formatPercent` option away from being one function in `format`.
+- **`Pill` / `DateSpan` (cycle) — deferred.** The chip itself overlaps
+  `Badge`; the right move is to grow `Badge` a size and a `solid` tone rather
+  than ship a near-twin, and the subgrid span list wants a second consumer
+  before it earns a place.
+- **`cacheIdForBase` (both apps) — deferred to `pwa`.** Nine lines deriving a
+  precache cache id from the bundler `base`; it belongs next to
+  `usePwaUpdate`, but is too small to move on its own.
 - **Drag-and-drop unification — routed to the refactoring roadmap**: unify
   `sidebar/useDragDrop` + the checklist's reorder plumbing behind one
   `useListReorder` when a third consumer appears; it improves existing

@@ -115,6 +115,8 @@ export const en = {
     calendarHeading: "Activity calendar",
     prevMonth: "Previous month",
     nextMonth: "Next month",
+    calendarHint:
+      "Tap a day to end the window there; hold one to return to today.",
     byListHeading: "Open items by list",
     byListAlt: "Share of open items per list",
     openTotal: "open",

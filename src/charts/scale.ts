@@ -67,6 +67,71 @@ export function linearTicks(
   return out;
 }
 
+/** A chosen tick scale: the values to rule and label, and how many decimals
+ *  a label may print. */
+export type NiceTicks = {
+  values: number[];
+  /** The winning step's own precision — a tick never prints a digit finer
+   *  than the interval it marks. */
+  decimals: number;
+};
+
+/**
+ * Tick values for a linear domain under a *cap* on how many there may be,
+ * together with the precision their labels should print at.
+ *
+ * The sibling of `linearTicks`, and the difference is which side of the count
+ * is fixed. `linearTicks` aims at a target and lands near it; this takes a
+ * ceiling and returns the densest 1/2/5-stepped scale that fits under it, so
+ * a plot with room for four gridlines gets four rather than "about five".
+ * That is the shape an axis wants when the number of lines is decided by the
+ * pixels available rather than by taste.
+ *
+ * The other half is `decimals`. Multiplying an index by a fractional step is
+ * where 36.5 becomes 36.500000000000004, and a caller that has to work the
+ * rounding out for itself is a caller that will get it wrong somewhere: the
+ * step's own precision is exactly the digits that survive, so it is returned
+ * with the values rather than left to be re-derived.
+ *
+ * Only ticks *inside* the domain are returned — a label above the top of the
+ * plot is a number the chart does not draw. A degenerate domain (no data, or
+ * every value identical) has no scale worth labelling and yields none.
+ */
+export function niceTicks(
+  domain: readonly [number, number],
+  maxCount: number,
+): NiceTicks {
+  let [lo, hi] = domain;
+  if (lo > hi) [lo, hi] = [hi, lo];
+  const span = hi - lo;
+  if (!Number.isFinite(span) || span <= 0 || maxCount < 1) {
+    return { values: [], decimals: 0 };
+  }
+
+  // From well under the span up to well over it. The last candidates span the
+  // whole domain several times over and so cannot yield more than one line,
+  // which is what guarantees the search ends.
+  const from = Math.floor(Math.log10(span)) - 1;
+  for (let exponent = from; exponent <= from + 5; exponent++) {
+    for (const mantissa of [1, 2, 5]) {
+      const step = mantissa * 10 ** exponent;
+      // The epsilons are against floating point, not against the data: a tick
+      // landing exactly on an end must not be dropped because the division
+      // left it a billionth outside.
+      const first = Math.ceil(lo / step - 1e-9);
+      const last = Math.floor(hi / step + 1e-9);
+      if (last - first + 1 > maxCount) continue;
+      const decimals = Math.max(0, Math.ceil(-Math.log10(step)));
+      const values: number[] = [];
+      for (let i = first; i <= last; i++) {
+        values.push(Number((i * step).toFixed(decimals)));
+      }
+      return { values, decimals };
+    }
+  }
+  return { values: [], decimals: 0 };
+}
+
 /** Linear domain→range scale. A zero-span domain maps to the range midpoint. */
 export function linearScale(
   domain: readonly [number, number],

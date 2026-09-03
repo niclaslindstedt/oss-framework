@@ -36,6 +36,7 @@ export {
 } from "./postal.ts";
 export {
   weekdayNames,
+  weekdayOrder,
   monthName,
   type NameWidth,
   type WeekdayIndex,

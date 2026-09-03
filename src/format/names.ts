@@ -41,6 +41,19 @@ export function weekdayNames(
   return names;
 }
 
+/** The seven weekday *indices* in the order a week starting on
+ *  `weekStartsOn` runs — `weekdayNames`' sibling, for the callers that need
+ *  the numbering rather than the labels. A row of day toggles and the month
+ *  grid above it both lay out on this, so neither has to re-derive the
+ *  rotation and get it a day out. `weekdayOrder(0)` → `[0, 1, …, 6]`;
+ *  `weekdayOrder(1)` → `[1, 2, …, 6, 0]`. */
+export function weekdayOrder(weekStartsOn: WeekdayIndex = 1): WeekdayIndex[] {
+  return Array.from(
+    { length: 7 },
+    (_, i) => ((weekStartsOn + i) % 7) as WeekdayIndex,
+  );
+}
+
 /** The locale's name for a month (1-based: 1 = January … 12 = December).
  *  `monthName(7, "sv-SE")` → `"juli"`. Out-of-range months return an empty
  *  string. */

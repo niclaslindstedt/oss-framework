@@ -3,7 +3,9 @@
 // (year-optional parsing, years-since, next-occurrence); `ics.ts` renders
 // importable iCalendar (RFC 5545) files; `grid.ts` / `range.ts` are the pure
 // day-grid core (`DayKey` identity, month grids, ranges) under the
-// `MonthGrid` and `DatePicker` components.
+// `MonthGrid` / `MonthCalendar` / `DatePicker` components; `format.ts`
+// renders a `DayKey` as local-midnight text, and `useDayPress.ts` adds the
+// press-and-hold gesture a grid cell cannot offer from the inside.
 export {
   parseDateParts,
   yearsSince,
@@ -37,7 +39,15 @@ export {
   type MonthGridOptions,
 } from "./grid.ts";
 export { dayRange, isInRange, extendRange, type DayRange } from "./range.ts";
+export { dayKeyToDate, formatDayKey, formatMonthLabel } from "./format.ts";
 export { MonthGrid, type MonthGridProps } from "./MonthGrid.tsx";
+export {
+  MonthCalendar,
+  DEFAULT_MONTH_CALENDAR_LABELS,
+  type MonthCalendarProps,
+  type MonthCalendarLabels,
+} from "./MonthCalendar.tsx";
+export { useDayPress, type DayPressOptions } from "./useDayPress.ts";
 export {
   DatePicker,
   DEFAULT_DATE_PICKER_LABELS,
