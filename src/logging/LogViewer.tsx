@@ -33,9 +33,7 @@ type LevelFilter = "all" | LogLevel;
  *   a copy of the filtered entries with `Array.prototype.sort`.
  */
 export type LogOrder =
-  | "newest-first"
-  | "oldest-first"
-  | ((a: LogEntry, b: LogEntry) => number);
+  "newest-first" | "oldest-first" | ((a: LogEntry, b: LogEntry) => number);
 
 export type LogViewerLabels = {
   filter: string;

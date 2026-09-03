@@ -311,7 +311,7 @@ export function StorageTab({ sync }: { sync: MockSync }) {
       // retryable failure within budget, wait out the framework's backoff curve
       // and try again. Typed signals (conflict) and the budget ceiling break
       // out to dedicated handling / a hard error.
-      for (let attempt = 0; ; ) {
+      for (let attempt = 0; ;) {
         try {
           const saved = await saveViaBackend(text, baseRevision.current);
           baseRevision.current = saved.revision;

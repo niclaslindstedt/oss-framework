@@ -156,7 +156,7 @@ export function expressionSegments(
     expectOperand = !postfix;
   };
 
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     const ch = text[i]!;
     const two = text.slice(i, i + 2);
 

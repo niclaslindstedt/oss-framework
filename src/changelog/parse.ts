@@ -7,12 +7,7 @@
 // bundler inlines) is cheaper than a build-time codegen step.
 
 export type ChangelogEntryType =
-  | "Added"
-  | "Changed"
-  | "Fixed"
-  | "Removed"
-  | "Security"
-  | "Deprecated";
+  "Added" | "Changed" | "Fixed" | "Removed" | "Security" | "Deprecated";
 
 export interface ChangelogSection {
   type: ChangelogEntryType;
