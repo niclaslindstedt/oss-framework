@@ -59,6 +59,39 @@ const desktopPointer = useDesktopPointer();
 // secondary click to invoke it.
 ```
 
+## `useEdgeHover`
+
+Reveal a control that is otherwise invisible, by watching whether the cursor is
+resting over the band of screen it occupies. Returns `true` while a fine
+pointer sits inside the referenced element's box.
+
+This is what a zero-footprint control needs and plain `:hover` cannot give it:
+an element with `pointer-events: none` never hovers, and one with pointer
+events on steals every press aimed at whatever it covers. So the pointer is
+tracked at the window instead (coalesced to one measurement per frame) and the
+caller flips both the paint and the pointer events on the answer — the
+framework's own `SidebarCollapseRail` is built exactly this way.
+
+```tsx
+import {
+  useDesktopPointer,
+  useEdgeHover,
+} from "@niclaslindstedt/oss-framework/hooks";
+
+const ref = useRef<HTMLButtonElement>(null);
+const hoverCapable = useDesktopPointer();
+// A touch device can never hover, so pass the capability query as `enabled`
+// and keep the control permanently visible there instead of permanently
+// hidden.
+const revealed = !hoverCapable || useEdgeHover(ref, hoverCapable);
+```
+
+The element must be laid out — an `opacity-0` overlay is fine, a
+`display: none` one is not, since a zero-sized box can never be entered. The
+third argument is pixels of grace added around the box _once entered_ (8 by
+default), so a cursor parked on the boundary can't flicker the control in and
+out on every sub-pixel jitter.
+
 ### Migrating an existing media-query hook
 
 A hand-rolled copy is almost always identical — delete it and import this one.

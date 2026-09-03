@@ -37,6 +37,14 @@ export {
   useEdgeSwipeOpen,
   type EdgeSwipeOpenOptions,
 } from "./useEdgeSwipeOpen.ts";
+export {
+  CollapseRail,
+  SidebarCollapseRail,
+  SIDEBAR_PANEL_WIDTH,
+  SIDEBAR_RAIL_WIDTH,
+  type CollapseRailProps,
+  type SidebarCollapseRailProps,
+} from "./CollapseRail.tsx";
 export { useSidebarInset } from "./useSidebarInset.ts";
 export {
   useDragDrop,

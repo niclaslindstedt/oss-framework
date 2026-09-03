@@ -11,6 +11,7 @@ export {
   type LongPressOptions,
 } from "./useLongPress.ts";
 export { useMediaQuery, useDesktopPointer } from "./useMediaQuery.ts";
+export { useEdgeHover } from "./useEdgeHover.ts";
 export {
   useRowSwipe,
   type RowSwipe,
