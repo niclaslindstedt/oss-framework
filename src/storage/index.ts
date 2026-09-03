@@ -130,9 +130,18 @@ export {
   type GdriveFileStoreOptions,
 } from "./gdrive/index.ts";
 export {
+  createIdbDatabase,
   createIdbStore,
+  createInlineIdbStore,
+  type IdbDatabase,
+  type IdbDatabaseOptions,
+  type IdbInlineStore,
+  type IdbKeyedStore,
+  type IdbReadStore,
   type IdbStore,
+  type IdbStoreHandleOptions,
   type IdbStoreOptions,
+  type IdbStoreSchema,
 } from "./idb-store.ts";
 export {
   DEFAULT_TRANSFER_ATTEMPTS,
