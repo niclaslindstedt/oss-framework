@@ -59,7 +59,13 @@ export const CASES = [
     budget: 6500,
   },
   // A pure core with no React in it at all: proof the components sharing a
-  // module barrel stay out of a logic-only import.
+  // module barrel stay out of a logic-only import. `expression` is the sharpest
+  // case — its barrel exports two renderers beside the evaluator.
+  {
+    name: "expression/evaluate",
+    code: `import { evaluate } from "@niclaslindstedt/oss-framework/expression";\nconsole.log(evaluate("1+2"));`,
+    budget: 7500,
+  },
   {
     name: "calendar/buildMonthGrid",
     code: `import { buildMonthGrid } from "@niclaslindstedt/oss-framework/calendar";\nconsole.log(buildMonthGrid(2026, 7, {}));`,
