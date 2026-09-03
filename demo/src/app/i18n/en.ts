@@ -119,6 +119,11 @@ export const en = {
     byListAlt: "Share of open items per list",
     openTotal: "open",
     other: "Other",
+    calcHeading: "Quick calculation",
+    calcAria: "Expression",
+    calcClear: "Clear the expression",
+    calcChain:
+      "A run that carried on from its own result folds back into one expression:",
   },
   screen: {
     addItem: "Add an item…",
