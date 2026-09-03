@@ -25,6 +25,8 @@ defaults.
 | `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard.               |
 | `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav + type-ahead.                                                         |
+| `LabeledInput` / `LabeledTextarea`             | component | Labelled draft fields that commit on blur; `LabeledDateInput` is the uncontrolled date variant iOS's picker survives.                        |
+| `ReorderButtons`                               | component | A tight up/down chevron pair for hand-ordering rows, each end disabling itself.                                                              |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
 | `ContextMenu`                                  | component | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, and viewport clamping built in.            |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
@@ -378,6 +380,38 @@ feeds `RowActionMenu`, so a row offers identical actions through a desktop
 long-press menu and a touch swipe from one declaration. The
 component tags itself `data-drawer-swipe-ignore` so an enclosing `Sidebar`'s
 swipe-to-close stands down while a finger is on the row.
+
+## Hand-ordering and date fields
+
+`ReorderButtons` is the up/down chevron pair a row uses to move itself through
+a list — the keyboard- and mouse-friendly alternative to a drag handle, and the
+one that fits where a row has no width to spend (`useDragDrop` covers the
+touch-first gesture when it does). Each end disables rather than disappears, so
+the column keeps its width and the rows stay aligned.
+
+```tsx
+<ReorderButtons
+  upLabel="Move earlier"
+  downLabel="Move later"
+  canMoveUp={i > 0}
+  canMoveDown={i < rows.length - 1}
+  onMoveUp={() => move(i, -1)}
+  onMoveDown={() => move(i, +1)}
+/>
+```
+
+`LabeledDateInput` is `LabeledInput`'s date sibling, and the difference is not
+cosmetic: the controlled field re-assigns the element's `value` on every
+change, and on iOS Safari re-assigning an `<input type="date">` while its wheel
+picker is open **dismisses the picker** — so spinning to a month closes it and
+the field has to be tapped again. This one stays uncontrolled (`defaultValue` +
+a ref, committing on blur like the rest of the form) and syncs an outside
+change in through the ref only while the field isn't focused, so an active edit
+is never yanked out from under the user.
+
+```tsx
+<LabeledDateInput label="Date" value={date} onCommit={setDate} max={today} />
+```
 
 ## ActionPill — verbs raised over the content
 

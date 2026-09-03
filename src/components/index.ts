@@ -26,10 +26,12 @@ export {
   INLINE_EDIT_FIELD_CLASS,
 } from "./InlineEditField.tsx";
 export {
+  LabeledDateInput,
   LabeledInput,
   LabeledTextarea,
   LABELED_FIELD_CLASS,
 } from "./LabeledField.tsx";
+export { ReorderButtons, type ReorderButtonsProps } from "./ReorderButtons.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
