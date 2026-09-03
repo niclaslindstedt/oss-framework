@@ -129,3 +129,17 @@ export {
   type CreateGdriveAdapterOptions,
   type GdriveFileStoreOptions,
 } from "./gdrive/index.ts";
+export {
+  createIdbStore,
+  type IdbStore,
+  type IdbStoreOptions,
+} from "./idb-store.ts";
+export {
+  DEFAULT_TRANSFER_ATTEMPTS,
+  DEFAULT_TRANSFER_CONCURRENCY,
+  TransientHttpError,
+  isTransientTransferError,
+  mapLimit,
+  withTransientRetries,
+  type TransferRetryOptions,
+} from "./transfer-retry.ts";

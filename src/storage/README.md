@@ -283,6 +283,68 @@ async function trySave(snapshot) {
 }
 ```
 
+## Sweeping many files at once
+
+The save path is one small request; a **sweep** — reading or writing the
+hundreds of files a media-carrying document externalises — is the other shape,
+and it fails differently. `transfer-retry.ts` is what makes one survive a real
+network:
+
+- **`mapLimit(items, limit, fn)`** — `items.map(fn)` with at most `limit` calls
+  in flight, results in input order. This is the actual fix: the throttling a
+  naive `Promise.all` provokes is largely self-inflicted, and past a browser's
+  per-host connection budget a fetch is rejected outright with a bare
+  `TypeError` — nothing is wrong with the file, the request never left.
+  `DEFAULT_TRANSFER_CONCURRENCY` (4) is the sane ceiling.
+- **`withTransientRetries(label, op, options?)`** — retries `op` through a
+  throttle or a transient network failure. A `RateLimitError` waits exactly as
+  long as the provider asked (clamped by `maxWaitMs`, so a hostile
+  `Retry-After` can't wedge the sweep); everything else backs off through
+  `backoffDelayMs`. Gives up after `attempts` (default
+  `DEFAULT_TRANSFER_ATTEMPTS`) and rethrows, so the caller's existing "leave it
+  unread" handling still applies. `wait` is injectable, so a test spends no
+  real seconds asleep.
+- **`isTransientTransferError(err)`** / **`TransientHttpError`** — the
+  predicate and the 5xx signal behind it. Note the deliberate difference from
+  `isRetryableSaveError`: there a `RateLimitError` is _not_ retried, because
+  the save path answers a throttle with its own cooldown; a sweep has no such
+  scheduler, so it waits and carries on.
+
+```ts
+const files = await mapLimit(paths, DEFAULT_TRANSFER_CONCURRENCY, (path) =>
+  withTransientRetries(`read ${path}`, () => store.read(path), { log }).catch(
+    () => null, // a file that stays unreadable is one the app renders without
+  ),
+);
+```
+
+## Keeping records on the device (`createIdbStore`)
+
+A small keyed record store over IndexedDB, for what a _device_ keeps rather
+than what a backend holds: an offline cache of media bytes, an unsaved working
+document, anything document-shaped that must not go in localStorage — which is
+a few megabytes, spent synchronously on the UI thread.
+
+```ts
+const tapes = createIdbStore<string>({
+  dbName: "myapp:scratch", // namespace it; one origin, many apps
+  storeName: "tapes",
+});
+
+await tapes.set(namespaceSlug, markdown);
+const restored = await tapes.get(namespaceSlug); // null on a first visit
+```
+
+Every call is **best-effort**: a private window, a denied quota, IndexedDB
+switched off, a node test environment — all resolve to "nothing there" rather
+than throwing, so a caller never guards the cache it treats as an
+optimisation. Nothing here is a place to keep the only copy of anything.
+
+Keys are out-of-line, so a record is any structured-cloneable value.
+`setMany` / `deleteMany` run as one transaction (all of them land, or none),
+and `indexes` (`name → keyPath` into an object record) lets `getAllBy` read or
+drop one subset — one workspace's records, say — on its own.
+
 ## API surface
 
 - **`adapter.ts`** — `StorageAdapter`, `StoredSnapshot`, `AdapterCapability`,
@@ -298,6 +360,10 @@ async function trySave(snapshot) {
   `refreshDropboxAccessToken`, `deleteDropboxPath`, `dropboxApiArg`.
 - **`gdrive/`** — `createGdriveAdapter`, `createGdriveFileStore`,
   `startGdriveAuth`, `preloadGdriveAuth`, `gdriveWebUrl`, `GDRIVE_SCOPE`.
+- **`idb-store.ts`** — `createIdbStore` (+ `IdbStore`, `IdbStoreOptions`).
+- **`transfer-retry.ts`** — `mapLimit`, `withTransientRetries`,
+  `isTransientTransferError`, `TransientHttpError`,
+  `DEFAULT_TRANSFER_CONCURRENCY`, `DEFAULT_TRANSFER_ATTEMPTS`.
 - **`save-retry.ts`** — `backoffDelayMs` (+ `BackoffOptions`),
   `isRetryableSaveError`, `MAX_TRANSIENT_SAVE_RETRIES`, `OFFLINE_RESUME_MS`.
 - **shared** — `withLocalCache`, `localCacheKey`, `isOfflineError`,
