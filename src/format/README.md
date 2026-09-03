@@ -34,6 +34,23 @@ numbers and `Date`s, unit-testable in node.
   names rotated to start on the given day, Monday by default) and
   `monthName(month, locale?, width?)`. The header strings a month grid
   renders; the calendar module's components consume these.
+- **`phone.ts`** — a phone number as text. `parsePhone` pulls a free-typed
+  one apart into `{ countryCode, national, ext }` (forgiving: anything it
+  can't classify falls through to `national`, and `valid` says whether a
+  digit was found at all); `toStoredPhone` folds it down to the shape worth
+  storing — bare national digits plus the E.164 calling code — and
+  `phoneDialString` spells that back out for a `tel:` link or an export.
+  `extSuffix(ext, label?)` renders the extension. How a _country_ groups its
+  national digits is deliberately not here: that is a convention an app
+  writes with the `digits.ts` primitives.
+- **`postal.ts`** — an address as three structured parts (`street` / `zip` /
+  `city`), which is what lets a card lay one out and hand a clean query to a
+  maps app: `hasAddress`, `addressLines` (street, then the "zip city"
+  locality line, blanks dropped), `formatAddress` (one comma-joined line),
+  `mapsUrl` (the portable `?api=1&query=` deep link — a phone hands it to the
+  installed map app, a desktop opens it in the browser), and `parseAddress`,
+  a best-effort read of an old free-form blob back into the parts, for the
+  migration that introduces them.
 
 ```ts
 import {
@@ -50,6 +67,15 @@ import {
   formatDuration,
   weekdayNames,
   monthName,
+  parsePhone,
+  toStoredPhone,
+  phoneDialString,
+  extSuffix,
+  hasAddress,
+  addressLines,
+  formatAddress,
+  mapsUrl,
+  parseAddress,
 } from "@niclaslindstedt/oss-framework/format";
 ```
 
@@ -85,4 +111,14 @@ formatDuration(4_980_000, "en-US", "narrow"); // "1h 23m"
 weekdayNames("en-US"); // ["Mon", "Tue", …, "Sun"]
 weekdayNames("en-US", "narrow", 0); // ["S", "M", …, "S"] (week starts Sunday)
 monthName(7, "sv-SE"); // "juli"
+
+parsePhone("+46 8 123 456 78"); // { countryCode: "46", national: "812345678", … }
+toStoredPhone("+46 (0)70-123 45 67"); // { value: "0701234567", countryCode: "46" }
+phoneDialString({ value: "701234567", countryCode: "46" }); // "+46701234567"
+extSuffix("42"); // " ext. 42"
+
+addressLines({ street: "Main St 1", zip: "12345", city: "Stockholm" });
+// ["Main St 1", "12345 Stockholm"]
+formatAddress({ street: "Main St 1", city: "Stockholm" }); // "Main St 1, Stockholm"
+parseAddress("Main St 1\n12345 Stockholm"); // { street, zip, city }
 ```

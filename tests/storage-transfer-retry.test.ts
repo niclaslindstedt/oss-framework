@@ -108,7 +108,7 @@ describe("withTransientRetries", () => {
       {
         attempts: 4,
         wait: nowait,
-        log: { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() },
+        log: { info: vi.fn(), warn, error: vi.fn() },
       },
     );
     expect(warn).toHaveBeenCalledOnce();
