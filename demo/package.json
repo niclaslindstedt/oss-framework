@@ -2,7 +2,7 @@
   "name": "@niclaslindstedt/oss-framework-demo",
   "version": "0.0.0",
   "private": true,
-  "description": "Preview site for the OSS Framework — a demo page per component, deployed to GitHub Pages.",
+  "description": "Preview site for the OSS Framework \u2014 a demo page per component, deployed to GitHub Pages.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,9 +15,9 @@
     "workbox-window": "^7.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.1",
+    "@tailwindcss/vite": "^4.3.2",
     "@vitejs/plugin-react": "^6.0.3",
-    "tailwindcss": "^4.3.1",
-    "vite": "^8.1.0"
+    "tailwindcss": "^4.3.2",
+    "vite": "^8.1.3"
   }
 }
