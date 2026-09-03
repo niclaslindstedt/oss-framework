@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import {
+  useEffect,
+  useRef,
   useState,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
@@ -111,6 +113,63 @@ export function LabeledTextarea({
           if (draft !== value) onCommit(draft);
         }}
         className={`${LABELED_FIELD_CLASS} resize-y`}
+      />
+    </label>
+  );
+}
+
+type LabeledDateInputProps = {
+  /** Caption shown above the field (also its accessible name, via <label>). */
+  label: string;
+  /** Committed value, as the `yyyy-mm-dd` a date input speaks. */
+  value: string;
+  /** Called with the field's value on blur, only when it changed. */
+  onCommit: (next: string) => void;
+} & Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "value" | "defaultValue" | "onChange" | "onBlur" | "type"
+>;
+
+/**
+ * A labelled native date field that survives iOS's own date picker.
+ *
+ * {@link LabeledInput} is *controlled*: every change re-assigns the element's
+ * `value`, and on iOS Safari re-assigning an `<input type="date">` value while
+ * its wheel picker is open dismisses the picker — so spinning to a month
+ * closes it and the field has to be tapped again to get to the day. This
+ * variant leaves the input **uncontrolled** (`defaultValue` plus a ref,
+ * committing on blur like the rest of the form), so React never re-assigns
+ * `value` mid-interaction and the picker stays up through month → day → year.
+ *
+ * Changes from outside the field — seeding a default, undo/redo, switching
+ * records — sync in through the ref, but only while the field isn't focused,
+ * so an active edit is never yanked out from under the user.
+ */
+export function LabeledDateInput({
+  label,
+  value,
+  onCommit,
+  ...inputProps
+}: LabeledDateInputProps) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.value !== value && document.activeElement !== el) {
+      el.value = value;
+    }
+  }, [value]);
+  return (
+    <label className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs text-muted">{label}</span>
+      <input
+        {...inputProps}
+        ref={ref}
+        type="date"
+        defaultValue={value}
+        onBlur={(e) => {
+          if (e.currentTarget.value !== value) onCommit(e.currentTarget.value);
+        }}
+        className={LABELED_FIELD_CLASS}
       />
     </label>
   );

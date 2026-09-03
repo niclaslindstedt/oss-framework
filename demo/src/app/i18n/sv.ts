@@ -118,6 +118,11 @@ export const sv: Catalog = {
     byListAlt: "Andel öppna rader per lista",
     openTotal: "öppna",
     other: "Övrigt",
+    calcHeading: "Snabbräkning",
+    calcAria: "Uttryck",
+    calcClear: "Rensa uttrycket",
+    calcChain:
+      "En serie som byggde vidare på sitt eget svar viks ihop till ett uttryck:",
   },
   screen: {
     addItem: "Lägg till en rad…",

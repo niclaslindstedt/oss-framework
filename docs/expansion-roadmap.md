@@ -44,7 +44,7 @@ belong to the framework at all:
 | 6   | Media viewer               | `viewer`             | M    | Med-high     | **Landed** (contacts consolidation: `Lightbox`, `ImageCropper`, `usePanZoom`, transform core; `ZoomPane` can still grow here) |
 | 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                       |
 | 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                       |
-| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | Pending                                                                                                                       |
+| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | **Landed** (calc consolidation: evaluator, segment reading, chain folding, paste, `ExpressionText`/`RevealText`)              |
 | —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
 | —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
 | —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
@@ -225,17 +225,38 @@ pure `virtual-range.ts`. Known risk to test: interaction with
 `usePullToRefresh` scroll ownership. Demo: seed the archive with thousands of
 rows.
 
-## 9. Expression evaluator — `expression` (S/M, medium)
+## 9. Expression evaluator — `expression` (landed)
 
-Tokenizer → Pratt parser → evaluator; no `eval()`/`Function()`. Errors carry
-`{ message, pos, len }` so a caller can underline the offending span.
-`evaluateExpression(src, { variables?, functions?, decimalSeparator? })`, a
-non-throwing `tryEvaluate`, `roundTo` (float hygiene). Default functions:
-`sqrt`, `abs`, `min`, `max`, `round`, `floor`, `ceil`.
+Tokenizer → recursive-descent parser → evaluator; no `eval()`/`Function()`.
+Landed larger than planned, because the calc app had already grown the whole
+shape and it came over as one piece: the evaluator (`evaluate`,
+`isEvaluable`, `closeParens`, `formatResult`, `formatHex`), the _reading_ of
+an expression (`expressionSegments` → operator chips, symbol functions,
+bracket depth; `depthClass`; `toggleSign`), chain folding
+(`chainExpression` over a generic `ChainStep`), clipboard candidates
+(`pasteCandidate`), and the two renderers `ExpressionText` / `RevealText`.
 
-**Keypad component: rejected.** A calculator key layout is app vocabulary; the
-generic ingredients (`Button`, `useGridRovingTabindex`) already exist. Extract
-a pad only if consumer apps duplicate one.
+Decisions of record:
+
+- **The source text is the document.** Everything here operates on the
+  expression a user typed, not on a computed number, so an app stores the
+  text and gets the same answer on the next open.
+- **Errors throw `EvalError` with a message a display can show verbatim**,
+  rather than carrying `{ pos, len }` spans. The consumer surface is a
+  cursorless readout, which has nowhere to underline; add the span when a
+  consumer with a text cursor turns up.
+- **Trailing brackets are closed for the caller** (`closeParens`) and
+  juxtaposition multiplies (`5(6+6)`, `2π`, `3sqrt(9)`), because that is how
+  the expression is written on paper.
+- **`RateLimit`-style options over constants**: the symbol-function map is a
+  caller option (`symbols`), not a fixed table.
+- **Paint is `.oss-expr-*` in `framework.css`**, with the three
+  bracket-depth colours mapped to the `link` / `pipe` / `path` theme tokens,
+  so every preset dresses an expression in its own syntax colours.
+
+**Keypad component: still rejected.** A calculator key layout is app
+vocabulary; the generic ingredients (`Button`, `useGridRovingTabindex`)
+already exist. Extract a pad only if consumer apps duplicate one.
 
 ## Rejected / deferred
 

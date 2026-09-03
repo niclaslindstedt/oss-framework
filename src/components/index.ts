@@ -26,10 +26,12 @@ export {
   INLINE_EDIT_FIELD_CLASS,
 } from "./InlineEditField.tsx";
 export {
+  LabeledDateInput,
   LabeledInput,
   LabeledTextarea,
   LABELED_FIELD_CLASS,
 } from "./LabeledField.tsx";
+export { ReorderButtons, type ReorderButtonsProps } from "./ReorderButtons.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
@@ -50,6 +52,13 @@ export {
 export { CipherGlyph } from "./CipherGlyph.tsx";
 export { UnlockGate, type UnlockGateLabels } from "./UnlockGate.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
+export { AnchoredFlash, type AnchoredFlashProps } from "./AnchoredFlash.tsx";
+export {
+  ActionPill,
+  type ActionPillProps,
+  type ActionPillTone,
+  type PillAction,
+} from "./ActionPill.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";
 export {
   PullToRefreshIndicator,

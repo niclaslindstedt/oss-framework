@@ -252,6 +252,57 @@ _outside_ the app's flex layout — a toast on every route, say — can then rea
 `var(--app-content-left, 0px)` to centre over the content area rather than the
 whole window.
 
+## Collapse rails (`SidebarCollapseRail`, `CollapseRail`)
+
+Two chevron-only controls for folding a docked panel down, both drawn as
+chrome rather than as buttons competing with the panel's content.
+
+`SidebarCollapseRail` rides the **inner edge** of the docked panel and folds
+the whole sidebar away. It costs the layout nothing (it is an absolutely
+positioned overlay) and at rest it costs the pointer nothing either: the
+`<button>` is a click-through, full-height sensor whose box `useEdgeHover`
+measures against the cursor, and the grip inside it turns its opacity and its
+pointer events back on together the moment the pointer approaches — so an
+invisible rail can never swallow a press aimed at the app underneath. A device
+with no hover keeps it permanently visible (otherwise a collapsed sidebar could
+never be brought back); `alwaysVisible` pins it for everyone.
+
+```tsx
+import { SidebarCollapseRail } from "@niclaslindstedt/oss-framework/sidebar";
+
+{
+  pinned && (
+    <SidebarCollapseRail
+      collapsed={collapsed}
+      side={menuPosition.side}
+      label={collapsed ? "Show sidebar" : "Hide sidebar"}
+      onClick={() => setCollapsed((v) => !v)}
+    />
+  );
+}
+```
+
+The band it occupies defaults to this shell's own geometry — flush with the
+viewport edge while collapsed (a cursor thrown at the side of the screen lands
+on it without aiming), straddling the panel's inner edge while docked. Pass
+`offset` (a CSS length in from `side`) for a panel that is not
+`SIDEBAR_PANEL_WIDTH` wide.
+
+`CollapseRail` is the horizontal twin: a full-width strip one line tall that
+folds whatever sits below it — a footer, a secondary section — and hands the
+freed rows back to the list above. Pass `last` when collapsing leaves it as the
+panel's final child, and it takes over the bottom safe-area inset the folded
+content was carrying.
+
+```tsx
+<CollapseRail
+  collapsed={footerCollapsed}
+  last={footerCollapsed}
+  label={footerCollapsed ? "Show footer" : "Hide footer"}
+  onClick={() => setFooterCollapsed((v) => !v)}
+/>
+```
+
 ## Drag nav rows between targets (`useDragDrop`)
 
 A headless, pointer-driven (touch + mouse + pen) drag-and-drop primitive for the
