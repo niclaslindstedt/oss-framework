@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-09-03
+
+### Added
+
+- **The phone-shaped app shell** — `BottomNav` (a thumb-reachable bar of destinations, with `stepDirection` for
+  the screen transition that has to agree with the swipe), `useSwipeNav` (a
+  touch swipe that steps one place along an ordered axis and nests via
+  `data-swipe-ignore`), `MonthCalendar` (a `MonthGrid` that pages itself) and
+  `useDayPress` (press-and-hold on a day cell, now that `MonthGrid` marks every
+  cell with `data-day`).
+- **Tick decimals and DayKey rendering** — `niceTicks` picks the densest 1/2/5 gridline scale that fits under a cap on
+  how many lines there may be, and reports the precision their labels should
+  print at; `formatDayKey` / `formatMonthLabel` / `dayKeyToDate` render a
+  `DayKey` as local midnight rather than letting `new Date(key)` shift it a day
+  west of Greenwich; `weekdayOrder` is `weekdayNames`' index-returning sibling.
+
 ## [3.0.0] - 2026-09-03
 
 ### Added
