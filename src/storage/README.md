@@ -320,10 +320,10 @@ const files = await mapLimit(paths, DEFAULT_TRANSFER_CONCURRENCY, (path) =>
 
 ## Keeping records on the device (`createIdbStore`)
 
-A small keyed record store over IndexedDB, for what a _device_ keeps rather
-than what a backend holds: an offline cache of media bytes, an unsaved working
-document, anything document-shaped that must not go in localStorage — which is
-a few megabytes, spent synchronously on the UI thread.
+Keyed record stores over IndexedDB, for what a _device_ keeps rather than what
+a backend holds: an offline cache of media bytes, an unsaved working document,
+anything document-shaped that must not go in localStorage — which is a few
+megabytes, spent synchronously on the UI thread.
 
 ```ts
 const tapes = createIdbStore<string>({
@@ -335,15 +335,79 @@ await tapes.set(namespaceSlug, markdown);
 const restored = await tapes.get(namespaceSlug); // null on a first visit
 ```
 
-Every call is **best-effort**: a private window, a denied quota, IndexedDB
-switched off, a node test environment — all resolve to "nothing there" rather
-than throwing, so a caller never guards the cache it treats as an
-optimisation. Nothing here is a place to keep the only copy of anything.
+Three choices are yours, and each is a decision the module cannot make for you.
 
-Keys are out-of-line, so a record is any structured-cloneable value.
-`setMany` / `deleteMany` run as one transaction (all of them land, or none),
-and `indexes` (`name → keyPath` into an object record) lets `getAllBy` read or
-drop one subset — one workspace's records, say — on its own.
+### Where the key lives
+
+A store with no `keyPath` takes its key **out-of-line**, beside the value, so a
+record can be any structured-cloneable thing — a string of markdown, a byte
+array. `createInlineIdbStore` is the other scheme: the key is read out of the
+record itself, which is what you want when the record already carries its own
+identity.
+
+```ts
+const files = createInlineIdbStore<DeviceFile>({
+  dbName: "myapp:scratch",
+  storeName: "files",
+  keyPath: "path", // a record IS { path, text, … }
+});
+
+await files.put({ path: "notes/a.md", text }); // no key beside it
+```
+
+The choice is permanent — an object store cannot change its key scheme after it
+is created — so the two schemes get different write methods (`set(key, value)`
+vs `put(value)`) rather than one method that throws half the time.
+
+### What a failure means
+
+**Best-effort by default**: a private window, a denied quota, IndexedDB
+switched off, a node test environment — all resolve to "nothing there" rather
+than throwing, so a caller never guards a cache it treats as an optimisation.
+
+Pass **`strict: true`** for a store that is where something _lives_. Then a
+failure rejects, and the caller can surface it as the failed save it is. A
+record that simply isn't there still answers `null` — absent is not a failure.
+
+```ts
+const files = createInlineIdbStore<DeviceFile>({
+  …,
+  strict: true, // a write that doesn't land must not look like a success
+});
+```
+
+### How many stores share one database
+
+IndexedDB versions a **database**, not a store, so every store in one database
+has to be created by the same upgrade — a second store added behind the first's
+back is simply missing when a transaction asks for it. `createIdbDatabase`
+takes the whole schema at once for exactly that reason, and hands out one
+handle per store:
+
+```ts
+const db = createIdbDatabase({
+  name: "myapp:scratch",
+  version: 2,
+  stores: {
+    tapes: {}, // out-of-line keys
+    files: { keyPath: "path" }, // in-line keys
+    media: { keyPath: "key", indexes: { slug: "slug" } },
+  },
+});
+
+const tapes = db.keyedStore<string>("tapes"); // best-effort scratch
+const files = db.inlineStore<DeviceFile>("files", { strict: true }); // a backend
+const media = db.inlineStore<MediaRecord>("media"); // a cache, with an index
+```
+
+Ask for the scheme a store was declared with; asking for the other one throws
+with the store named, rather than failing later inside a transaction.
+`createIdbStore` / `createInlineIdbStore` are sugar over this for the common
+single-store case.
+
+`setMany` / `putMany` / `deleteMany` run as one transaction (all of them land,
+or none), and `indexes` (`name → keyPath` into an object record) lets
+`getAllBy` read one subset — one workspace's records, say — on its own.
 
 ## API surface
 
@@ -360,7 +424,10 @@ drop one subset — one workspace's records, say — on its own.
   `refreshDropboxAccessToken`, `deleteDropboxPath`, `dropboxApiArg`.
 - **`gdrive/`** — `createGdriveAdapter`, `createGdriveFileStore`,
   `startGdriveAuth`, `preloadGdriveAuth`, `gdriveWebUrl`, `GDRIVE_SCOPE`.
-- **`idb-store.ts`** — `createIdbStore` (+ `IdbStore`, `IdbStoreOptions`).
+- **`idb-store.ts`** — `createIdbDatabase`, `createIdbStore`,
+  `createInlineIdbStore` (+ `IdbDatabase`, `IdbStoreSchema`, `IdbKeyedStore`,
+  `IdbInlineStore`, `IdbReadStore`, `IdbStore`, `IdbStoreOptions`,
+  `IdbStoreHandleOptions`).
 - **`transfer-retry.ts`** — `mapLimit`, `withTransientRetries`,
   `isTransientTransferError`, `TransientHttpError`,
   `DEFAULT_TRANSFER_CONCURRENCY`, `DEFAULT_TRANSFER_ATTEMPTS`.

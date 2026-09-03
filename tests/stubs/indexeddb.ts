@@ -7,7 +7,8 @@
 // need — the framework's own rule is to prefer none.
 //
 // Requests resolve on a macrotask so callbacks are assigned before they fire,
-// exactly as the real API guarantees.
+// exactly as the real API guarantees, and reads come back in key order rather
+// than insertion order — also a real guarantee, and one callers lean on.
 
 type Rec = { key: string; value: unknown };
 
@@ -24,6 +25,10 @@ class FakeRequest<T> {
   }
 }
 
+function inKeyOrder(records: Map<string, Rec>): Rec[] {
+  return [...records.values()].sort((a, b) => (a.key < b.key ? -1 : 1));
+}
+
 class FakeIndex {
   constructor(
     private readonly records: Map<string, Rec>,
@@ -31,7 +36,7 @@ class FakeIndex {
   ) {}
   getAll(value: unknown) {
     const req = new FakeRequest<unknown[]>();
-    const hits = [...this.records.values()]
+    const hits = inKeyOrder(this.records)
       .filter(
         (r) => (r.value as Record<string, unknown>)?.[this.keyPath] === value,
       )
@@ -47,6 +52,7 @@ class FakeStore {
     private readonly records: Map<string, Rec>,
     private readonly indexes: Map<string, string>,
     private readonly onWrite: () => void,
+    private readonly keyPath?: string,
   ) {
     this.indexNames = { contains: (name) => this.indexes.has(name) };
   }
@@ -65,16 +71,37 @@ class FakeStore {
   }
   getAll() {
     const req = new FakeRequest<unknown[]>();
-    req.settle([...this.records.values()].map((r) => r.value));
+    req.settle(inKeyOrder(this.records).map((r) => r.value));
     return req;
   }
   getAllKeys() {
     const req = new FakeRequest<string[]>();
-    req.settle([...this.records.keys()]);
+    req.settle(inKeyOrder(this.records).map((r) => r.key));
     return req;
   }
-  put(value: unknown, key: string) {
+  put(value: unknown, key?: string) {
     const req = new FakeRequest<string>();
+    // Mirror IndexedDB's own rule: a store with a keyPath reads the key out of
+    // the record and rejects an explicit one; a store without needs one.
+    if (this.keyPath !== undefined) {
+      if (key !== undefined) {
+        setTimeout(() => req.onerror?.(), 0);
+        return req;
+      }
+      const inline = (value as Record<string, unknown>)?.[this.keyPath];
+      if (typeof inline !== "string") {
+        setTimeout(() => req.onerror?.(), 0);
+        return req;
+      }
+      this.records.set(inline, { key: inline, value });
+      this.onWrite();
+      req.settle(inline);
+      return req;
+    }
+    if (key === undefined) {
+      setTimeout(() => req.onerror?.(), 0);
+      return req;
+    }
     this.records.set(key, { key, value });
     this.onWrite();
     req.settle(key);
@@ -99,17 +126,21 @@ class FakeStore {
 class FakeDb {
   readonly stores = new Map<string, Map<string, Rec>>();
   readonly indexes = new Map<string, Map<string, string>>();
+  readonly keyPaths = new Map<string, string | undefined>();
   readonly objectStoreNames = { contains: (n: string) => this.stores.has(n) };
-  createObjectStore(name: string) {
+  createObjectStore(name: string, options?: { keyPath?: string }) {
     this.stores.set(name, new Map());
     this.indexes.set(name, new Map());
+    this.keyPaths.set(name, options?.keyPath);
     return this.objectStore(name, () => {});
   }
   objectStore(name: string, onWrite: () => void) {
+    if (!this.stores.has(name)) throw new Error(`no object store ${name}`);
     return new FakeStore(
       this.stores.get(name) ?? new Map(),
       this.indexes.get(name) ?? new Map(),
       onWrite,
+      this.keyPaths.get(name),
     );
   }
   transaction(name: string) {
