@@ -19,14 +19,27 @@ import {
   formatNumber,
   monthName,
 } from "@niclaslindstedt/oss-framework/format";
+import {
+  ExpressionText,
+  RevealText,
+  chainExpression,
+  evaluate,
+  formatResult,
+  isEvaluable,
+} from "@niclaslindstedt/oss-framework/expression";
 import { flattenNodes } from "@niclaslindstedt/oss-framework/checklist";
-import { CloseIcon, Modal } from "@niclaslindstedt/oss-framework/components";
+import {
+  ClearableInput,
+  CloseIcon,
+  Modal,
+} from "@niclaslindstedt/oss-framework/components";
 
 import { i18n, useLang, useT } from "./i18n/index.ts";
 import type { AppData } from "./types.ts";
 
 // The Statistics dialog — the demo's showcase for the framework's `/charts`
-// surface plus the `/calendar` components and `/format` wrappers. Everything
+// surface plus the `/calendar` components, the `/format` wrappers and the
+// `/expression` renderers. Everything
 // here is the app-side half of those modules' seams: the app decides what a
 // series or a day marker *means* (completions per day, open items per list —
 // its own "archived"/"checked" vocabulary), buckets its own data, and hands
@@ -35,6 +48,15 @@ import type { AppData } from "./types.ts";
 // dialog for free.
 
 const WINDOW_DAYS = 14;
+
+// A worked chain for the `/expression` section: two steps where the second
+// carried on from the first's result, which `chainExpression` folds back into
+// the one expression the pair really was. The app owns what a "step" is; the
+// framework only needs its expression, its result, and whether it continued.
+const CHAIN_STEPS = [
+  { expression: "18+24", result: "42" },
+  { expression: "42/7", result: "6", chained: true },
+] as const;
 
 // Every checked item bucketed by the local day it was completed —
 // `checkedAt` is stamped by the framework's `toggleNode` on every false→true
@@ -106,6 +128,9 @@ export function StatsModal({
   // picking a past day inspects that fortnight instead.
   const [windowEnd, setWindowEnd] = useState<DayKey | null>(null);
   const anchor = windowEnd ?? todayKey;
+  // The scratch expression the `/expression` section evaluates, seeded with a
+  // sum over the numbers this dialog just showed.
+  const [expression, setExpression] = useState("");
 
   const byDay = useMemo(() => completionsByDay(data), [data]);
   const { labels, counts } = useMemo(
@@ -227,6 +252,53 @@ export function StatsModal({
                 />
               )}
             />
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <h3 className="pt-1 pb-2 text-xs font-semibold tracking-wider text-muted uppercase">
+            {t("stats.calcHeading")}
+          </h3>
+          {/* The framework's `/expression` module end to end: what is typed is
+              read by `RevealText` (operators lift into chips, bracket groups
+              take their own colour, each new character slides in), and the
+              same text is evaluated by the module's own parser — no `eval`.
+              The app owns only the field and what it seeds it with. */}
+          <div className="rounded-md border border-line bg-surface-2 px-3 py-2">
+            <ClearableInput
+              value={expression}
+              onValueChange={setExpression}
+              placeholder={`${doneInWindow}/${WINDOW_DAYS}`}
+              aria-label={t("stats.calcAria")}
+              clearLabel={t("stats.calcClear")}
+              inputMode="text"
+              className="text-sm"
+            />
+          </div>
+          <div className="mt-2 flex min-h-9 items-baseline justify-between gap-3 px-1">
+            <RevealText text={expression} className="text-lg text-fg-bright" />
+            <span className="shrink-0 text-lg font-semibold text-accent tabular-nums">
+              {expression && isEvaluable(expression)
+                ? formatResult(evaluate(expression))
+                : ""}
+            </span>
+          </div>
+          {/* `chainExpression` folds a run of "= then keep going" steps back
+              into the single expression they add up to — bracketing only where
+              the grammar would otherwise re-associate it. */}
+          <p className="mt-3 px-1 text-xs text-muted">{t("stats.calcChain")}</p>
+          <div className="px-1 text-sm text-fg">
+            <ExpressionText
+              text={CHAIN_STEPS[0].expression}
+              className="oss-expr-soft"
+            />
+            {" → "}
+            <ExpressionText
+              text={CHAIN_STEPS[1].expression}
+              className="oss-expr-soft"
+            />
+            {" = "}
+            <ExpressionText text={chainExpression([...CHAIN_STEPS], 1) ?? ""} />
           </div>
         </section>
 

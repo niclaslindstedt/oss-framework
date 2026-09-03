@@ -25,6 +25,8 @@ defaults.
 | `InlineEditRow`                                | component | In-place rename/create text editor: focus-and-select on mount, Enter/blur-commit, Escape-cancel, post-Enter double-fire guard.               |
 | `InlineEditField`                              | component | The bare `<input>` behind `InlineEditRow` (no row chrome) — drop it wherever a label sits; `INLINE_EDIT_FIELD_CLASS` is its default styling. |
 | `SelectPicker`                                 | component | Custom `<select>` replacement: listbox dropdown with full keyboard nav + type-ahead.                                                         |
+| `LabeledInput` / `LabeledTextarea`             | component | Labelled draft fields that commit on blur; `LabeledDateInput` is the uncontrolled date variant iOS's picker survives.                        |
+| `ReorderButtons`                               | component | A tight up/down chevron pair for hand-ordering rows, each end disabling itself.                                                              |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
 | `ContextMenu`                                  | component | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, and viewport clamping built in.            |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
@@ -35,6 +37,8 @@ defaults.
 | `PullToRefreshIndicator`                       | component | Slide-down pill that surfaces the `usePullToRefresh` gesture (pull → release → refreshing).                                                  |
 | `FloatingPanel`                                | component | Portalled dropdown/popover shell — float position + dismissal + portal.                                                                      |
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                                           |
+| `ActionPill`                                   | component | A floating pill of two or three verbs, portalled and centred over the content they act on (long-press copy/paste, selection cut/delete).     |
+| `AnchoredFlash`                                | component | Portalled "Copied" label that flicks up over the value it happened to, following the anchor through scrolls.                                 |
 | `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger element or a fixed point; flip + clamp into the viewport.                                             |
 | `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                                            |
 | `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                                            |
@@ -376,6 +380,110 @@ feeds `RowActionMenu`, so a row offers identical actions through a desktop
 long-press menu and a touch swipe from one declaration. The
 component tags itself `data-drawer-swipe-ignore` so an enclosing `Sidebar`'s
 swipe-to-close stands down while a finger is on the row.
+
+## Hand-ordering and date fields
+
+`ReorderButtons` is the up/down chevron pair a row uses to move itself through
+a list — the keyboard- and mouse-friendly alternative to a drag handle, and the
+one that fits where a row has no width to spend (`useDragDrop` covers the
+touch-first gesture when it does). Each end disables rather than disappears, so
+the column keeps its width and the rows stay aligned.
+
+```tsx
+<ReorderButtons
+  upLabel="Move earlier"
+  downLabel="Move later"
+  canMoveUp={i > 0}
+  canMoveDown={i < rows.length - 1}
+  onMoveUp={() => move(i, -1)}
+  onMoveDown={() => move(i, +1)}
+/>
+```
+
+`LabeledDateInput` is `LabeledInput`'s date sibling, and the difference is not
+cosmetic: the controlled field re-assigns the element's `value` on every
+change, and on iOS Safari re-assigning an `<input type="date">` while its wheel
+picker is open **dismisses the picker** — so spinning to a month closes it and
+the field has to be tapped again. This one stays uncontrolled (`defaultValue` +
+a ref, committing on blur like the rest of the form) and syncs an outside
+change in through the ref only while the field isn't focused, so an active edit
+is never yanked out from under the user.
+
+```tsx
+<LabeledDateInput label="Date" value={date} onCommit={setDate} max={today} />
+```
+
+## ActionPill — verbs raised over the content
+
+A floating bar of two or three verbs, portalled over the thing they act on:
+one rounded pill, split by a hairline seam, centred on an anchor's measured
+box. Use it where the actions belong _to_ the content rather than to a header
+— copy and paste over a field a long press just claimed, cut and delete over a
+selected row.
+
+```tsx
+import {
+  ActionPill,
+  CopyIcon,
+} from "@niclaslindstedt/oss-framework/components";
+
+<ActionPill
+  open={pillOpen}
+  anchorRef={displayRef}
+  ariaLabel="Clipboard"
+  actions={[
+    {
+      label: "Copy",
+      tone: "link",
+      icon: <CopyIcon className="h-5 w-5 shrink-0" />,
+      disabled: value === "",
+      onSelect: copy,
+    },
+    {
+      label: paste ? `Paste ${paste}` : "Paste",
+      // Name what would actually land: a number salvaged out of prose is not
+      // what the user copied, and saying so is the difference between a paste
+      // and a surprise.
+      ariaLabel: paste ? `Paste ${paste}` : "Paste",
+      disabled: paste === null,
+      onSelect: doPaste,
+    },
+  ]}
+  onDismiss={() => setPillOpen(false)}
+/>;
+```
+
+`open` drives the fade rather than the mount, so the pill slides away instead
+of vanishing, and a closed pill takes no presses. It dismisses on Escape and on
+the next press anywhere else (a `DismissBackdrop`, so the press that puts it
+away never reaches what is underneath). A disabled half dims but keeps its
+place, so the pill never changes shape under the finger. Tones are `accent`
+(the default), `link`, `danger` and `neutral`; `gapPx` moves the bar down from
+the anchor's top edge.
+
+Being portalled matters twice over: an app shell clips its own overflow, so a
+bar nested in the content would be sheared at exactly the edges it has to hover
+over — and out of the tree, a press on it cannot reach the anchor's own gesture
+handlers underneath.
+
+## AnchoredFlash — "Copied" over the value itself
+
+A small label that flicks up over the thing that just happened, so the eye
+never leaves the value. Drive it straight off a self-clearing flag: `label` is
+`null` when there is nothing to confirm.
+
+```tsx
+const rowRef = useRef<HTMLDivElement>(null);
+const [flash, setFlash] = useState<string | null>(null);
+
+<AnchoredFlash label={flash} anchorRef={rowRef} />;
+```
+
+It rides the anchor's top edge, half above and half below, and drops just
+inside the anchor instead when that would take it off the top of the screen. It
+is portalled and follows the anchor through scrolls and resizes — a label
+nested in a row is clipped by the row's scroll container, which shears the
+confirmation for the topmost row in half.
 
 ## ContextMenu — a menu at the cursor
 

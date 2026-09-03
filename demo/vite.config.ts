@@ -164,6 +164,10 @@ export default defineConfig({
         replacement: here("../src/viewer/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/expression",
+        replacement: here("../src/expression/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
