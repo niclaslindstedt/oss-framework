@@ -50,6 +50,13 @@ export {
 export { CipherGlyph } from "./CipherGlyph.tsx";
 export { UnlockGate, type UnlockGateLabels } from "./UnlockGate.tsx";
 export { FloatingPanel } from "./FloatingPanel.tsx";
+export { AnchoredFlash, type AnchoredFlashProps } from "./AnchoredFlash.tsx";
+export {
+  ActionPill,
+  type ActionPillProps,
+  type ActionPillTone,
+  type PillAction,
+} from "./ActionPill.tsx";
 export { DismissBackdrop } from "./DismissBackdrop.tsx";
 export {
   PullToRefreshIndicator,
