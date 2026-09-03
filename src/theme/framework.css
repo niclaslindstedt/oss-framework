@@ -189,3 +189,154 @@
 .drawer-backdrop {
   animation: drawer-backdrop-in 300ms ease-out;
 }
+
+/* ── Expression rendering ───────────────────────────────────────────────────
+   The `expression` module's two renderers (`ExpressionText`, `RevealText`)
+   reference these classes by name, the way the drawer does its keyframes, so
+   an app can retune the look without forking the components.
+
+   The per-character reveal. Each glyph is its own inline-block so it can slide
+   in from the right as the line settles left of it; `backwards` holds it
+   invisible through its stagger delay, and `pre` keeps a leading/trailing
+   space (a formatted result, a pasted expression) from collapsing. Short and
+   eased-out — the readout should keep up with the keys, never queue behind
+   them. */
+@keyframes oss-expr-char-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.45em) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.oss-expr-char {
+  display: inline-block;
+  white-space: pre;
+  animation: oss-expr-char-in 130ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oss-expr-char {
+    animation: none;
+  }
+}
+
+/* Operators, as glyph chips. An expression is read as values with operations
+   between them (`expression/segments.ts` does the splitting), so the operators
+   are set the way they sit on a keypad: a bordered accent chip with air either
+   side, rather than a character wedged between two digits. Sized in `em`
+   throughout so the same chip serves a headline expression and a list row's
+   small print without a second rule. */
+.oss-expr-op {
+  display: inline-block;
+  margin-inline: 0.24em;
+  padding-inline: 0.32em;
+  padding-block: 0.04em;
+  color: var(--accent);
+  /* Frame and fill follow the chip's own ink, so a chip inside a bracket
+     takes that group's colour along with the digits around it (below). */
+  border: 1px solid color-mix(in oklab, currentColor 45%, transparent);
+  border-radius: 0.32em;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  /* The chip must not grow the line it sits on — a readout bottom-aligned
+     inside a clipped box would otherwise have its top edge pushed out of
+     view. */
+  line-height: 1;
+  vertical-align: baseline;
+}
+
+/* At the start or the end of a line the outer margin is dead space that
+   pushes the text off its own edge — a right-aligned column would let a
+   trailing operator float away from it. */
+.oss-expr-op:first-child {
+  margin-inline-start: 0;
+}
+
+.oss-expr-op:last-child {
+  margin-inline-end: 0;
+}
+
+/* Functions drawn as a symbol (`DEFAULT_EXPRESSION_SYMBOLS`, or the caller's
+   own): the stored `sqrt(` is set as `√(`, the glyph accented so the operation
+   stands out of the digits it wraps. No chip — the bracket beside it is plain,
+   and a box around one half of `√(` would frame a call that isn't closed until
+   its `)`. Slightly heavier because a single stroke has to read at small sizes
+   next to a mono digit. */
+.oss-expr-fn {
+  display: inline-block;
+  white-space: pre;
+  color: var(--accent);
+  font-weight: 600;
+  padding-inline-end: 0.04em;
+}
+
+/* Brackets, by colour. `2×(3+(4−1))` says nothing about where one group ends
+   and the next begins when it is all one ink, so each depth takes a colour of
+   its own and everything it holds — the brackets, the digits, the operator
+   chips between them — wears it. What is inside is then read at a glance
+   rather than counted.
+
+   The colours are theme tokens rather than fixed hexes, so every preset (and a
+   custom palette) dresses an expression in its own syntax colours: link, pipe
+   and path are the three the framework carries that are distinct from each
+   other, from `accent` (the ink of a chip out in the open) and from the page's
+   own text. Three is the whole set — `depthClass()` starts them over past
+   that, so a fourth level of nesting never lands on no colour at all. */
+:root {
+  --oss-expr-depth-1: var(--link);
+  --oss-expr-depth-2: var(--pipe);
+  --oss-expr-depth-3: var(--path);
+}
+
+/* The rose-pine pair spell `link` and `pipe` with the same violet, so the
+   default mapping would give two nested groups the one colour. Both borrow
+   `meta` for the level that would have repeated. */
+:root[data-theme="rosePine"] {
+  --oss-expr-depth-2: var(--meta);
+  --oss-expr-depth-3: var(--path);
+}
+
+:root[data-theme="rosePineDawn"] {
+  --oss-expr-depth-1: var(--flag);
+  --oss-expr-depth-2: var(--pipe);
+  --oss-expr-depth-3: var(--meta);
+}
+
+/* Mixed against the ink the line already carries, at full strength by default:
+   set `--oss-expr-strength` below 100% on a container whose expression is
+   small print, so it stays as quiet as the rest of the row while still reading
+   in colour. These sit after `.oss-expr-op` and `.oss-expr-fn` so a chip — or
+   a `√` — inside a bracket takes the group's colour rather than the accent. */
+.oss-expr-depth-1 {
+  color: color-mix(
+    in oklab,
+    var(--oss-expr-depth-1) var(--oss-expr-strength, 100%),
+    currentColor
+  );
+}
+
+.oss-expr-depth-2 {
+  color: color-mix(
+    in oklab,
+    var(--oss-expr-depth-2) var(--oss-expr-strength, 100%),
+    currentColor
+  );
+}
+
+.oss-expr-depth-3 {
+  color: color-mix(
+    in oklab,
+    var(--oss-expr-depth-3) var(--oss-expr-strength, 100%),
+    currentColor
+  );
+}
+
+/* A caption-weight expression — one set under its own result, or in a list
+   row — pulls the bracket colours back toward that dimmer ink. Where the
+   expression is the thing being written, leave it off and they stay whole. */
+.oss-expr-soft {
+  --oss-expr-strength: 66%;
+}

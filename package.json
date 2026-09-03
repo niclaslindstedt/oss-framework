@@ -137,6 +137,11 @@
       "types": "./dist/viewer/index.d.ts",
       "import": "./dist/viewer/index.js",
       "require": "./dist/viewer/index.cjs"
+    },
+    "./expression": {
+      "types": "./dist/expression/index.d.ts",
+      "import": "./dist/expression/index.js",
+      "require": "./dist/expression/index.cjs"
     }
   },
   "scripts": {
