@@ -147,13 +147,14 @@ The barrels are re-export maps, not bundles: the package is ESM-first with
 on the published `dist/`, minified, `react` external — `make size` prints this
 table and CI fails a PR that breaks it:
 
-| Import                                | Cost   |
-| ------------------------------------- | ------ |
-| `formatBytes` (root **or** `/format`) | 374 B  |
-| `Button` (root, `/components`, deep)  | 727 B  |
-| `useEscapeKey` (deep)                 | 259 B  |
-| `Modal` (portal, focus trap, lock)    | 4.5 kB |
-| `compileQuery` (the search matcher)   | 2.4 kB |
+| Import                                                       | Cost   |
+| ------------------------------------------------------------ | ------ |
+| `formatBytes` (root **or** `/format`)                        | 374 B  |
+| `Button` (root, `/components`, deep)                         | 727 B  |
+| `useEscapeKey` (deep)                                        | 259 B  |
+| `compileQuery` (the search matcher)                          | 2.4 kB |
+| `Modal` (portal, focus trap, scroll lock)                    | 4.5 kB |
+| `evaluate` (the parser, not the two renderers in its barrel) | 5.1 kB |
 
 So **reach for the root barrel** unless you have a reason not to. The deep
 per-file subpaths (`./components/*`, `./hooks/*`) exist for the two consumers
@@ -169,10 +170,10 @@ instead. The zero-config import carries all thirteen built-in themes; the split
 path carries the ones you offer:
 
 ```css
-/* everything — 14.3 kB */
+/* everything — 19.9 kB */
 @import "@niclaslindstedt/oss-framework/styles.css";
 
-/* or: structure, plus the themes this app actually offers — 9.7 kB */
+/* or: structure, plus the themes this app actually offers — 15.4 kB */
 @import "@niclaslindstedt/oss-framework/styles/base.css";
 @import "@niclaslindstedt/oss-framework/styles/theme/nord.css";
 @import "@niclaslindstedt/oss-framework/styles/theme/dracula.css";
