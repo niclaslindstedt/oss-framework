@@ -74,9 +74,7 @@ export type PwaUpdateState = {
 //   "unavailable"   — no service worker to check against (dev build, an
 //                     unsupported browser, or registration failed).
 export type PwaUpdateCheckResult =
-  | "update-found"
-  | "up-to-date"
-  | "unavailable";
+  "update-found" | "up-to-date" | "unavailable";
 
 const HOUR_MS = 60 * 60 * 1000;
 const POLL_MS = 200;

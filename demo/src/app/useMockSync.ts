@@ -30,11 +30,7 @@ const syncLog = logStore.createLogger("sync");
 
 export type SyncBackend = "local" | "cloud";
 export type SyncFault =
-  | "none"
-  | "offline"
-  | "auth-error"
-  | "conflict"
-  | "throttled";
+  "none" | "offline" | "auth-error" | "conflict" | "throttled";
 
 // The cloud drives a real local-first PWA can sync to. The demo's cloud is
 // simulated (see the header note), so these differ only in their display name

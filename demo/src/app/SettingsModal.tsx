@@ -46,12 +46,7 @@ import {
 // Save (Cancel reverts).
 
 type TabId =
-  | "general"
-  | "appearance"
-  | "editor"
-  | "storage"
-  | "developer"
-  | "logs";
+  "general" | "appearance" | "editor" | "storage" | "developer" | "logs";
 
 // A typed message key (the argument `useT`'s `t` accepts), so each tab's label
 // stays a compile-checked catalog path.

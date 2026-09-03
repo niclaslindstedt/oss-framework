@@ -161,8 +161,8 @@ describe("SyncDetailsModal", () => {
   });
 
   it("reports the probe result while offline", async () => {
-    const onCheckConnection = vi.fn(
-      (): Promise<ConnectionProbeResult> => Promise.resolve("offline"),
+    const onCheckConnection = vi.fn((): Promise<ConnectionProbeResult> =>
+      Promise.resolve("offline"),
     );
     renderModal({ offline: true, onCheckConnection });
     fireEvent.click(screen.getByRole("button", { name: "Check connection" }));
