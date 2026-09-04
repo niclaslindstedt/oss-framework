@@ -48,6 +48,16 @@ export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
 export {
+  SwipeDeck,
+  DECK_SCROLLER,
+  DECK_HOME,
+  DECK_END,
+  type SwipeDeckProps,
+  type DeckAxis,
+  type DeckNav,
+  type DeckRelative,
+} from "./SwipeDeck.tsx";
+export {
   SwipeableRow,
   type SwipeableRowProps,
   type SwipeSide,
@@ -56,6 +66,7 @@ export {
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Section, Field, ToggleRow } from "./SettingsLayout.tsx";
 export { Modal } from "./Modal.tsx";
+export { useDialogDrag, type DialogDrag } from "./useDialogDrag.ts";
 export {
   ConfirmDialog,
   type ConfirmTone,
