@@ -99,6 +99,16 @@ export {
   type ToastStoreOptions,
 } from "./toast.ts";
 export { ToastViewport, type ToastViewportLabels } from "./ToastViewport.tsx";
+export {
+  PLAIN_TEXT_EDITING,
+  readPlainText,
+  writePlainText,
+  plainTextCaret,
+  seatCaretAt,
+  insertPlainText,
+  editorKeyAction,
+  type EditorKey,
+} from "./plainTextEditable.ts";
 export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 export {
   useFloatingPosition,

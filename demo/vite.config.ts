@@ -172,6 +172,10 @@ export default defineConfig({
         replacement: here("../src/order/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/fit",
+        replacement: here("../src/fit/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

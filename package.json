@@ -168,6 +168,11 @@
       "types": "./dist/order/index.d.ts",
       "import": "./dist/order/index.js",
       "require": "./dist/order/index.cjs"
+    },
+    "./fit": {
+      "types": "./dist/fit/index.d.ts",
+      "import": "./dist/fit/index.js",
+      "require": "./dist/fit/index.cjs"
     }
   },
   "scripts": {
