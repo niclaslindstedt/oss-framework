@@ -173,6 +173,16 @@
       "types": "./dist/fit/index.d.ts",
       "import": "./dist/fit/index.js",
       "require": "./dist/fit/index.cjs"
+    },
+    "./color": {
+      "types": "./dist/color/index.d.ts",
+      "import": "./dist/color/index.js",
+      "require": "./dist/color/index.cjs"
+    },
+    "./history": {
+      "types": "./dist/history/index.d.ts",
+      "import": "./dist/history/index.js",
+      "require": "./dist/history/index.cjs"
     }
   },
   "scripts": {

@@ -176,6 +176,14 @@ export default defineConfig({
         replacement: here("../src/fit/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/color",
+        replacement: here("../src/color/index.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/history",
+        replacement: here("../src/history/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },
