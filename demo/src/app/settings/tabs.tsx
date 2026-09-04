@@ -38,6 +38,7 @@ import {
   type MockSync,
   type SyncFault,
 } from "../useMockSync.ts";
+import { KitSections } from "./kit.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -751,6 +752,7 @@ export function DeveloperTab({
           {t("settings.developer.loadLegacy")}
         </Button>
       </Section>
+      <KitSections />
       <Section title={t("settings.developer.buildTitle")}>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
           <dt className="text-muted">framework</dt>
