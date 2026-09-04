@@ -4,7 +4,10 @@
 // copy. The host owns the service-worker *build* (the SW, `version.json`, the
 // precache manifest) and supplies `workbox-window` as an optional peer
 // dependency; the framework owns the drift-prone update-tracking singleton and
-// the prompt UI. Re-exported here under the
+// the prompt UI. `viewport.ts` reads what the device says about the screen
+// (the safe-area insets, the display mode) so a layout bug report comes with
+// evidence, and `shellScroll.ts` pins a one-viewport-tall shell back after the
+// software keyboard has moved it. Re-exported here under the
 // "@niclaslindstedt/oss-framework/pwa" subpath.
 
 export {
@@ -27,3 +30,20 @@ export {
   type CheckForUpdatesLabels,
 } from "./CheckForUpdatesItem.tsx";
 export { isStandaloneMobile, useStandaloneMobile } from "./standalone.ts";
+export {
+  readSafeAreaInsets,
+  readViewportReport,
+  resolveCssLength,
+  displayModeOf,
+  formatInsets,
+  pxOf,
+  INSET_PROBE_PADDING,
+  type SafeAreaInsets,
+  type ViewportReport,
+} from "./viewport.ts";
+export {
+  useShellScrollPin,
+  pinShellScroll,
+  driftPx,
+  shouldPin,
+} from "./shellScroll.ts";

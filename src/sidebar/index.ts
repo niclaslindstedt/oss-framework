@@ -38,6 +38,13 @@ export {
   type EdgeSwipeOpenOptions,
 } from "./useEdgeSwipeOpen.ts";
 export {
+  inEdgeZone,
+  classifyEdgeDrag,
+  EDGE_ZONE_PX,
+  EDGE_OPEN_DISTANCE_PX,
+  type EdgeVerdict,
+} from "./edgeSwipe.ts";
+export {
   CollapseRail,
   SidebarCollapseRail,
   SIDEBAR_PANEL_WIDTH,

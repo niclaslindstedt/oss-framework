@@ -207,18 +207,27 @@ export function Modal({
     : dragOffset > 0
       ? { ...backdropAppearance, opacity: 1 - dragProgress }
       : backdropAppearance;
+  // The card's own offset, when something has moved it. `useDialogDrag` writes
+  // the two custom properties from outside the component (it finds the card by
+  // its `role`), and they are read into `translate` — a separate CSS property
+  // from `transform`, which the swipe-to-close above owns. Two owners of one
+  // property is the bug this avoids; unset, it resolves to no movement at all.
+  const draggedTranslate =
+    "var(--dialog-drag-x, 0px) var(--dialog-drag-y, 0px)";
   const cardStyle = closing
     ? {
+        translate: draggedTranslate,
         transform: `translateY(${dragOffset}px)`,
         opacity: 0,
         transition: `transform ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}, opacity ${SWIPE_DOWN_DISMISS_MS}ms ${exitEase}`,
       }
     : dragOffset > 0
       ? {
+          translate: draggedTranslate,
           transform: `translateY(${dragOffset}px)`,
           transition: dragging ? "none" : "transform 0.2s ease-out",
         }
-      : undefined;
+      : { translate: draggedTranslate };
 
   return createPortal(
     <div className={wrapperClass} style={APP_VIEWPORT_RECT}>

@@ -12,6 +12,11 @@ export { Avatar, type AvatarSize } from "./Avatar.tsx";
 export { Button, type ButtonVariant } from "./Button.tsx";
 export { Badge, type BadgeTone } from "./Badge.tsx";
 export {
+  IconButton,
+  ICON_BUTTON_CLASS,
+  ICON_BUTTON_STATE_CLASS,
+} from "./IconButton.tsx";
+export {
   BottomNav,
   stepDirection,
   type BottomNavProps,
@@ -43,6 +48,16 @@ export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
 export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
 export {
+  SwipeDeck,
+  DECK_SCROLLER,
+  DECK_HOME,
+  DECK_END,
+  type SwipeDeckProps,
+  type DeckAxis,
+  type DeckNav,
+  type DeckRelative,
+} from "./SwipeDeck.tsx";
+export {
   SwipeableRow,
   type SwipeableRowProps,
   type SwipeSide,
@@ -51,6 +66,7 @@ export {
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl.tsx";
 export { Section, Field, ToggleRow } from "./SettingsLayout.tsx";
 export { Modal } from "./Modal.tsx";
+export { useDialogDrag, type DialogDrag } from "./useDialogDrag.ts";
 export {
   ConfirmDialog,
   type ConfirmTone,
@@ -83,6 +99,16 @@ export {
   type ToastStoreOptions,
 } from "./toast.ts";
 export { ToastViewport, type ToastViewportLabels } from "./ToastViewport.tsx";
+export {
+  PLAIN_TEXT_EDITING,
+  readPlainText,
+  writePlainText,
+  plainTextCaret,
+  seatCaretAt,
+  insertPlainText,
+  editorKeyAction,
+  type EditorKey,
+} from "./plainTextEditable.ts";
 export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 export {
   useFloatingPosition,

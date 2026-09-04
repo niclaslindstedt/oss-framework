@@ -100,4 +100,34 @@ export const CASES = [
     code: `import { backoffDelayMs } from "@niclaslindstedt/oss-framework/storage";\nconsole.log(backoffDelayMs(1));`,
     budget: 900,
   },
+  // The pure-core modules whose barrels also carry a component (`color`) or a
+  // hook (`history`, `fit`). Same property as `expression/evaluate` above, one
+  // module younger: the arithmetic must not drag its React neighbours in.
+  {
+    name: "color/hexToHsv",
+    code: `import { hexToHsv } from "@niclaslindstedt/oss-framework/color";\nconsole.log(hexToHsv("#abc"));`,
+    budget: 900,
+  },
+  {
+    name: "history/committed",
+    code: `import { committed } from "@niclaslindstedt/oss-framework/history";\nconsole.log(committed({ past: [], future: [] }, 1));`,
+    budget: 900,
+  },
+  {
+    name: "fit/resolveFontPx",
+    code: `import { resolveFontPx } from "@niclaslindstedt/oss-framework/fit";\nconsole.log(resolveFontPx(10, { maxPx: 13, minPx: 8, startAt: 12, floorAt: 90 }, "auto"));`,
+    budget: 900,
+  },
+  {
+    name: "order/applyOrder",
+    code: `import { applyOrder } from "@niclaslindstedt/oss-framework/order";\nconsole.log(applyOrder([{ id: "a" }], ["a"]));`,
+    budget: 900,
+  },
+  // The pager, which is the heaviest single component the library ships after
+  // `Modal` — a gesture, a track and a settle, and nothing else.
+  {
+    name: "components/SwipeDeck",
+    code: `import { SwipeDeck } from "@niclaslindstedt/oss-framework/components";\nconsole.log(SwipeDeck);`,
+    budget: 7800,
+  },
 ];

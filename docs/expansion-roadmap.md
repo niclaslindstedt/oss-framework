@@ -48,6 +48,11 @@ belong to the framework at all:
 | 10  | App shell                  | `components`/`hooks` | M    | High         | **Landed** (meds/cycle consolidation: `BottomNav` + `stepDirection`, `useSwipeNav`, `MonthCalendar`, `useDayPress`)           |
 | 11  | Local-first document       | `document`           | L    | High         | Pending (meds/cycle consolidation — the largest remaining duplication)                                                        |
 | 12  | Probability + statistics   | `stats`              | M    | Medium       | Pending (cycle consolidation)                                                                                                 |
+| 13  | Fitted text                | `fit`                | S/M  | High         | **Landed** (calendar consolidation: pre-layout size band + the measured shrink/clip pass)                                     |
+| 14  | Pager                      | `components`         | M    | High         | **Landed** (calendar consolidation: `SwipeDeck`)                                                                              |
+| 15  | Colour mixing              | `color`              | S/M  | Medium       | **Landed** (paint consolidation: hex ⇄ HSV + `ColorMixer`)                                                                    |
+| 16  | Undo timeline              | `history`            | S    | High         | **Landed** (paint consolidation: pure stacks + `useHistory`)                                                                  |
+| 17  | Stored arrangements        | `order`              | S    | Medium       | **Landed** (paint consolidation)                                                                                              |
 | —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
 | —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
 | —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
@@ -334,6 +339,52 @@ scoring app needs and is the reason such an app currently has to vendor its
 own. Pairs naturally with `charts`. One judgement to make on extraction:
 whether the `Pmf` shape (a `{ start, values }` discrete distribution) is
 general enough to publish as-is, or wants a slimmer contract.
+
+## 13–17. The calendar / paint consolidation (landed)
+
+Five modules and a handful of primitives, mined from the sibling
+[`calendar`](https://github.com/niclaslindstedt/calendar) and
+[`paint`](https://github.com/niclaslindstedt/paint) apps. Each had been built
+twice, or was one app away from being built twice:
+
+- **`fit`** — text sized to a box it cannot leave. A pre-layout band
+  (`resolveFontPx`, `scaleBand`) so the first paint does not flash, then the
+  measured pass (`fitTextSize`, `clipTextToBox`) whose `fits: false` is the part
+  `-webkit-line-clamp` cannot report — and therefore the thing that lets a
+  _writing_ surface refuse the keystroke that would overflow.
+  `components/plainTextEditable.ts` is what makes such a box writable in place,
+  since a `<textarea>` can neither wrap around a float nor shrink.
+- **`SwipeDeck`** — the pager. Three panes on a track, a drag that never
+  re-renders, a commit that swaps the anchor before it animates. Either axis,
+  nestable perpendicular, and able to hand a vertical drag to a scrolling pane
+  until the pane runs out.
+- **`color`** — `ColorMixer` over hex ⇄ HSV. Deliberately not a swatch grid;
+  `glyphs/ColorPalette` is one and the two compose.
+- **`history`** — the state half of `useUndoRedoShortcuts`, generic in what a
+  rung holds, because a rung is _what a step has to put back_ and that is
+  usually more than the document.
+- **`order`** — a persisted list of ids applied back onto whatever entries this
+  build ships.
+
+…plus `IconButton`, `useDialogDrag` (with `Modal` reading its offset into
+`translate`), `calendar/rules.ts` (Easter and the weekday rules a holiday table
+is written in), `hooks/keyboardTarget.ts`, `hooks/tap.ts`,
+`sidebar/edgeSwipe.ts`, `theme/theme-color.ts`, `pwa/viewport.ts` and
+`pwa/shellScroll.ts`.
+
+### Still with those apps, and why
+
+| Left behind                                                | Why                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| calendar's `roomScale.ts` / `textSize.ts`                  | The mechanism (scale type by the screen's area, against two measured anchors) is generic; the **anchors** are that app's measurements. Wants a second consumer before the curve is published — `scaleBand` is the seam it would reach through. |
+| calendar's `locale/` packs, `hyphenate.ts`                 | The hyphenation _machinery_ is generic and the **rules** are per-language. Extractable as `format/hyphenate.ts` once a second app needs soft-hyphen seeding; alone it is a solution to one app's 47 px cell.                                   |
+| calendar's `stripLayout.ts` / `viewStyle.ts` / `monthCell` | Layout vocabulary for an almanac. Domain.                                                                                                                                                                                                      |
+| paint's `plugins/`, `render.ts`, `effects.ts`, `cutout.ts` | The drawing domain. Roadmap #7 (`draw`) is the generic slice, and it is a different, smaller thing than these.                                                                                                                                 |
+| paint's `adjust.ts` + `histogram.ts` + `CurveEditor`       | A coherent **image-adjustment** module (per-channel LUTs, levels, curves, the tone histogram, the two controls drawn over it). Genuinely generic and genuinely large — its own roadmap entry when `draw` is picked up.                         |
+| paint's `tiles.ts`                                         | An off-screen render cache with an idle queue. Generic in shape, but every key in it is a function of that app's renderer; wants a second consumer to say what the key contract should be.                                                     |
+| paint's `useCanvasView.ts` / `viewport.ts`                 | Overlaps `viewer/usePanZoom` without matching it. The right move is to grow `usePanZoom` (wheel, a settle frame, a clamp that keeps the sheet reachable) rather than ship a second pan/zoom.                                                   |
+| paint's `clipboard.ts`                                     | Reads images and files, where `hooks/useClipboard` only writes text. Should grow that hook rather than land beside it.                                                                                                                         |
+| paint's `units.ts`, `canvasSize.ts`                        | Page sizes in millimetres against a calibrated dpi. Arguably `format`, but it is one app's calibration; deferred.                                                                                                                              |
 
 ## Rejected / deferred
 

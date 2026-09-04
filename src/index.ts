@@ -31,6 +31,10 @@
 //   format/     — pure formatting helpers (URLs, digits, bytes, Intl wrappers)
 //   viewer/     — media viewing (pure view-transform core, lightbox, cropper)
 //   expression/ — infix arithmetic as text (evaluate, read, chain, render)
+//   order/      — stored arrangements (a persisted list of ids, applied back)
+//   fit/        — text that fits its box (pre-layout size band + measured fit)
+//   color/      — hex ⇄ HSV conversions and the two-axis colour mixer
+//   history/    — the undo / redo timeline (pure stacks + a state hook)
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -56,3 +60,7 @@ export * from "./files/index.ts";
 export * from "./format/index.ts";
 export * from "./viewer/index.ts";
 export * from "./expression/index.ts";
+export * from "./order/index.ts";
+export * from "./fit/index.ts";
+export * from "./color/index.ts";
+export * from "./history/index.ts";

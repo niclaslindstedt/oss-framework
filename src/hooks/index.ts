@@ -6,11 +6,27 @@
 export { useEscapeKey } from "./useEscapeKey.ts";
 export { isModalOpen } from "./isModalOpen.ts";
 export {
+  isEditableTarget,
+  keyboardIsClaimed,
+  blurActiveField,
+} from "./keyboardTarget.ts";
+export {
   useLongPress,
   type LongPressHandlers,
   type LongPressOptions,
 } from "./useLongPress.ts";
 export { useMediaQuery, useDesktopPointer } from "./useMediaQuery.ts";
+export {
+  isTap,
+  isDoubleTap,
+  tapDistance,
+  TAP_SLOP,
+  DOUBLE_TAP_MS,
+  DOUBLE_TAP_SLOP,
+  LONG_PRESS_MS,
+  type Tap,
+  type TapPoint,
+} from "./tap.ts";
 export { useEdgeHover } from "./useEdgeHover.ts";
 export {
   useRowSwipe,
@@ -38,6 +54,18 @@ export {
   type UseClipboardOptions,
   type UseClipboardResult,
 } from "./useClipboard.ts";
+export {
+  readClipboard,
+  readDataTransfer,
+  clipboardCanBeRead,
+  clipboardLookIsFree,
+  clipboardText,
+  clipboardBlob,
+  CLIPBOARD_FREE_LOOK_MS,
+  CLIPBOARD_USER_ANSWER_MS,
+  type ClipboardContent,
+  type ReadClipboardOptions,
+} from "./clipboardRead.ts";
 export { useTypeahead, matchPrefixRange } from "./useTypeahead.ts";
 export {
   useLocalStorageState,
