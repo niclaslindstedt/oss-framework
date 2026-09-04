@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Clipboard write + a short "just copied" acknowledgement, framework-agnostic.
 // The pure `copyTextToClipboard` is the reusable jewel; `useClipboard` wraps it
 // with the `copied` flag and reset timer a button needs to flash a tick.
+//
+// Reading is the harder half and lives next door in `clipboardRead.ts`: writing
+// is a call, reading is a permission.
 
 /**
  * Best-effort clipboard write: the async Clipboard API where available

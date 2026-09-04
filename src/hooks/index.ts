@@ -54,6 +54,18 @@ export {
   type UseClipboardOptions,
   type UseClipboardResult,
 } from "./useClipboard.ts";
+export {
+  readClipboard,
+  readDataTransfer,
+  clipboardCanBeRead,
+  clipboardLookIsFree,
+  clipboardText,
+  clipboardBlob,
+  CLIPBOARD_FREE_LOOK_MS,
+  CLIPBOARD_USER_ANSWER_MS,
+  type ClipboardContent,
+  type ReadClipboardOptions,
+} from "./clipboardRead.ts";
 export { useTypeahead, matchPrefixRange } from "./useTypeahead.ts";
 export {
   useLocalStorageState,
