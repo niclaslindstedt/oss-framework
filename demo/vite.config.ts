@@ -168,6 +168,10 @@ export default defineConfig({
         replacement: here("../src/expression/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/order",
+        replacement: here("../src/order/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework",
         replacement: here("../src/index.ts"),
       },

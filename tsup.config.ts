@@ -58,6 +58,7 @@ export default defineConfig({
     "format/index": "src/format/index.ts",
     "viewer/index": "src/viewer/index.ts",
     "expression/index": "src/expression/index.ts",
+    "order/index": "src/order/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

@@ -2,6 +2,12 @@
 import { useEffect, useRef } from "react";
 
 import { isModalOpen } from "../hooks/isModalOpen.ts";
+import {
+  classifyEdgeDrag,
+  inEdgeZone,
+  EDGE_OPEN_DISTANCE_PX,
+  EDGE_ZONE_PX,
+} from "./edgeSwipe.ts";
 import type { MenuButtonSide } from "./position.ts";
 
 // Touch-driven "swipe in from the screen edge to open the drawer" gesture —
@@ -20,11 +26,9 @@ import type { MenuButtonSide } from "./position.ts";
 // competing for the same edge. The host owns the open *state* and the
 // resting-side choice; this hook only recognises the gesture and calls back.
 
-// Defaults, overridable via the options below.
-// How close to the border (px) a touch must start to count as an edge swipe.
-const DEFAULT_EDGE_ZONE = 30;
-// Inward travel (px) the finger must cover before the drawer opens.
-const DEFAULT_OPEN_DISTANCE = 48;
+// The two thresholds and the arithmetic over them live in `edgeSwipe.ts`, so
+// a surface that has to recognise the same gesture from its own pointer stream
+// can share them rather than copy them.
 
 export type EdgeSwipeOpenOptions = {
   /** The edge to watch — the drawer's resting side. */
@@ -43,8 +47,8 @@ export function useEdgeSwipeOpen({
   side,
   enabled,
   onOpen,
-  edgeZone = DEFAULT_EDGE_ZONE,
-  openDistance = DEFAULT_OPEN_DISTANCE,
+  edgeZone = EDGE_ZONE_PX,
+  openDistance = EDGE_OPEN_DISTANCE_PX,
 }: EdgeSwipeOpenOptions): void {
   // Mirror the live inputs into a ref so the document listeners can be
   // attached once and read the latest values without re-subscribing on every
@@ -63,10 +67,12 @@ export function useEdgeSwipeOpen({
       if (isModalOpen()) return;
       const touch = e.touches[0];
       if (!touch) return;
-      const zone = cfg.current.edgeZone;
-      const fromLeft = touch.clientX <= zone;
-      const fromRight = touch.clientX >= window.innerWidth - zone;
-      const onWatchedEdge = cfg.current.side === "left" ? fromLeft : fromRight;
+      const onWatchedEdge = inEdgeZone(
+        touch.clientX,
+        window.innerWidth,
+        cfg.current.side,
+        cfg.current.edgeZone,
+      );
       if (!onWatchedEdge) return;
       start.x = touch.clientX;
       start.y = touch.clientY;
@@ -77,15 +83,18 @@ export function useEdgeSwipeOpen({
       if (!start.armed || start.fired) return;
       const touch = e.touches[0];
       if (!touch) return;
-      const dx = touch.clientX - start.x;
-      const dy = touch.clientY - start.y;
+      const verdict = classifyEdgeDrag(
+        touch.clientX - start.x,
+        touch.clientY - start.y,
+        cfg.current.side,
+        cfg.current.openDistance,
+      );
       // A mostly-vertical drag is a scroll, not an open — bail and let it be.
-      if (Math.abs(dy) > Math.abs(dx)) {
+      if (verdict === "press") {
         start.armed = false;
         return;
       }
-      const inward = cfg.current.side === "left" ? dx : -dx;
-      if (inward < cfg.current.openDistance) return;
+      if (verdict === "pending") return;
       start.fired = true;
       start.armed = false;
       if (e.cancelable) e.preventDefault();

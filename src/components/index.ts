@@ -12,6 +12,11 @@ export { Avatar, type AvatarSize } from "./Avatar.tsx";
 export { Button, type ButtonVariant } from "./Button.tsx";
 export { Badge, type BadgeTone } from "./Badge.tsx";
 export {
+  IconButton,
+  ICON_BUTTON_CLASS,
+  ICON_BUTTON_STATE_CLASS,
+} from "./IconButton.tsx";
+export {
   BottomNav,
   stepDirection,
   type BottomNavProps,

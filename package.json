@@ -163,6 +163,11 @@
       "types": "./dist/expression/index.d.ts",
       "import": "./dist/expression/index.js",
       "require": "./dist/expression/index.cjs"
+    },
+    "./order": {
+      "types": "./dist/order/index.d.ts",
+      "import": "./dist/order/index.js",
+      "require": "./dist/order/index.cjs"
     }
   },
   "scripts": {

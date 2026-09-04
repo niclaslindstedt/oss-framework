@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useRef, type PointerEvent } from "react";
 
+import { LONG_PRESS_MS } from "./tap.ts";
+
 // Detect a long press — a pointer held in place past a delay — and hand back
 // the pointer handlers a caller spreads onto the element it wants to watch.
 // The touch counterpart to a desktop right-click: where a mouse opens a row's
@@ -34,7 +36,11 @@ export type LongPressOptions = {
 
 export function useLongPress(
   onLongPress: () => void,
-  { delayMs = 500, moveTolerance = 10, enabled = true }: LongPressOptions = {},
+  {
+    delayMs = LONG_PRESS_MS,
+    moveTolerance = 10,
+    enabled = true,
+  }: LongPressOptions = {},
 ): LongPressHandlers {
   const timer = useRef<number | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
