@@ -6,6 +6,58 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-04
+
+### Added
+
+- **Observance-rule arithmetic** — `calendar` now ships the date arithmetic a yearly holiday table is written in —
+  `easterSunday` (the Gregorian computus), `addToMonthDay`, `weekdayOnOrAfter`,
+  `nthWeekdayOfMonth` and `lastWeekdayOfMonth`.
+- **IconButton** — A square glyph button with the ARIA a hand-rolled one gets wrong: `aria-pressed`
+  for a toggle, `aria-haspopup` + `aria-expanded` for a disclosure, and neither
+  unless you ask.
+- **Keyboard-target and tap probes** — `isEditableTarget` / `keyboardIsClaimed` / `blurActiveField` answer "who owns the
+  keyboard right now" for a window-level shortcut, and `isTap` / `isDoubleTap`
+  share the gesture thresholds with a surface that handles its own pointer stream.
+- **Edge-swipe arithmetic** — `inEdgeZone` and `classifyEdgeDrag` expose the drawer's open-swipe rule, so a
+  canvas or map that handles its own pointer stream can share it instead of
+  copying the two thresholds into its own file.
+- **theme-color meta sync** — `useThemeColorMeta` keeps every `theme-color` meta on the colour the active
+  theme actually resolves `--page-bg` to, so the browser's chrome matches the page
+  under any preset, a custom palette, or "follow the device".
+- **Viewport report and shell-scroll pin** — `pwa` gains `readSafeAreaInsets` / `readViewportReport` / `resolveCssLength`, so
+  a safe-area layout report carries the numbers rather than a guess, and
+  `useShellScrollPin`, which puts a one-viewport-tall shell back after iOS's
+  software keyboard has scrolled it away.
+- **SwipeDeck** — A pager — a track of three panes, a drag that follows the finger and a settle
+  that commits — on either axis, nestable perpendicular, and able to hand a
+  vertical drag to a scrolling pane until the pane runs out.
+- **Draggable dialogs** — `useDialogDrag` lets a dialog be moved by its title row — for the ones that
+  preview onto the content behind them — and `Modal` now reads that offset into
+  its `translate`, which never collides with the swipe-to-close `transform`.
+- **Text that fits its box** — The new `fit` module sizes text to the room it actually has: a pre-layout band
+  so the first paint is close, then a measured pass that shrinks to fit and
+  reports whether even the floor was too big — which is what lets a writing
+  surface refuse the keystroke that would overflow.
+- **Plain-text editable helpers** — Read, write and seat the caret in a `contenteditable` box, for a writing surface
+  that has to be the same shape as the reading surface — one whose lines wrap
+  around a float, or shrink to fit.
+- **Colour mixer** — The new `color` module ships `ColorMixer` — the saturation/value field and hue
+  strip every picker uses — over `hexToHsv` / `hsvToHex` / `normalizeHex` /
+  `withAlpha` / `contrastingInk`.
+- **Undo timeline** — The new `history` module is the state half of Cmd/Ctrl+Z: pure, immutable
+  stacks generic in what a rung holds — which is usually more than the document —
+  plus a `useHistory` hook whose `replace`/`commit` pair makes a whole drag one
+  step back.
+- **Stored arrangements** — The new `order` module applies a persisted list of ids back onto whatever
+  entries this build ships — dropping ids it no longer has, and leaving entries
+  the stored order predates where they were registered rather than piling them at
+  the end.
+- **Reading the clipboard** — `readClipboard` / `readDataTransfer` are the read half `useClipboard` never
+  had — one look that hands back every flavour at once (so a menu's Paste raises
+  the system prompt once rather than per type), with `clipboardLookIsFree` to tell
+  a free peek from one the user has to answer.
+
 ## [3.2.0] - 2026-09-03
 
 ### Added
