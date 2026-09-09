@@ -235,7 +235,7 @@
     "@types/react-dom": "^19.2.0",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^5.0.0",
     "esbuild": "0.27.7",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
