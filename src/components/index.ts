@@ -113,10 +113,16 @@ export { APP_VIEWPORT_RECT } from "./appViewportRect.ts";
 export {
   useFloatingPosition,
   computeFloatingRect,
+  forgetSafeArea,
+  insetViewport,
+  readEdgeInsets,
+  FLOATING_EDGE_ATTR,
+  type EdgeInsets,
   type FloatingAnchor,
   type FloatingPlacement,
   type FloatingPoint,
   type FloatingWidth,
   type FloatingRect,
+  type VisualViewportSnapshot,
 } from "./useFloatingPosition.ts";
 export * from "./icons.tsx";

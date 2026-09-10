@@ -2,6 +2,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
+import { readSafeAreaInsets } from "./safeArea.ts";
+
 // {top, left, width, maxHeight, placement} for a floating element
 // (dropdown, popover) anchored to a trigger element. `null` until the
 // first measurement lands — call sites short-circuit rendering until
@@ -104,12 +106,105 @@ export type FloatingPlacement = {
   // the soft keyboard, which yanks `position: fixed` popovers off
   // screen).
   coordinateSpace: "viewport" | "document";
+  // What the panel must stay out of at the top and bottom edges, on top
+  // of `viewportMargin`. Defaults to `"safe"` — see `readEdgeInsets`.
+  // `"none"` measures against the raw visual viewport (what this did
+  // before edges existed); explicit pixels override the measurement.
+  // Resolved by `useFloatingPosition`, which narrows the band before
+  // handing it to `computeFloatingRect` — the geometry itself stays pure
+  // and takes the band it is given.
+  edges?: EdgeInsets | "safe" | "none";
 };
 
-type VisualViewportSnapshot = {
+// Space kept clear at the top and bottom of the screen, in CSS pixels.
+export type EdgeInsets = { top: number; bottom: number };
+
+// Chrome an app pins to a screen edge — a top bar, a bottom tab rail —
+// marks itself with this attribute (`data-floating-edge="top"` /
+// `"bottom"`), and floating panels stop at it. The framework cannot know
+// an app's chrome by name, and an app cannot publish its height as a
+// number that stays true (a header wraps on a narrow screen), so the
+// element says which edge it owns and gets measured where it actually
+// is.
+export const FLOATING_EDGE_ATTR = "data-floating-edge";
+
+const NO_INSETS: EdgeInsets = { top: 0, bottom: 0 };
+
+// `env(safe-area-inset-*)` only moves on an orientation change, and
+// resolving it mounts a probe element — too much to redo on every scroll
+// event, so the answer is cached until something invalidates it.
+let cachedSafeArea: EdgeInsets | null = null;
+
+/** Drop the cached safe-area reading. `useFloatingPosition` calls this on
+ *  resize; an app that changes its own insets some other way can too. */
+export function forgetSafeArea(): void {
+  cachedSafeArea = null;
+}
+
+function edgeChrome(edge: "top" | "bottom", layoutHeight: number): number {
+  if (typeof document === "undefined") return 0;
+  let reserved = 0;
+  const marked = document.querySelectorAll(`[${FLOATING_EDGE_ATTR}="${edge}"]`);
+  for (const el of marked) {
+    const rect = el.getBoundingClientRect();
+    if (rect.height <= 0) continue;
+    const from = edge === "top" ? rect.bottom : layoutHeight - rect.top;
+    if (from > reserved) reserved = from;
+  }
+  return reserved;
+}
+
+/** What the top and bottom edges of the screen are spoken for by: the
+ *  device's safe-area insets, and any chrome the app marked with
+ *  {@link FLOATING_EDGE_ATTR}. Zeroes outside the browser — and on a
+ *  desktop screen with no insets and nothing marked, which is why turning
+ *  this on by default changes nothing there. */
+export function readEdgeInsets(layoutHeight?: number): EdgeInsets {
+  if (typeof window === "undefined") return NO_INSETS;
+  const height = layoutHeight ?? window.innerHeight;
+  if (!cachedSafeArea) {
+    const insets = readSafeAreaInsets();
+    cachedSafeArea = { top: insets.top, bottom: insets.bottom };
+  }
+  return {
+    top: Math.max(cachedSafeArea.top, edgeChrome("top", height)),
+    bottom: Math.max(cachedSafeArea.bottom, edgeChrome("bottom", height)),
+  };
+}
+
+/** The visible band, shrunk by what the edges keep. Both bounds move
+ *  inward only: a visual viewport already narrowed by the soft keyboard
+ *  stays narrowed. Never returns a negative height. */
+export function insetViewport(
+  vv: VisualViewportSnapshot,
+  insets: EdgeInsets,
+  layoutHeight: number,
+): VisualViewportSnapshot {
+  const top = Math.max(vv.offsetTop, insets.top);
+  const bottom = Math.min(
+    vv.offsetTop + vv.height,
+    layoutHeight - insets.bottom,
+  );
+  return { offsetTop: top, height: Math.max(0, bottom - top) };
+}
+
+// The band a panel is placed into: where the visible region starts within
+// the layout viewport, and how tall it is.
+export type VisualViewportSnapshot = {
   offsetTop: number;
   height: number;
 };
+
+// The band a panel placed under this `placement` may land in: what the
+// engine reports as visible, shrunk by whatever the edges keep.
+function bandFor(placement: FloatingPlacement): VisualViewportSnapshot {
+  const vv = readVisualViewport();
+  const edges = placement.edges ?? "safe";
+  if (edges === "none") return vv;
+  const layoutHeight = typeof window === "undefined" ? 0 : window.innerHeight;
+  const insets = edges === "safe" ? readEdgeInsets(layoutHeight) : edges;
+  return insetViewport(vv, insets, layoutHeight);
+}
 
 function readVisualViewport(): VisualViewportSnapshot {
   const vv = typeof window !== "undefined" ? window.visualViewport : null;
@@ -228,7 +323,15 @@ function compute(
     // Consumer applies `translateY(-100%)` so we never need to know
     // the actual rendered panel height up front.
     top = triggerTopCoord - gap;
-    maxHeight = Math.max(120, spaceAbove);
+    // The 120px floor keeps a cramped panel usable rather than shrinking
+    // it to nothing — but it is a floor on the *margin*, never on the
+    // band: a panel grows upward from `top`, so anything past
+    // `top - visibleTop` is off the top of the visible region (on an
+    // installed PWA, under the status bar). Cap it there.
+    maxHeight = Math.min(
+      Math.max(120, spaceAbove),
+      Math.max(0, top - visibleTop),
+    );
   } else {
     top = triggerBottomCoord + gap;
     // Viewport-coord floats (`position: fixed` pickers anchored to the
@@ -253,7 +356,12 @@ function compute(
       const maxTop = visibleBottom - margin - 80;
       if (top > maxTop) top = Math.max(visibleTop + margin, maxTop);
     }
-    maxHeight = Math.max(120, visibleBottom - top - margin);
+    // Same cap the other way round: the floor may eat into the margin,
+    // never past the bottom of the visible band.
+    maxHeight = Math.min(
+      Math.max(120, visibleBottom - top - margin),
+      Math.max(0, visibleBottom - top),
+    );
   }
 
   // Trigger centre in panel-local coordinates, clamped to leave room
@@ -316,19 +424,26 @@ export function useFloatingPosition(
         ? rectFromPoint(a)
         : a.current?.getBoundingClientRect();
       if (!domRect) return;
-      setRect(compute(domRect, placementRef.current, readVisualViewport()));
+      const placement = placementRef.current;
+      setRect(compute(domRect, placement, bandFor(placement)));
+    }
+    // A resize can move the safe-area insets (an orientation change) and
+    // the chrome measured off them, so the cached reading goes first.
+    function remeasure() {
+      forgetSafeArea();
+      measure();
     }
     measure();
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", remeasure);
     // Capture phase catches scrolls on any ancestor (e.g. the page body).
     window.addEventListener("scroll", measure, true);
     const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    vv?.addEventListener("resize", measure);
+    vv?.addEventListener("resize", remeasure);
     vv?.addEventListener("scroll", measure);
     return () => {
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", remeasure);
       window.removeEventListener("scroll", measure, true);
-      vv?.removeEventListener("resize", measure);
+      vv?.removeEventListener("resize", remeasure);
       vv?.removeEventListener("scroll", measure);
     };
   }, [open, elementRef, point?.x, point?.y]);

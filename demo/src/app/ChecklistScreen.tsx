@@ -145,7 +145,10 @@ export function ChecklistScreen({
         data={data}
       />
 
-      <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
+      <header
+        data-floating-edge="top"
+        className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3"
+      >
         <ListAppearancePopover
           list={activeList}
           onChange={(patch) => setListAppearance(activeList.id, patch)}
