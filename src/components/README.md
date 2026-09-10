@@ -39,7 +39,9 @@ defaults.
 | `DismissBackdrop`                              | component | Invisible outside-tap catcher (with the iOS trailing-tap swallow).                                                                           |
 | `ActionPill`                                   | component | A floating pill of two or three verbs, portalled and centred over the content they act on (long-press copy/paste, selection cut/delete).     |
 | `AnchoredFlash`                                | component | Portalled "Copied" label that flicks up over the value it happened to, following the anchor through scrolls.                                 |
-| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger element or a fixed point; flip + clamp into the viewport.                                             |
+| `useFloatingPosition` / `computeFloatingRect`  | hook/fn   | Anchor a floating element to a trigger element or a fixed point; flip + clamp into the viewport, clear of the reserved edges.                |
+| `readEdgeInsets` / `insetViewport`             | fn        | What the screen edges are spoken for by (safe area + marked chrome), and the visible band once they are taken out.                           |
+| `FLOATING_EDGE_ATTR`                           | const     | `data-floating-edge` — the attribute an app's pinned top / bottom bar carries so panels stop at it.                                          |
 | `APP_VIEWPORT_RECT`                            | const     | `CSSProperties` that pin a fixed overlay over the app shell band.                                                                            |
 | `CheckIcon`, `ChevronDownIcon`, `CloseIcon`, … | component | Dependency-free inline SVG glyph set, each driven by `className`.                                                                            |
 
@@ -65,6 +67,16 @@ Two further contracts:
   the fallbacks reproduce a plain `inset: 0`, so a modal is correct out of the
   box. Set the vars (e.g. mirror `window.visualViewport` into them) only if you
   want overlays to track the keyboard.
+- **Floating panels stop at the screen's reserved edges.** Every panel
+  (`SelectPicker`, `RowActionMenu`, `ContextMenu`, anything on `FloatingPanel`)
+  is placed inside the visible band _minus_ the device's `env(safe-area-inset-*)`
+  — so a menu that flips above its trigger never runs under an iOS status bar
+  or a home indicator. An app that pins its own chrome to an edge adds
+  `data-floating-edge="top"` (or `"bottom"`) to that element and panels clear it
+  too; the element is measured live, so a header that wraps on a narrow screen
+  stays covered. Nothing to set up on desktop, where the insets are zero and
+  nothing is marked. Opt a single panel out with `placement.edges: "none"`, or
+  pass explicit pixels.
 - **Glyphs paint `currentColor`** and take only a `className` — size and colour
   flow from `text-*` / `h-* w-*` utilities on the call site.
 
