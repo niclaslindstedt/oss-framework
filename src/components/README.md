@@ -28,6 +28,7 @@ defaults.
 | `LabeledInput` / `LabeledTextarea`             | component | Labelled draft fields that commit on blur; `LabeledDateInput` is the uncontrolled date variant iOS's picker survives.                        |
 | `ReorderButtons`                               | component | A tight up/down chevron pair for hand-ordering rows, each end disabling itself.                                                              |
 | `RowActionMenu`                                | component | A row's secondary-action menu, opened by right-click or long press, floated over the row.                                                    |
+| `ActionMenuList`                               | component | The menu body the two wrappers share — drop it in a `FloatingPanel` your own trigger opens.                                                  |
 | `ContextMenu`                                  | component | A cursor-anchored action menu for a caught `contextmenu` event — portal, dismissal, keyboard nav, and viewport clamping built in.            |
 | `SwipeableRow`                                 | component | A list row whose two swipe sides are each a button-strip reveal or a flick-to-commit action — glyphs/colours configurable.                   |
 | `SegmentedControl`                             | component | Radio group for a small, always-visible mutually-exclusive choice (active option outlined).                                                  |
@@ -530,6 +531,47 @@ after an action runs. For point anchoring in your own panels,
 `FloatingPanel` accepts `anchorPoint={{ x, y }}` (viewport coordinates, like
 `clientX`/`clientY`) in place of `triggerRef`, and `useFloatingPosition`
 accepts the same point as its anchor argument.
+
+## ActionMenuList — the menu body, without a gesture
+
+`RowActionMenu` and `ContextMenu` are the same menu behind two gestures, and
+some menus belong to neither: a header button offering a choice of export
+formats opens on an ordinary press, at the button, not at a row and not at the
+cursor. `ActionMenuList` is that shared body on its own — the focused
+`role="menu"` with arrow-key / Home / End / Enter / Space navigation,
+hover-follows-pointer highlighting, and the tinted `role="menuitem"` buttons.
+It owns everything _inside_ the menu and nothing outside it, so the panel
+around it stays yours:
+
+```tsx
+const triggerRef = useRef<HTMLButtonElement>(null);
+const [open, setOpen] = useState(false);
+
+<IconButton ref={triggerRef} label="Download" onClick={() => setOpen((o) => !o)}>
+  <DownloadIcon className="h-4 w-4" />
+</IconButton>
+
+<FloatingPanel
+  open={open}
+  onClose={() => setOpen(false)}
+  triggerRef={triggerRef}
+  placement={{ width: { kind: "min", minPx: 176 }, anchor: "right", coordinateSpace: "viewport" }}
+>
+  <ActionMenuList
+    actions={formats}
+    ariaLabel="Download format"
+    onActivate={(action) => {
+      setOpen(false);
+      action.onSelect();
+    }}
+  />
+</FloatingPanel>;
+```
+
+It mounts only while the panel is open, so the highlight resets between
+openings, and it takes focus on mount so Escape and the arrow keys work without
+a second click. `onActivate` fires on click _and_ on keyboard selection; close
+the panel there yourself, since you own the `open` state.
 
 ## Migrating an existing implementation
 
