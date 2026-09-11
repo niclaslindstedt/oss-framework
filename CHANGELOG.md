@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-09-11
+
+### Added
+
+- **ActionMenuList is public** — The action menu's body — the keyboard-navigable `role="menu"` that `RowActionMenu` and `ContextMenu` share — is now exported in its own right, so an app whose menu opens on an ordinary press (a header button offering a choice of formats, say) can drop it into a `FloatingPanel` of its own instead of re-implementing the list, the arrow keys and the row tinting.
+
 ## [3.3.1] - 2026-09-11
 
 ### Fixed
