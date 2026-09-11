@@ -45,7 +45,13 @@ export {
 } from "./LabeledField.tsx";
 export { ReorderButtons, type ReorderButtonsProps } from "./ReorderButtons.tsx";
 export { SelectPicker, type SelectOption } from "./SelectPicker.tsx";
-export { RowActionMenu, type RowAction } from "./RowActionMenu.tsx";
+// The menu body on its own, for a menu opened by a press rather than by a
+// right-click or a long press — a header button offering a choice of formats,
+// say. `RowActionMenu` and `ContextMenu` are the two gestures wired up around
+// it; an app that owns its own trigger drops this straight into a
+// `FloatingPanel` and keeps the same keyboard navigation and row tinting.
+export { ActionMenuList, type RowAction } from "./ActionMenuList.tsx";
+export { RowActionMenu } from "./RowActionMenu.tsx";
 export { ContextMenu } from "./ContextMenu.tsx";
 export {
   SwipeDeck,
