@@ -426,6 +426,15 @@ is never yanked out from under the user.
 <LabeledDateInput label="Date" value={date} onCommit={setDate} max={today} />
 ```
 
+Two things it still can't fix, because they are the native control's: pressing
+the wheel's confirm button after spinning to a month closes the popover (the
+day needs a second tap), and the input takes its own intrinsic width —
+`max-w-full` in `LABELED_FIELD_CLASS` is the only reason it stays inside a
+narrow card. Keep this where platform date entry is genuinely wanted; a form
+that wants neither quirk should use
+[`DatePicker`](../calendar/README.md) from `.../calendar`, which is a button
+over an in-panel grid with no native picker involved.
+
 ## ActionPill — verbs raised over the content
 
 A floating bar of two or three verbs, portalled over the thing they act on:

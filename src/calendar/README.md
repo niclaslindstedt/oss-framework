@@ -159,6 +159,31 @@ const weeks = buildMonthGrid(2026, 7, { weekStartsOn: 1, today: "2026-07-04" });
 />;
 ```
 
+### As a form's date field
+
+`DatePicker` is also what a form should use instead of an `<input
+type="date">`, and on iOS the difference is not cosmetic. The native control
+closes its own wheel the moment a controlled `value` is re-assigned — so
+spinning to a month and confirming it dismisses the picker, and the day takes
+a second tap — and it sizes itself to its intrinsic width, overflowing a
+narrow card unless the field class pins `max-width`. The trigger here is an
+ordinary button over an in-panel grid: it takes the width it is given, and
+picking a month drops straight back to that month's days without the panel
+ever closing.
+
+```tsx
+<DatePicker
+  value={date}
+  onChange={(next) => next && setDate(next)}
+  max={todayKey}
+  today={todayKey}
+  locale={locale}
+  invalid={dateMissing} // aria-invalid + a danger border, like LabeledInput
+  className="w-full px-3 py-2" // it is a button — give it the form's metrics
+  labels={pickerLabels}
+/>
+```
+
 ## What it owns vs. what stays in your app
 
 | In the framework                                   | In your app                                          |
