@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.3.3] - 2026-09-13
+
+### Added
+
+- **DatePicker error state** — `DatePicker` takes an `invalid` prop, painting `aria-invalid` and a danger
+  border on its trigger the way `LabeledInput` does — so a validating form can
+  use it in place of a native `<input type="date">`, whose iOS wheel closes on a
+  month commit and whose intrinsic width overflows a narrow card.
+
 ## [3.3.2] - 2026-09-11
 
 ### Added
