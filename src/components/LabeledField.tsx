@@ -144,6 +144,14 @@ type LabeledDateInputProps = {
  * Changes from outside the field — seeding a default, undo/redo, switching
  * records — sync in through the ref, but only while the field isn't focused,
  * so an active edit is never yanked out from under the user.
+ *
+ * Two things this cannot fix, because they belong to the native control:
+ * committing a month in iOS's wheel still closes the popover (the day needs a
+ * second tap), and the input takes its own intrinsic width — `max-w-full` in
+ * {@link LABELED_FIELD_CLASS} is what keeps it inside a narrow card. A form
+ * that wants neither should use `DatePicker` from
+ * `@niclaslindstedt/oss-framework/calendar`: it is a button over an in-panel
+ * grid, so no native picker is involved at all.
  */
 export function LabeledDateInput({
   label,

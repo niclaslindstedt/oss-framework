@@ -85,6 +85,9 @@ export type DatePickerProps = {
   labels?: Partial<DatePickerLabels>;
   /** Accessible name for the trigger (falls back to its visible text). */
   ariaLabel?: string;
+  /** Paint the error state on the trigger (`aria-invalid` + a danger
+   *  border), the way `LabeledInput` paints a text field's. */
+  invalid?: boolean;
   disabled?: boolean;
   id?: string;
   className?: string;
@@ -105,6 +108,13 @@ export type DatePickerProps = {
 // control), which is what keeps the picker alive through a month/year jump
 // inside an iOS PWA — the native `<input type="date">` dismisses its own
 // popover the moment its value is re-assigned mid-interaction.
+//
+// That is the reason to reach for this over a native date field in a form:
+// the trigger is an ordinary button, so it also takes the width it is given
+// (`className="w-full"`) rather than the intrinsic width iOS gives
+// `<input type="date">`, which overflows a narrow card unless the field
+// class pins `max-width`. See `LabeledDateInput` for the native field, which
+// is worth keeping only where the platform date entry is wanted.
 export function DatePicker({
   value,
   onChange,
@@ -119,6 +129,7 @@ export function DatePicker({
   renderDay,
   labels,
   ariaLabel,
+  invalid = false,
   disabled,
   id,
   className = "",
@@ -199,9 +210,14 @@ export function DatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
         disabled={disabled}
         onClick={() => (open ? close() : openPanel())}
-        className={`flex cursor-pointer items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-left text-sm text-fg hover:border-accent focus-visible:border-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${className}`.trim()}
+        className={`flex cursor-pointer items-center gap-2 rounded-md border ${
+          invalid
+            ? "border-danger focus-visible:border-danger"
+            : "border-line hover:border-accent focus-visible:border-accent"
+        } bg-surface-2 px-2.5 py-1.5 text-left text-sm text-fg focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${className}`.trim()}
       >
         <CalendarIcon className="h-4 w-4 shrink-0 text-muted" />
         <span className={`flex-1 truncate ${value ? "" : "text-muted"}`}>

@@ -233,6 +233,47 @@ describe("DatePicker", () => {
     expect(screen.getByRole("grid", { name: "2004–2015" })).toBeTruthy();
   });
 
+  it("keeps the panel open through a month pick, landing on that month", () => {
+    const onChange = vi.fn();
+    render(
+      <DatePicker
+        value="2026-07-10"
+        onChange={onChange}
+        today="2026-07-04"
+        locale="en-US"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Jul 10, 2026" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "July 2026" }));
+    fireEvent.click(screen.getByRole("button", { name: "March 2026" }));
+    // The month lands on the day grid without closing the panel or touching
+    // the value — the whole point of picking a month in-panel rather than
+    // through a native control that commits and dismisses.
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("grid", { name: "March 2026" })).toBeTruthy();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("paints the error state on the trigger when invalid", () => {
+    const { rerender } = render(
+      <DatePicker value={null} onChange={() => {}} today="2026-07-04" />,
+    );
+    expect(screen.getByRole("button").getAttribute("aria-invalid")).toBeNull();
+    rerender(
+      <DatePicker
+        value={null}
+        onChange={() => {}}
+        today="2026-07-04"
+        invalid
+      />,
+    );
+    const trigger = screen.getByRole("button");
+    expect(trigger.getAttribute("aria-invalid")).toBe("true");
+    expect(trigger.className).toContain("border-danger");
+    expect(trigger.className).not.toContain("border-line");
+  });
+
   it("re-anchors the view on the selected month when reopened", () => {
     render(
       <DatePicker
