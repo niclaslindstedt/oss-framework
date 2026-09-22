@@ -29,6 +29,18 @@ export const CASES = [
   },
   // …and the same symbol through the root barrel. It must cost the same: the
   // barrel is a re-export map, not a bundle.
+  // A pure record-history helper, from its subpath and from the root: it
+  // must cost the same as `formatBytes` does — nothing but itself.
+  {
+    name: "revisions/recordRevision",
+    code: `import { recordRevision } from "@niclaslindstedt/oss-framework/revisions";\nconsole.log(recordRevision([], { a: 1 }, "2026-01-01"));`,
+    budget: 900,
+  },
+  {
+    name: "root/recordRevision",
+    code: `import { recordRevision } from "@niclaslindstedt/oss-framework";\nconsole.log(recordRevision([], { a: 1 }, "2026-01-01"));`,
+    budget: 900,
+  },
   {
     name: "root/formatBytes",
     code: `import { formatBytes } from "@niclaslindstedt/oss-framework";\nconsole.log(formatBytes(1024));`,

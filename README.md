@@ -318,6 +318,7 @@ Today:
 | colour mixing            | `.` and `./color`        | `ColorMixer` (saturation/value field + hue strip) over `hexToHsv` / `hsvToHex` / `normalizeHex` / `withAlpha` / `contrastingInk`.                                                                                      |
 | undo timeline            | `.` and `./history`      | The two stacks behind Cmd/Ctrl+Z: pure `committed` / `undone` / `redone`, generic in what a rung holds, plus `useHistory` for the value-in-state case.                                                                 |
 | stored arrangements      | `.` and `./order`        | `applyOrder` / `moveInOrder` — a persisted list of ids applied back onto whatever entries this build ships.                                                                                                            |
+| record history           | `.` and `./revisions`    | `recordRevision` / `revisionAt` / `mergeRevisions` / `changedPaths` — a record's edit history as snapshots: skip an unchanged save, look up a date, union two devices' lists, name what changed.                       |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed
