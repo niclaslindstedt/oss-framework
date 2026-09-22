@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-09-22
+
+### Added
+
+- **revisions module** — A `revisions` module for a record's edit history as snapshots: `recordRevision` skips a save that changed nothing and keeps the list in stamp order, `revisionAt` answers what the record said on a date, `mergeRevisions` unions two devices' histories, and `changedPaths` names the fields that differ between two versions.
+
 ## [3.3.3] - 2026-09-13
 
 ### Added
