@@ -35,6 +35,7 @@
 //   fit/        — text that fits its box (pre-layout size band + measured fit)
 //   color/      — hex ⇄ HSV conversions and the two-axis colour mixer
 //   history/    — the undo / redo timeline (pure stacks + a state hook)
+//   revisions/  — the edit history of a record (snapshots: record, look up, merge)
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -64,3 +65,4 @@ export * from "./order/index.ts";
 export * from "./fit/index.ts";
 export * from "./color/index.ts";
 export * from "./history/index.ts";
+export * from "./revisions/index.ts";

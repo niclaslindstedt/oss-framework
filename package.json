@@ -183,6 +183,11 @@
       "types": "./dist/history/index.d.ts",
       "import": "./dist/history/index.js",
       "require": "./dist/history/index.cjs"
+    },
+    "./revisions": {
+      "types": "./dist/revisions/index.d.ts",
+      "import": "./dist/revisions/index.js",
+      "require": "./dist/revisions/index.cjs"
     }
   },
   "scripts": {
