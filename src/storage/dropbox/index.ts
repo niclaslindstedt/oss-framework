@@ -28,6 +28,7 @@ import {
   type TokenResult,
   completeAuth,
   refreshAccessToken,
+  runLoopbackAuth,
   startAuth,
 } from "../oauth-pkce.ts";
 
@@ -379,6 +380,23 @@ export function startDropboxAuth(
  */
 export function hasPendingDropboxAuth(): boolean {
   return sessionStorage.getItem(PKCE_VERIFIER_KEY) !== null;
+}
+
+/**
+ * The whole connect flow for a page served by a DESKTOP SHELL, where the
+ * redirect in `startDropboxAuth` cannot land (see `../desktop-loopback.ts`):
+ * consent in the user's browser, the redirect caught on the shell's loopback
+ * listener, tokens back in one promise. Branch on `isDesktopShellOrigin()`.
+ *
+ * The Dropbox app's redirect allowlist must carry the shell's loopback URIs —
+ * `http://127.0.0.1:53682/`, `:53683/` and `:53684/`, trailing slash included.
+ */
+export function connectDropboxLoopback(
+  appKey: string,
+  fetchImpl: FetchImpl = fetch,
+  logger?: Logger,
+): Promise<DropboxAuthResult> {
+  return runLoopbackAuth(dropboxOAuth(appKey, logger), fetchImpl);
 }
 
 /** Complete the connect flow: trade the redirect's `?code=` for tokens. */

@@ -79,10 +79,18 @@ export {
   pickOauthProvider,
   redirectUri,
   refreshAccessToken,
+  runLoopbackAuth,
   startAuth,
   type OAuthConfig,
   type TokenResult,
 } from "./oauth-pkce.ts";
+export {
+  awaitLoopbackRedirect,
+  beginLoopbackRedirect,
+  isDesktopShellOrigin,
+  LOOPBACK_AWAIT_PATH,
+  LOOPBACK_BEGIN_PATH,
+} from "./desktop-loopback.ts";
 
 // Backends.
 export {
@@ -106,6 +114,7 @@ export {
 
 export {
   completeDropboxAuth,
+  connectDropboxLoopback,
   createDropboxAdapter,
   createDropboxFileStore,
   deleteDropboxPath,

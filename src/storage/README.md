@@ -199,6 +199,34 @@ const adapter = withLocalCache(
 );
 ```
 
+**In a desktop shell** the redirect in step 1 has nowhere to land: the app is
+served from a private scheme (`<app>://localhost`, or `http://<app>.localhost`
+on Windows) that no provider accepts as a redirect URI. There the flow is the
+one RFC 8252 prescribes for native apps — consent in the user's own browser,
+the redirect caught on a loopback listener the shell holds — and it finishes in
+one promise, with no completion step on the next boot:
+
+```ts
+import {
+  connectDropboxLoopback,
+  isDesktopShellOrigin,
+} from "@niclaslindstedt/oss-framework/storage";
+
+if (isDesktopShellOrigin()) {
+  const { accessToken, refreshToken } = await connectDropboxLoopback(appKey);
+  // persist, then build the adapter as above
+} else {
+  await startDropboxAuth(appKey);
+}
+```
+
+The shell's side is two reserved paths on the page's own origin —
+`GET /__oauth/begin` answers `{"redirectUri": "http://127.0.0.1:<port>/"}`, and
+`GET /__oauth/await` answers `{"query": "<the redirect's query string>"}` once
+the redirect lands (either may answer `{"error": …}`). The Dropbox app's
+redirect allowlist must carry every loopback URI the shell may bind, trailing
+slash included. `runLoopbackAuth` is the provider-agnostic form.
+
 ### Google Drive
 
 ```ts
@@ -420,7 +448,8 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
   `isFolderBackendAvailable`, `loadDirectoryHandle`, `saveDirectoryHandle`,
   `clearDirectoryHandle`, `ensurePermission`.
 - **`dropbox/`** — `createDropboxAdapter`, `createDropboxFileStore`,
-  `startDropboxAuth`, `completeDropboxAuth`, `hasPendingDropboxAuth`,
+  `startDropboxAuth`, `completeDropboxAuth`, `connectDropboxLoopback`,
+  `hasPendingDropboxAuth`,
   `refreshDropboxAccessToken`, `deleteDropboxPath`, `dropboxApiArg`.
 - **`gdrive/`** — `createGdriveAdapter`, `createGdriveFileStore`,
   `startGdriveAuth`, `preloadGdriveAuth`, `gdriveWebUrl`, `GDRIVE_SCOPE`.
@@ -436,5 +465,7 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
 - **shared** — `withLocalCache`, `localCacheKey`, `isOfflineError`,
   `describeStorageError`, `OfflineUnavailableError`; the OAuth PKCE helpers
   (`startAuth`, `completeAuth`, `refreshAccessToken`, `pickOauthProvider`,
-  `redirectUri`); `toBase64Url` / `fromBase64Url`; `noopLogger`,
+  `redirectUri`, `runLoopbackAuth`); the desktop-shell loopback seam
+  (`isDesktopShellOrigin`, `beginLoopbackRedirect`, `awaitLoopbackRedirect`,
+  `LOOPBACK_BEGIN_PATH`, `LOOPBACK_AWAIT_PATH`); `toBase64Url` / `fromBase64Url`; `noopLogger`,
   `consoleLogger`; `bearerAuthHeader`, `parseRetryAfterMs`, `readErrorBody`.

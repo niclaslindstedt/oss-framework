@@ -8,6 +8,10 @@
 // (Google Drive uses the GIS popup flow instead — see `./gdrive/gis-oauth.ts`.)
 
 import { toBase64Url } from "./base64url.ts";
+import {
+  awaitLoopbackRedirect,
+  beginLoopbackRedirect,
+} from "./desktop-loopback.ts";
 import { type FetchImpl, readErrorBody } from "./http-utils.ts";
 import { type Logger, noopLogger } from "./logger.ts";
 
@@ -101,6 +105,24 @@ export function pickOauthProvider<Id extends string>(args: {
   return null;
 }
 
+/** The provider's authorization URL for one flow. Shared by both shapes. */
+async function authUrl(
+  config: OAuthConfig,
+  redirect: string,
+  verifier: string,
+): Promise<string> {
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    response_type: "code",
+    redirect_uri: redirect,
+    code_challenge: await challengeFor(verifier),
+    code_challenge_method: "S256",
+    state: config.state,
+    ...(config.extraAuthParams ?? {}),
+  });
+  return `${config.authBase}?${params.toString()}`;
+}
+
 /**
  * Kick the user out to the provider's consent screen. Returns nothing — the
  * next thing that happens is a full-page redirect back to the app with
@@ -108,33 +130,92 @@ export function pickOauthProvider<Id extends string>(args: {
  */
 export async function startAuth(config: OAuthConfig): Promise<void> {
   const log = config.logger ?? noopLogger;
+  const redirect = redirectUri();
   log.info(
-    `${config.providerName}: startAuth (redirect=${redirectUri()}, state=${config.state})`,
+    `${config.providerName}: startAuth (redirect=${redirect}, state=${config.state})`,
   );
   const verifier = randomVerifier();
   sessionStorage.setItem(config.verifierKey, verifier);
-  const challenge = await challengeFor(verifier);
-  const params = new URLSearchParams({
-    client_id: config.clientId,
-    response_type: "code",
-    redirect_uri: redirectUri(),
-    code_challenge: challenge,
-    code_challenge_method: "S256",
-    state: config.state,
-    ...(config.extraAuthParams ?? {}),
-  });
-  window.location.assign(`${config.authBase}?${params.toString()}`);
+  window.location.assign(await authUrl(config, redirect, verifier));
+}
+
+/**
+ * The DESKTOP sign-in, start to tokens, in one promise — for a page served by
+ * a desktop shell, where the redirect in `startAuth` has nowhere to land (see
+ * `./desktop-loopback.ts`). Nothing navigates: the consent screen opens in the
+ * user's own browser (the shell hands `window.open` to it) and the provider
+ * redirects to a loopback listener the shell opened for the occasion, so there
+ * is no boot-time completion step either.
+ *
+ * Throws on every failure the user can cause as well as the ones they can't:
+ * declining consent, letting the listener time out, or a `state` that is not
+ * this flow's. The verifier is dropped on all of them, so a failed attempt
+ * cannot be resumed by a later redirect.
+ *
+ * The provider's app registration must list the loopback URIs the shell may
+ * bind (`http://127.0.0.1:<port>/`, one per port, trailing slash included).
+ */
+export async function runLoopbackAuth(
+  config: OAuthConfig,
+  fetchImpl: FetchImpl = fetch,
+): Promise<TokenResult> {
+  const log = config.logger ?? noopLogger;
+  const redirect = await beginLoopbackRedirect();
+  log.info(`${config.providerName}: loopback auth (redirect=${redirect})`);
+  const verifier = randomVerifier();
+  sessionStorage.setItem(config.verifierKey, verifier);
+  try {
+    // `noopener` because this never becomes a window this page talks to — the
+    // shell refuses the window and hands the URL to the system browser.
+    window.open(
+      await authUrl(config, redirect, verifier),
+      "_blank",
+      "noopener",
+    );
+    const params = await awaitLoopbackRedirect();
+
+    const error = params.get("error");
+    if (error) {
+      throw new Error(
+        `${config.providerName} declined the connection: ${
+          params.get("error_description") ?? error
+        }`,
+      );
+    }
+    // Checked before the code is spent: a `state` that is not ours means the
+    // redirect belongs to some other flow, and the code is not ours to trade.
+    if (params.get("state") !== config.state) {
+      throw new Error(
+        `${config.providerName} redirect carried an unexpected state`,
+      );
+    }
+    const code = params.get("code");
+    if (!code) {
+      throw new Error(`${config.providerName} redirect carried no code`);
+    }
+    return await completeAuth(config, code, fetchImpl, redirect);
+  } catch (err) {
+    sessionStorage.removeItem(config.verifierKey);
+    log.error(`${config.providerName}: loopback auth failed`, err);
+    throw err;
+  }
 }
 
 /**
  * Trade the code from the redirect for an access (and, where the provider
  * issues one, refresh) token. The caller persists both and cleans the URL.
  * Throws on any failure so the caller can surface the error in the UI.
+ *
+ * `redirect` must be the SAME URI the authorization request carried — the
+ * providers check it again at the token endpoint. It defaults to this page's
+ * (the redirect flow); `runLoopbackAuth` passes the listener's, which
+ * `window.location` knows nothing about.
  */
 export async function completeAuth(
   config: OAuthConfig,
   code: string,
   fetchImpl: FetchImpl = fetch,
+  redirect: string = redirectUri(),
 ): Promise<TokenResult> {
   const log = config.logger ?? noopLogger;
   log.info(`${config.providerName}: completeAuth (code received)`);
@@ -150,7 +231,7 @@ export async function completeAuth(
     code,
     grant_type: "authorization_code",
     client_id: config.clientId,
-    redirect_uri: redirectUri(),
+    redirect_uri: redirect,
     code_verifier: verifier,
   });
   const res = await postForm(config, params, fetchImpl, "token exchange");
