@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-09-23
+
+### Added
+
+- **Sign in from a desktop shell** — `isDesktopShellOrigin`, `runLoopbackAuth` and `connectDropboxLoopback` complete an OAuth sign-in in a desktop shell, where the redirect has nowhere to land: consent opens in the user's browser and the shell's loopback listener hands the result back. `completeAuth` takes the redirect URI to replay as an optional fourth argument.
+
 ## [3.4.0] - 2026-09-22
 
 ### Added
