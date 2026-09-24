@@ -75,10 +75,13 @@ export {
 } from "./http-utils.ts";
 export { fromBase64Url, toBase64Url } from "./base64url.ts";
 export {
+  AuthCancelledError,
   completeAuth,
+  isAuthCancelled,
   pickOauthProvider,
   redirectUri,
   refreshAccessToken,
+  runAuthSessionAuth,
   runLoopbackAuth,
   startAuth,
   type OAuthConfig,
@@ -91,6 +94,12 @@ export {
   LOOPBACK_AWAIT_PATH,
   LOOPBACK_BEGIN_PATH,
 } from "./desktop-loopback.ts";
+export {
+  AUTH_SESSION_HOST_EVENT,
+  AUTH_SESSION_HOST_PROPERTY,
+  getAuthSessionHost,
+  type AuthSessionHost,
+} from "./auth-session.ts";
 
 // Backends.
 export {
@@ -114,6 +123,7 @@ export {
 
 export {
   completeDropboxAuth,
+  connectDropboxAuthSession,
   connectDropboxLoopback,
   createDropboxAdapter,
   createDropboxFileStore,

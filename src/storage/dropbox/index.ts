@@ -28,9 +28,11 @@ import {
   type TokenResult,
   completeAuth,
   refreshAccessToken,
+  runAuthSessionAuth,
   runLoopbackAuth,
   startAuth,
 } from "../oauth-pkce.ts";
+import type { AuthSessionHost } from "../auth-session.ts";
 
 const TOKEN_ENDPOINT = "https://api.dropboxapi.com/oauth2/token";
 const AUTH_BASE = "https://www.dropbox.com/oauth2/authorize";
@@ -397,6 +399,25 @@ export function connectDropboxLoopback(
   logger?: Logger,
 ): Promise<DropboxAuthResult> {
   return runLoopbackAuth(dropboxOAuth(appKey, logger), fetchImpl);
+}
+
+/**
+ * The whole connect flow for a page whose host offers an in-app
+ * authentication session (see `../auth-session.ts`) — a phone wrapper, where
+ * the redirect in `startDropboxAuth` would land in the system browser instead
+ * of the app. Consent in a browser sheet over the app, tokens back in one
+ * promise. Branch on `getAuthSessionHost()`.
+ *
+ * The Dropbox app's redirect allowlist must carry `host.redirectUri` exactly
+ * (a phone wrapper's is `<scheme>://oauth`).
+ */
+export function connectDropboxAuthSession(
+  appKey: string,
+  host: AuthSessionHost,
+  fetchImpl: FetchImpl = fetch,
+  logger?: Logger,
+): Promise<DropboxAuthResult> {
+  return runAuthSessionAuth(dropboxOAuth(appKey, logger), host, fetchImpl);
 }
 
 /** Complete the connect flow: trade the redirect's `?code=` for tokens. */

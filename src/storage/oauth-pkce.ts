@@ -6,7 +6,13 @@
 // don't race each other.
 //
 // (Google Drive uses the GIS popup flow instead — see `./gdrive/gis-oauth.ts`.)
+//
+// Three shapes share the helpers: the REDIRECT flow (`startAuth` →
+// `completeAuth` on the next boot) for a page on the web; the LOOPBACK flow
+// (`runLoopbackAuth`) for a desktop shell; and the AUTH-SESSION flow
+// (`runAuthSessionAuth`) for a host that offers an in-app browser sheet.
 
+import type { AuthSessionHost } from "./auth-session.ts";
 import { toBase64Url } from "./base64url.ts";
 import {
   awaitLoopbackRedirect,
@@ -173,32 +179,131 @@ export async function runLoopbackAuth(
       "noopener",
     );
     const params = await awaitLoopbackRedirect();
-
-    const error = params.get("error");
-    if (error) {
-      throw new Error(
-        `${config.providerName} declined the connection: ${
-          params.get("error_description") ?? error
-        }`,
-      );
-    }
-    // Checked before the code is spent: a `state` that is not ours means the
-    // redirect belongs to some other flow, and the code is not ours to trade.
-    if (params.get("state") !== config.state) {
-      throw new Error(
-        `${config.providerName} redirect carried an unexpected state`,
-      );
-    }
-    const code = params.get("code");
-    if (!code) {
-      throw new Error(`${config.providerName} redirect carried no code`);
-    }
-    return await completeAuth(config, code, fetchImpl, redirect);
+    return await finishRedirect(config, params, redirect, fetchImpl);
   } catch (err) {
     sessionStorage.removeItem(config.verifierKey);
     log.error(`${config.providerName}: loopback auth failed`, err);
     throw err;
   }
+}
+
+/**
+ * The IN-APP sign-in, start to tokens, in one promise — for a page whose host
+ * offers an authentication session (see `./auth-session.ts`): a phone wrapper
+ * whose WebView cannot show the consent screen, and whose own origin no
+ * provider will redirect to.
+ *
+ * The host opens the consent screen in a browser sheet over the app and hands
+ * back the URL the provider redirected to (`host.redirectUri`, plus the
+ * query). Nothing navigates, and the page keeps the PKCE verifier throughout,
+ * so there is no boot-time completion step.
+ *
+ * Throws on every failure, including the user closing the sheet — the caller
+ * can tell that one apart with `isAuthCancelled`. The verifier is dropped on
+ * all of them, so a failed attempt cannot be resumed by a later redirect.
+ *
+ * The provider's app registration must list `host.redirectUri` exactly.
+ */
+export async function runAuthSessionAuth(
+  config: OAuthConfig,
+  host: AuthSessionHost,
+  fetchImpl: FetchImpl = fetch,
+): Promise<TokenResult> {
+  const log = config.logger ?? noopLogger;
+  const redirect = host.redirectUri;
+  log.info(`${config.providerName}: auth session (redirect=${redirect})`);
+  const verifier = randomVerifier();
+  sessionStorage.setItem(config.verifierKey, verifier);
+  try {
+    const landed = await host.open(await authUrl(config, redirect, verifier));
+    if (landed === null) throw new AuthCancelledError(config.providerName);
+    return await finishRedirect(
+      config,
+      callbackParams(config, landed, redirect),
+      redirect,
+      fetchImpl,
+    );
+  } catch (err) {
+    sessionStorage.removeItem(config.verifierKey);
+    if (err instanceof AuthCancelledError) {
+      log.info(`${config.providerName}: auth session cancelled`);
+    } else {
+      log.error(`${config.providerName}: auth session failed`, err);
+    }
+    throw err;
+  }
+}
+
+/** Thrown by `runAuthSessionAuth` when the user closed the sign-in sheet. */
+export class AuthCancelledError extends Error {
+  constructor(providerName: string) {
+    super(`${providerName} sign-in was cancelled`);
+    this.name = "AuthCancelledError";
+  }
+}
+
+/** Whether a sign-in failed because the user walked away from it — worth a
+ *  quiet status line, not an error. */
+export function isAuthCancelled(err: unknown): boolean {
+  return err instanceof AuthCancelledError;
+}
+
+/**
+ * The query of the URL a host says the session ended on. Refuses one that is
+ * not under the redirect URI the request carried: a host handing back some
+ * other URL is a host bug, and its parameters are not this flow's to read.
+ */
+function callbackParams(
+  config: OAuthConfig,
+  landed: string,
+  redirect: string,
+): URLSearchParams {
+  // Split by hand rather than through `URL`: a custom scheme's "host" and
+  // "path" parse differently across engines, and the comparison only needs
+  // the part before the query to equal the URI the request carried.
+  const hash = landed.indexOf("#");
+  const bare = hash >= 0 ? landed.slice(0, hash) : landed;
+  const mark = bare.indexOf("?");
+  const base = mark >= 0 ? bare.slice(0, mark) : bare;
+  const trim = (uri: string) => uri.replace(/\/+$/, "");
+  if (trim(base) !== trim(redirect)) {
+    throw new Error(
+      `${config.providerName} sign-in ended somewhere other than the redirect URI`,
+    );
+  }
+  return new URLSearchParams(mark >= 0 ? bare.slice(mark + 1) : "");
+}
+
+/**
+ * The shared tail of the one-promise flows: read the redirect's parameters,
+ * and trade the code for tokens if — and only if — they are this flow's.
+ */
+async function finishRedirect(
+  config: OAuthConfig,
+  params: URLSearchParams,
+  redirect: string,
+  fetchImpl: FetchImpl,
+): Promise<TokenResult> {
+  const error = params.get("error");
+  if (error) {
+    throw new Error(
+      `${config.providerName} declined the connection: ${
+        params.get("error_description") ?? error
+      }`,
+    );
+  }
+  // Checked before the code is spent: a `state` that is not ours means the
+  // redirect belongs to some other flow, and the code is not ours to trade.
+  if (params.get("state") !== config.state) {
+    throw new Error(
+      `${config.providerName} redirect carried an unexpected state`,
+    );
+  }
+  const code = params.get("code");
+  if (!code) {
+    throw new Error(`${config.providerName} redirect carried no code`);
+  }
+  return await completeAuth(config, code, fetchImpl, redirect);
 }
 
 /**

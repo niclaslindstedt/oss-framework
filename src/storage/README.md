@@ -227,6 +227,55 @@ the redirect lands (either may answer `{"error": …}`). The Dropbox app's
 redirect allowlist must carry every loopback URI the shell may bind, trailing
 slash included. `runLoopbackAuth` is the provider-agnostic form.
 
+**In a phone wrapper** — a WebView serving the app from its own origin — the
+redirect fails the other way: the providers will not show consent inside an
+embedded WebView, so it opens in the system browser, and the redirect lands
+there, on an origin the provider does not know, in a page that does not hold the
+PKCE verifier. The platform's answer is an **authentication session**
+(`ASWebAuthenticationSession` on iOS, a Custom Tab on Android): a browser sheet
+over the app that closes when the provider redirects to a URI the app claims,
+and hands that URI back. A host offers it as a capability on `window`, and the
+page asks for the capability rather than for the wrapper:
+
+```ts
+import {
+  connectDropboxAuthSession,
+  getAuthSessionHost,
+  isAuthCancelled,
+} from "@niclaslindstedt/oss-framework/storage";
+
+const authSession = getAuthSessionHost();
+if (authSession) {
+  try {
+    const tokens = await connectDropboxAuthSession(appKey, authSession);
+    // persist, then build the adapter as above
+  } catch (err) {
+    if (!isAuthCancelled(err)) throw err; // a closed sheet is not an error
+  }
+} else {
+  await startDropboxAuth(appKey);
+}
+```
+
+The host's side is one object at `window.__ossAuthSession`
+(`AUTH_SESSION_HOST_PROPERTY`), announced with the `oss:auth-session-host`
+event (`AUTH_SESSION_HOST_EVENT`):
+
+```ts
+type AuthSessionHost = {
+  version: 1;
+  redirectUri: string; // the URI the host catches, e.g. "calc://oauth"
+  open(url: string): Promise<string | null>; // the callback URL, or null if closed
+};
+```
+
+The host never sees a token: it opens a URL and hands back where the sheet
+ended. The page checks that the callback is under `redirectUri` and carries
+this flow's `state` before it spends the code, and replays `redirectUri` at the
+token endpoint. The provider's app registration must list `redirectUri` exactly
+— for Dropbox, add it under **OAuth 2 → Redirect URIs** in the App Console.
+`runAuthSessionAuth` is the provider-agnostic form.
+
 ### Google Drive
 
 ```ts
@@ -449,7 +498,7 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
   `clearDirectoryHandle`, `ensurePermission`.
 - **`dropbox/`** — `createDropboxAdapter`, `createDropboxFileStore`,
   `startDropboxAuth`, `completeDropboxAuth`, `connectDropboxLoopback`,
-  `hasPendingDropboxAuth`,
+  `connectDropboxAuthSession`, `hasPendingDropboxAuth`,
   `refreshDropboxAccessToken`, `deleteDropboxPath`, `dropboxApiArg`.
 - **`gdrive/`** — `createGdriveAdapter`, `createGdriveFileStore`,
   `startGdriveAuth`, `preloadGdriveAuth`, `gdriveWebUrl`, `GDRIVE_SCOPE`.
@@ -465,7 +514,10 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
 - **shared** — `withLocalCache`, `localCacheKey`, `isOfflineError`,
   `describeStorageError`, `OfflineUnavailableError`; the OAuth PKCE helpers
   (`startAuth`, `completeAuth`, `refreshAccessToken`, `pickOauthProvider`,
-  `redirectUri`, `runLoopbackAuth`); the desktop-shell loopback seam
+  `redirectUri`, `runLoopbackAuth`, `runAuthSessionAuth`, `isAuthCancelled`,
+  `AuthCancelledError`); the desktop-shell loopback seam
   (`isDesktopShellOrigin`, `beginLoopbackRedirect`, `awaitLoopbackRedirect`,
-  `LOOPBACK_BEGIN_PATH`, `LOOPBACK_AWAIT_PATH`); `toBase64Url` / `fromBase64Url`; `noopLogger`,
+  `LOOPBACK_BEGIN_PATH`, `LOOPBACK_AWAIT_PATH`); the auth-session seam
+  (`getAuthSessionHost`, `AuthSessionHost`, `AUTH_SESSION_HOST_PROPERTY`,
+  `AUTH_SESSION_HOST_EVENT`); `toBase64Url` / `fromBase64Url`; `noopLogger`,
   `consoleLogger`; `bearerAuthHeader`, `parseRetryAfterMs`, `readErrorBody`.
