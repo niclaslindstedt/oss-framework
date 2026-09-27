@@ -113,6 +113,91 @@ The optional `onProgress` callback fires `"derivingKey"` → `"encrypting"` /
 ~100ms+) key derivation runs. Pair it with the
 [`CipherGlyph`](../components/README.md) busy indicator.
 
+### Conflicts come back as plaintext
+
+A save that loses an optimistic-concurrency race throws the inner adapter's
+`ConflictError`, whose `remote.text` is the backend's newer copy — an envelope.
+`withEncryption` decrypts it before rethrowing, so a caller that merges
+`err.remote.text` reads the document. A remote copy that the held passphrase
+cannot open surfaces as a `WrongPasswordError` instead.
+
+### Seal plaintext on read
+
+`withEncryption(inner, ref, { sealPlaintext: true })` re-saves a plaintext
+document as an envelope the moment a `load` finds one while a passphrase is
+held, rather than waiting for the next edit. Use it where plaintext at rest is
+the thing being prevented. A cached (`offline`) snapshot is never re-sealed —
+the save would only reach the cache.
+
+## Encryption a backend requires
+
+Some backends should never hold plaintext: a cloud app folder, a picked folder
+another program may be syncing. `useRequiredEncryption` is the state machine
+for that rule:
+
+```tsx
+const enc = useRequiredEncryption({
+  inner: cloudAdapter, // null when nothing is connected
+  required: backend !== "local",
+  storageKey: `my-app:sync:passphrase:${backend}`,
+});
+// enc.adapter is null until a passphrase is held — sync through nothing else.
+```
+
+| `state`       | Meaning                                                                    |
+| ------------- | -------------------------------------------------------------------------- |
+| `off`         | No backend, or one that does not require encryption (`adapter` = `inner`). |
+| `checking`    | Reading the backend to know which question to ask.                         |
+| `create`      | Nothing sealed there yet — choose a passphrase (`create`).                 |
+| `unlock`      | An envelope is there — enter its passphrase (`unlock`).                    |
+| `changed`     | The remembered passphrase stopped opening it — enter the new one.          |
+| `unreachable` | Could not read, no passphrase held — `recheck` later.                      |
+| `ready`       | Passphrase held; `adapter` seals every save and opens every load.          |
+
+The guarantee is structural: `adapter` is `null` whenever a required backend
+has no passphrase, so a sync engine that only talks to `adapter` has no path to
+write plaintext. The first read after a passphrase lands seals an existing
+plaintext copy in place (`sealPlaintext`). `change(next)` re-seals the backend
+under a new passphrase; other devices land in `changed` on their next read.
+
+The passphrase is **remembered on the device** under `storageKey` (default
+storage `localStorage`), so a device asks once. That is the right trade for an
+app whose working copy already sits in plaintext in the same storage — the key
+beside it exposes nothing new, and the copy that left the device stays
+unreadable to its provider. Pass `storage: null` to hold it for the session
+only. `forget()` drops it (on a disconnect). Key it per backend.
+
+`PassphraseDialog` asks every one of those questions — `mode` is `create`,
+`unlock`, `changed` or `change`; a chosen passphrase is typed twice and has a
+minimum length (`PASSPHRASE_MIN_LENGTH`, 8); a `WrongPasswordError` maps to the
+wrong-passphrase copy. Every string injects through `labels`.
+
+## A PIN app lock
+
+`usePinLock({ storageKey, relockAfterMs })` keeps a PBKDF2 verifier (never the
+code) in device storage and reports `locked` from the first render when one is
+set, and again once the page has been hidden for `relockAfterMs`. Render the
+components module's `UnlockGate` as the gate:
+
+```tsx
+const pin = usePinLock({ storageKey: "my-app:pin", relockAfterMs: 5 * 60_000 });
+
+<UnlockGate
+  open={pin.locked}
+  inputMode="numeric"
+  icon={<LockIcon className="h-6 w-6" />}
+  labels={{ title: "Locked", hint: "Enter your PIN.", passphrase: "PIN" }}
+  onUnlock={async (code) => {
+    if (!(await pin.unlock(code))) throw new Error("wrong");
+  }}
+/>;
+```
+
+and `PinLockControl` in settings to set, change or remove it. A PIN is a
+**soft** lock — a short code has a small keyspace, and it encrypts nothing — so
+its default copy says so. Encryption is what protects bytes that leave the
+device.
+
 ## Diagnostics
 
 `withEncryption` takes an optional `logger` (the storage module's `Logger`

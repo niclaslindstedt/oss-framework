@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { CipherGlyph } from "./CipherGlyph.tsx";
 import { ClearableInput } from "./ClearableInput.tsx";
@@ -64,9 +70,27 @@ type Props = {
    */
   mapError?: (err: unknown) => string | null | undefined;
   labels?: UnlockGateLabels;
+  /**
+   * The soft keyboard to raise. `"numeric"` suits a PIN gate — a keypad by
+   * default, without refusing a longer alphanumeric code. Defaults to the
+   * browser's text keyboard.
+   */
+  inputMode?: "text" | "numeric";
+  /**
+   * Leading mark next to the heading. Defaults to a shield (the encryption
+   * gate); a PIN gate might pass a lock.
+   */
+  icon?: ReactNode;
 };
 
-export function UnlockGate({ open, onUnlock, mapError, labels }: Props) {
+export function UnlockGate({
+  open,
+  onUnlock,
+  mapError,
+  labels,
+  inputMode,
+  icon,
+}: Props) {
   const title = labels?.title ?? "Content is locked";
   const hint =
     labels?.hint ??
@@ -118,7 +142,7 @@ export function UnlockGate({ open, onUnlock, mapError, labels }: Props) {
         className="flex w-full max-w-sm flex-col gap-3 rounded-md border border-line bg-surface p-5"
       >
         <div className="flex items-center gap-2 text-accent">
-          <ShieldIcon className="h-6 w-6" />
+          {icon ?? <ShieldIcon className="h-6 w-6" />}
           <h1
             id="unlock-gate-title"
             className="text-base font-bold text-fg-bright"
@@ -130,6 +154,8 @@ export function UnlockGate({ open, onUnlock, mapError, labels }: Props) {
         <ClearableInput
           ref={inputRef}
           type="password"
+          inputMode={inputMode}
+          autoComplete={inputMode === "numeric" ? "off" : undefined}
           value={password}
           onValueChange={setPassword}
           placeholder={passphraseLabel}

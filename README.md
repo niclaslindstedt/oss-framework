@@ -286,6 +286,8 @@ Today:
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.                                                                                                                                       |
 | `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.                                                                                                                                                |
 | `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.                                                                                                                                            |
+| `useRequiredEncryption`  | `.` and `./encryption`   | No passphrase, no adapter: a backend that must only ever hold envelopes, plus `PassphraseDialog` to choose / enter / change it.                                                                                        |
+| `usePinLock`             | `.` and `./encryption`   | A soft app lock behind a PIN verifier, with `PinLockControl` for settings and `UnlockGate` as the gate.                                                                                                                |
 | `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs).                                                                                                                                   |
 | `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.                                                                                                                                     |
 | namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).                                                                                                                                       |
@@ -529,6 +531,13 @@ framework holds the passphrase nowhere — your app collects it and threads it i
 by reference, and owns the lock/unlock UI. See
 [`src/encryption/README.md`](src/encryption/README.md) for the envelope format
 and an adoption guide.
+
+Two opinionated layers sit on top. `useRequiredEncryption` makes encryption a
+**requirement** of a backend rather than a setting: its `adapter` is `null`
+until a passphrase is held, so nothing reaches a cloud or synced folder in
+plaintext, and `PassphraseDialog` asks the questions (choose, enter, entered
+elsewhere, change). `usePinLock` + `PinLockControl` add a soft **app lock**
+behind a PIN, gated by `UnlockGate` with a numeric keypad.
 
 ```ts
 import {
