@@ -16,7 +16,12 @@
  * the last-used backend) can be keyed per backend. The framework ships these
  * four; an app that adds its own backend keys it under its own string.
  */
-export type StorageBackendId = "browser" | "folder" | "dropbox" | "gdrive";
+export type StorageBackendId =
+  | "browser"
+  | "folder"
+  | "dropbox"
+  | "gdrive"
+  | "selfhosted";
 
 /** A document's bytes plus the metadata a backend needs to stay coherent. */
 export type StoredSnapshot = {
