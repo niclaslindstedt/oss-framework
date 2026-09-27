@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-09-27
+
+### Added
+
+- **Scientific references** — A `references` module for the OSS_SPEC §24 sources registry — rank and group `docs/references.json`, cite an entry, audit it against the `[ref:<id>]` tags in the code, lazy-load it, and list each source with `ReferenceCard`.
+
 ## [3.8.0] - 2026-09-27
 
 ### Added
