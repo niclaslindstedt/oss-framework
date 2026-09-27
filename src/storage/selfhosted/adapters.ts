@@ -4,7 +4,12 @@
 // `StorageAdapter` — with the compare-and-swap happening on the server, so
 // the check-then-write race the other backends have is gone.
 
-import { AuthError, ConflictError, type StorageAdapter, type StoredSnapshot } from "../adapter.ts";
+import {
+  AuthError,
+  ConflictError,
+  type StorageAdapter,
+  type StoredSnapshot,
+} from "../adapter.ts";
 import type { FileEntry, FileStore } from "../file-store.ts";
 import { fromUtf8 } from "./crypto.ts";
 import { FileConflictError } from "./files.ts";
@@ -15,13 +20,19 @@ export type NamespaceFileStore = FileStore & {
   writeBytes(path: string, bytes: Uint8Array, mime?: string): Promise<void>;
 };
 
-export function createNamespaceFileStore(ns: Namespace, options: { root?: string } = {}): NamespaceFileStore {
+export function createNamespaceFileStore(
+  ns: Namespace,
+  options: { root?: string } = {},
+): NamespaceFileStore {
   const root = options.root?.replace(/^\/+|\/+$/g, "") ?? "";
   const full = (p: string) => (root ? `${root}/${p}` : p);
   return {
     async list(): Promise<FileEntry[]> {
       const files = await ns.files.list(root);
-      return files.map((f) => ({ path: root ? f.path.slice(root.length + 1) : f.path, rev: f.rev }));
+      return files.map((f) => ({
+        path: root ? f.path.slice(root.length + 1) : f.path,
+        rev: f.rev,
+      }));
     },
     async read(path) {
       return (await ns.files.readText(full(path)))?.text ?? null;
@@ -49,7 +60,10 @@ export type NamespaceAdapterOptions = {
   label?: string;
 };
 
-export function createNamespaceAdapter(ns: Namespace, options: NamespaceAdapterOptions = {}): StorageAdapter {
+export function createNamespaceAdapter(
+  ns: Namespace,
+  options: NamespaceAdapterOptions = {},
+): StorageAdapter {
   const fileName = options.fileName ?? "document.json";
 
   async function load(): Promise<StoredSnapshot | null> {
@@ -57,7 +71,10 @@ export function createNamespaceAdapter(ns: Namespace, options: NamespaceAdapterO
     return r ? { text: r.text, revision: r.info.rev } : null;
   }
 
-  async function save(text: string, baseRevision?: string): Promise<StoredSnapshot> {
+  async function save(
+    text: string,
+    baseRevision?: string,
+  ): Promise<StoredSnapshot> {
     try {
       const info = await ns.files.write(fileName, text, {
         mime: "application/json",
@@ -69,10 +86,16 @@ export function createNamespaceAdapter(ns: Namespace, options: NamespaceAdapterO
       const remote = await ns.files.read(fileName);
       if (!remote) {
         // Deleted remotely: recreate from what we have.
-        const info = await ns.files.write(fileName, text, { mime: "application/json", ifAbsent: true });
+        const info = await ns.files.write(fileName, text, {
+          mime: "application/json",
+          ifAbsent: true,
+        });
         return { text, revision: info.rev };
       }
-      throw new ConflictError({ text: fromUtf8(remote.bytes), revision: remote.info.rev });
+      throw new ConflictError({
+        text: fromUtf8(remote.bytes),
+        revision: remote.info.rev,
+      });
     }
   }
 
@@ -93,7 +116,9 @@ export function createNamespaceAdapter(ns: Namespace, options: NamespaceAdapterO
   function watch(onRemoteChange: (s: StoredSnapshot) => void): () => void {
     let last: string | null = null;
     let busy = false;
-    void getRevision().then((r) => (last = r)).catch(() => {});
+    void getRevision()
+      .then((r) => (last = r))
+      .catch(() => {});
     return ns.watch(async () => {
       if (busy) return;
       busy = true;

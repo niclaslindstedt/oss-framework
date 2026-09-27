@@ -23,7 +23,9 @@ export interface KeyVault {
   clear(prefix?: string): Promise<void>;
 }
 
-export function createMemoryKeyVault(kind: KeyVault["kind"] = "cryptokey"): KeyVault {
+export function createMemoryKeyVault(
+  kind: KeyVault["kind"] = "cryptokey",
+): KeyVault {
   const map = new Map<string, VaultValue>();
   return {
     kind,
@@ -31,7 +33,8 @@ export function createMemoryKeyVault(kind: KeyVault["kind"] = "cryptokey"): KeyV
       return map.get(id) ?? null;
     },
     async put(id, value) {
-      if (kind === "bytes" && !(value instanceof Uint8Array)) throw new Error("this vault stores bytes only");
+      if (kind === "bytes" && !(value instanceof Uint8Array))
+        throw new Error("this vault stores bytes only");
       map.set(id, value);
     },
     async delete(id) {
@@ -65,12 +68,16 @@ export function createIndexedDbKeyVault(options: { name: string }): KeyVault {
       }
       const r = indexedDB.open(`oss-keyvault:${options.name}`, 1);
       r.onupgradeneeded = () => {
-        if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE);
+        if (!r.result.objectStoreNames.contains(STORE))
+          r.result.createObjectStore(STORE);
       };
       r.onsuccess = () => resolve(r.result);
       r.onerror = () => reject(r.error ?? new Error("IndexedDB open failed"));
     }));
-  async function run<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  async function run<T>(
+    mode: IDBTransactionMode,
+    fn: (s: IDBObjectStore) => IDBRequest<T>,
+  ): Promise<T> {
     const db = await open();
     const tx = db.transaction(STORE, mode);
     return req(fn(tx.objectStore(STORE)));
@@ -78,7 +85,10 @@ export function createIndexedDbKeyVault(options: { name: string }): KeyVault {
   return {
     kind: "cryptokey",
     async get(id) {
-      return ((await run("readonly", (s) => s.get(id))) as VaultValue | undefined) ?? null;
+      return (
+        ((await run("readonly", (s) => s.get(id))) as VaultValue | undefined) ??
+        null
+      );
     },
     async put(id, value) {
       await run("readwrite", (s) => s.put(value, id));
@@ -87,9 +97,12 @@ export function createIndexedDbKeyVault(options: { name: string }): KeyVault {
       await run("readwrite", (s) => s.delete(id));
     },
     async clear(prefix = "") {
-      const keys = (await run("readonly", (s) => s.getAllKeys())) as IDBValidKey[];
+      const keys = (await run("readonly", (s) =>
+        s.getAllKeys(),
+      )) as IDBValidKey[];
       for (const k of keys) {
-        if (String(k).startsWith(prefix)) await run("readwrite", (s) => s.delete(k));
+        if (String(k).startsWith(prefix))
+          await run("readwrite", (s) => s.delete(k));
       }
     },
   };
@@ -117,9 +130,12 @@ export const KEY_VAULT_HOST_EVENT = "oss:key-vault-host";
 /** The installed native key vault host, validated, or null. */
 export function getKeyVaultHost(): KeyVaultHost | null {
   if (typeof window === "undefined") return null;
-  const h = (window as unknown as Record<string, unknown>)[KEY_VAULT_HOST_PROPERTY] as Partial<KeyVaultHost> | undefined;
+  const h = (window as unknown as Record<string, unknown>)[
+    KEY_VAULT_HOST_PROPERTY
+  ] as Partial<KeyVaultHost> | undefined;
   if (!h || typeof h !== "object" || h.version !== 1) return null;
-  for (const m of ["get", "put", "delete", "clear"] as const) if (typeof h[m] !== "function") return null;
+  for (const m of ["get", "put", "delete", "clear"] as const)
+    if (typeof h[m] !== "function") return null;
   return h as KeyVaultHost;
 }
 
@@ -142,7 +158,8 @@ export function createHostKeyVault(host: KeyVaultHost): KeyVault {
       return v === null ? null : fromB64(v);
     },
     async put(id, value) {
-      if (!(value instanceof Uint8Array)) throw new Error("the native key vault stores bytes only");
+      if (!(value instanceof Uint8Array))
+        throw new Error("the native key vault stores bytes only");
       await host.put(id, toB64(value));
     },
     delete: (id) => host.delete(id),

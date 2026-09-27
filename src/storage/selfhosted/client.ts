@@ -34,9 +34,25 @@ import {
   utf8,
   aad,
 } from "./crypto.ts";
-import { DecryptError, KeysMissingError, NotFoundError, RollbackError } from "./errors.ts";
-import { Namespace, type NamespaceContext, type NamespaceInfo, type NamespaceMeta, type RawNamespace } from "./namespace.ts";
-import { formatPayload, type InvitePayload, type PairingPayload, parsePayload } from "./payload.ts";
+import {
+  DecryptError,
+  KeysMissingError,
+  NotFoundError,
+  RollbackError,
+} from "./errors.ts";
+import {
+  Namespace,
+  type NamespaceContext,
+  type NamespaceInfo,
+  type NamespaceMeta,
+  type RawNamespace,
+} from "./namespace.ts";
+import {
+  formatPayload,
+  type InvitePayload,
+  type PairingPayload,
+  parsePayload,
+} from "./payload.ts";
 import { type ServerEvent, Transport } from "./transport.ts";
 import type { KeyVault } from "./vault.ts";
 
@@ -84,7 +100,11 @@ export type SelfHostedClientOptions = {
 type MeResponse = {
   account: AccountInfo;
   deviceId: string;
-  keys: { aekPublic: string | null; recoveryWrap: string | null; deviceWrap: string | null };
+  keys: {
+    aekPublic: string | null;
+    recoveryWrap: string | null;
+    deviceWrap: string | null;
+  };
 };
 
 const V = {
@@ -96,8 +116,10 @@ const V = {
   ns: (id: string, epoch: number) => `ns:${id}:${epoch}`,
 };
 
-const aekContext = (accountId: string, deviceId: string) => `aek|${accountId}|${deviceId}`;
-const nkContext = (ns: string, epoch: number, accountId: string) => `nk|${ns}|${epoch}|${accountId}`;
+const aekContext = (accountId: string, deviceId: string) =>
+  `aek|${accountId}|${deviceId}`;
+const nkContext = (ns: string, epoch: number, accountId: string) =>
+  `nk|${ns}|${epoch}|${accountId}`;
 const transferContext = (accountId: string) => `transfer|${accountId}`;
 const recoveryContext = (accountId: string) => `recovery|${accountId}`;
 export const inviteContext = (ns: string) => `invite|${ns}`;
@@ -150,16 +172,24 @@ export class SelfHostedClient {
   }
 
   /** Store a private key: as a CryptoKey where the vault can, else as PKCS#8. */
-  private async putPrivate(id: string, key: CryptoKey, pkcs8?: Uint8Array): Promise<void> {
+  private async putPrivate(
+    id: string,
+    key: CryptoKey,
+    pkcs8?: Uint8Array,
+  ): Promise<void> {
     if (this.vault.kind === "cryptokey") {
       await this.vault.put(id, key);
       return;
     }
-    const bytes = pkcs8 ?? new Uint8Array(await crypto.subtle.exportKey("pkcs8", key));
+    const bytes =
+      pkcs8 ?? new Uint8Array(await crypto.subtle.exportKey("pkcs8", key));
     await this.vault.put(id, bytes);
   }
 
-  private async getPrivate(id: string, alg: "ECDSA" | "ECDH"): Promise<CryptoKey | null> {
+  private async getPrivate(
+    id: string,
+    alg: "ECDSA" | "ECDH",
+  ): Promise<CryptoKey | null> {
     const v = await this.vault.get(id);
     if (v === null) return null;
     if (!(v instanceof Uint8Array)) return v;
@@ -174,7 +204,10 @@ export class SelfHostedClient {
 
   private connect(session: Session): void {
     this.sessionRef = session;
-    this.transportRef = new Transport(session.serverUrl, { fetchImpl: this.fetchImpl, logger: this.log });
+    this.transportRef = new Transport(session.serverUrl, {
+      fetchImpl: this.fetchImpl,
+      logger: this.log,
+    });
     const dsk = this.dsk!;
     this.transportRef.setSigner({
       serverId: session.serverId,
@@ -193,15 +226,34 @@ export class SelfHostedClient {
     this.dek = await this.getPrivate(V.dek, "ECDH");
     if (!this.dsk || !this.dek) return (this.stateRef = "signed-out");
     this.connect(session);
-    this.floors = new Map(Object.entries((await this.getJson<Record<string, number>>(V.floors)) ?? {}));
+    this.floors = new Map(
+      Object.entries(
+        (await this.getJson<Record<string, number>>(V.floors)) ?? {},
+      ),
+    );
     this.aek = await this.getPrivate(V.aek, "ECDH");
     return (this.stateRef = this.aek ? "ready" : "needs-keys");
   }
 
-  private async enrol(server: string, device: { name: string; platform?: string }, redeem: (body: Record<string, unknown>, t: Transport) => Promise<{ deviceId: string; accountId: string }>): Promise<{ deviceId: string; accountId: string }> {
-    const bootstrap = new Transport(server, { fetchImpl: this.fetchImpl, logger: this.log });
-    const info = await bootstrap.json<{ serverId: string; name: string; protocol: number }>("GET", "/v1/info", { auth: false });
-    if (info.protocol !== 1) throw new Error(`unsupported server protocol ${info.protocol}`);
+  private async enrol(
+    server: string,
+    device: { name: string; platform?: string },
+    redeem: (
+      body: Record<string, unknown>,
+      t: Transport,
+    ) => Promise<{ deviceId: string; accountId: string }>,
+  ): Promise<{ deviceId: string; accountId: string }> {
+    const bootstrap = new Transport(server, {
+      fetchImpl: this.fetchImpl,
+      logger: this.log,
+    });
+    const info = await bootstrap.json<{
+      serverId: string;
+      name: string;
+      protocol: number;
+    }>("GET", "/v1/info", { auth: false });
+    if (info.protocol !== 1)
+      throw new Error(`unsupported server protocol ${info.protocol}`);
     const keys = await generateDeviceKeys(this.vault.kind === "bytes");
     const body = {
       name: device.name,
@@ -241,13 +293,21 @@ export class SelfHostedClient {
    * `needs-keys` — then `createAccountKeys()` (first device of a new
    * account), `recover()`, or approval from another device.
    */
-  async pair(payload: string | PairingPayload, device: { name: string; platform?: string }): Promise<ClientState> {
+  async pair(
+    payload: string | PairingPayload,
+    device: { name: string; platform?: string },
+  ): Promise<ClientState> {
     const p = typeof payload === "string" ? parsePayload(payload) : payload;
-    if (p.kind !== "pair") throw new Error("that is an invite, not a pairing code");
+    if (p.kind !== "pair")
+      throw new Error("that is an invite, not a pairing code");
     const code = p.code ?? (await secretCode(p.secret!));
     let transfer: string | null = null;
     const out = await this.enrol(p.server, device, async (d, t) => {
-      const r = await t.json<{ deviceId: string; accountId: string; transfer: string | null }>("POST", "/v1/pair", {
+      const r = await t.json<{
+        deviceId: string;
+        accountId: string;
+        transfer: string | null;
+      }>("POST", "/v1/pair", {
         auth: false,
         json: { code, device: d },
       });
@@ -255,7 +315,11 @@ export class SelfHostedClient {
       return r;
     });
     if (transfer && p.secret) {
-      const pkcs8 = await openWithKey(await secretKey(p.secret), transfer, transferContext(out.accountId));
+      const pkcs8 = await openWithKey(
+        await secretKey(p.secret),
+        transfer,
+        transferContext(out.accountId),
+      );
       await this.adoptAccountKey(pkcs8);
       return this.stateRef;
     }
@@ -284,7 +348,15 @@ export class SelfHostedClient {
     const me = await this.me();
     if (me.keys.deviceWrap === null) {
       await this.transport.json("PUT", "/v1/me/keys", {
-        json: { deviceWraps: { [s.deviceId]: await sealToPublic(s.dekPublic, pkcs8, aekContext(s.accountId, s.deviceId)) } },
+        json: {
+          deviceWraps: {
+            [s.deviceId]: await sealToPublic(
+              s.dekPublic,
+              pkcs8,
+              aekContext(s.accountId, s.deviceId),
+            ),
+          },
+        },
       });
     }
     this.stateRef = "ready";
@@ -296,14 +368,20 @@ export class SelfHostedClient {
     if (this.aek) return (this.stateRef = "ready");
     if (me.keys.deviceWrap) {
       const s = this.sessionRef!;
-      const pkcs8 = await openSealed(this.dek!, me.keys.deviceWrap, aekContext(s.accountId, s.deviceId));
+      const pkcs8 = await openSealed(
+        this.dek!,
+        me.keys.deviceWrap,
+        aekContext(s.accountId, s.deviceId),
+      );
       await this.adoptAccountKey(pkcs8);
     }
     return this.stateRef;
   }
 
   /** Poll until another device approves this one (or `signal` aborts). */
-  async waitForApproval(opts: { signal?: AbortSignal; intervalMs?: number } = {}): Promise<ClientState> {
+  async waitForApproval(
+    opts: { signal?: AbortSignal; intervalMs?: number } = {},
+  ): Promise<ClientState> {
     while (!opts.signal?.aborted) {
       if ((await this.refreshKeys()) === "ready") return "ready";
       await new Promise((r) => setTimeout(r, opts.intervalMs ?? 3000));
@@ -319,14 +397,27 @@ export class SelfHostedClient {
   async createAccountKeys(): Promise<string> {
     const s = this.sessionRef!;
     const me = await this.me();
-    if (me.keys.aekPublic) throw new Error("this account already has a key: recover it or approve this device");
+    if (me.keys.aekPublic)
+      throw new Error(
+        "this account already has a key: recover it or approve this device",
+      );
     const acc = await generateAccountKey();
     const rk = newRecoveryKey();
     await this.transport.json("PUT", "/v1/me/keys", {
       json: {
         aekPublic: acc.publicRaw,
-        recoveryWrap: await sealWithKey(await recoveryKeyFor(rk, s.accountId), acc.pkcs8, recoveryContext(s.accountId)),
-        deviceWraps: { [s.deviceId]: await sealToPublic(s.dekPublic, acc.pkcs8, aekContext(s.accountId, s.deviceId)) },
+        recoveryWrap: await sealWithKey(
+          await recoveryKeyFor(rk, s.accountId),
+          acc.pkcs8,
+          recoveryContext(s.accountId),
+        ),
+        deviceWraps: {
+          [s.deviceId]: await sealToPublic(
+            s.dekPublic,
+            acc.pkcs8,
+            aekContext(s.accountId, s.deviceId),
+          ),
+        },
       },
     });
     await this.adoptAccountKey(acc.pkcs8);
@@ -338,13 +429,20 @@ export class SelfHostedClient {
     const s = this.sessionRef!;
     const rk = await parseRecoveryKey(recoveryKey);
     const me = await this.me();
-    if (!me.keys.recoveryWrap || !me.keys.aekPublic) throw new KeysMissingError("this account has no recovery key");
+    if (!me.keys.recoveryWrap || !me.keys.aekPublic)
+      throw new KeysMissingError("this account has no recovery key");
     let pkcs8: Uint8Array;
     try {
-      pkcs8 = await openWithKey(await recoveryKeyFor(rk, s.accountId), me.keys.recoveryWrap, recoveryContext(s.accountId));
+      pkcs8 = await openWithKey(
+        await recoveryKeyFor(rk, s.accountId),
+        me.keys.recoveryWrap,
+        recoveryContext(s.accountId),
+      );
     } catch (err) {
       if (err instanceof DecryptError) {
-        throw new Error("that recovery key does not belong to this account", { cause: err });
+        throw new Error("that recovery key does not belong to this account", {
+          cause: err,
+        });
       }
       throw err;
     }
@@ -353,14 +451,24 @@ export class SelfHostedClient {
   }
 
   /** Refuse a key that is not the account's (a server swapping key material). */
-  private async assertMatchesAccount(pkcs8: Uint8Array, aekPublic: string): Promise<void> {
-    const k = await crypto.subtle.importKey("pkcs8", new Uint8Array(pkcs8), { name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  private async assertMatchesAccount(
+    pkcs8: Uint8Array,
+    aekPublic: string,
+  ): Promise<void> {
+    const k = await crypto.subtle.importKey(
+      "pkcs8",
+      new Uint8Array(pkcs8),
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"],
+    );
     const jwk = await crypto.subtle.exportKey("jwk", k);
     const raw = new Uint8Array(65);
     raw[0] = 4;
     raw.set(unb64u(jwk.x!), 1);
     raw.set(unb64u(jwk.y!), 33);
-    if (b64u(raw) !== aekPublic) throw new DecryptError("the account key does not match the account");
+    if (b64u(raw) !== aekPublic)
+      throw new DecryptError("the account key does not match the account");
   }
 
   /** The account key's private bytes, reconstructed from this device's sealed copy. */
@@ -368,7 +476,11 @@ export class SelfHostedClient {
     const s = this.sessionRef!;
     const me = await this.me();
     if (!me.keys.deviceWrap) throw new KeysMissingError();
-    return openSealed(this.dek!, me.keys.deviceWrap, aekContext(s.accountId, s.deviceId));
+    return openSealed(
+      this.dek!,
+      me.keys.deviceWrap,
+      aekContext(s.accountId, s.deviceId),
+    );
   }
 
   /** Replace the recovery key; the old one stops working. */
@@ -377,7 +489,13 @@ export class SelfHostedClient {
     const pkcs8 = await this.accountPkcs8();
     const rk = newRecoveryKey();
     await this.transport.json("PUT", "/v1/me/keys", {
-      json: { recoveryWrap: await sealWithKey(await recoveryKeyFor(rk, s.accountId), pkcs8, recoveryContext(s.accountId)) },
+      json: {
+        recoveryWrap: await sealWithKey(
+          await recoveryKeyFor(rk, s.accountId),
+          pkcs8,
+          recoveryContext(s.accountId),
+        ),
+      },
     });
     return formatRecoveryKey(rk);
   }
@@ -390,19 +508,38 @@ export class SelfHostedClient {
 
   /** Devices of this account waiting for the account key, with codes computed HERE. */
   async pendingDevices(): Promise<(DeviceInfo & { safetyCode: string })[]> {
-    const { devices } = await this.transport.json<{ devices: DeviceInfo[] }>("GET", "/v1/me/pending-devices");
-    return Promise.all(devices.map(async (d) => ({ ...d, safetyCode: await safetyCode(d.dskPublic, d.dekPublic) })));
+    const { devices } = await this.transport.json<{ devices: DeviceInfo[] }>(
+      "GET",
+      "/v1/me/pending-devices",
+    );
+    return Promise.all(
+      devices.map(async (d) => ({
+        ...d,
+        safetyCode: await safetyCode(d.dskPublic, d.dekPublic),
+      })),
+    );
   }
 
   /** Give a pending device the account key — only after comparing safety codes. */
   async approveDevice(deviceId: string): Promise<void> {
     const s = this.sessionRef!;
-    const { devices } = await this.transport.json<{ devices: DeviceInfo[] }>("GET", "/v1/me/pending-devices");
+    const { devices } = await this.transport.json<{ devices: DeviceInfo[] }>(
+      "GET",
+      "/v1/me/pending-devices",
+    );
     const d = devices.find((x) => x.id === deviceId);
     if (!d) throw new NotFoundError("no such pending device");
     const pkcs8 = await this.accountPkcs8();
     await this.transport.json("PUT", "/v1/me/keys", {
-      json: { deviceWraps: { [deviceId]: await sealToPublic(d.dekPublic, pkcs8, aekContext(s.accountId, deviceId)) } },
+      json: {
+        deviceWraps: {
+          [deviceId]: await sealToPublic(
+            d.dekPublic,
+            pkcs8,
+            aekContext(s.accountId, deviceId),
+          ),
+        },
+      },
     });
   }
 
@@ -411,35 +548,60 @@ export class SelfHostedClient {
    * carries a secret X; the server sees only HKDF(X, "code"), and the account
    * key travels sealed under HKDF(X, "key").
    */
-  async addDevicePayload(opts: { ttlSeconds?: number; appUrl?: string } = {}): Promise<{ payload: string; expiresAt: number }> {
+  async addDevicePayload(
+    opts: { ttlSeconds?: number; appUrl?: string } = {},
+  ): Promise<{ payload: string; expiresAt: number }> {
     const s = this.sessionRef!;
     const x = randomBytes(32);
     const pkcs8 = await this.accountPkcs8();
-    const r = await this.transport.json<{ expiresAt: number }>("POST", "/v1/pairings", {
-      json: {
-        accountId: s.accountId,
-        code: await secretCode(x),
-        transfer: await sealWithKey(await secretKey(x), pkcs8, transferContext(s.accountId)),
-        ttlSeconds: opts.ttlSeconds,
+    const r = await this.transport.json<{ expiresAt: number }>(
+      "POST",
+      "/v1/pairings",
+      {
+        json: {
+          accountId: s.accountId,
+          code: await secretCode(x),
+          transfer: await sealWithKey(
+            await secretKey(x),
+            pkcs8,
+            transferContext(s.accountId),
+          ),
+          ttlSeconds: opts.ttlSeconds,
+        },
       },
-    });
+    );
     return {
-      payload: formatPayload({ kind: "pair", server: s.serverUrl, secret: x, name: s.serverName }, opts.appUrl),
+      payload: formatPayload(
+        { kind: "pair", server: s.serverUrl, secret: x, name: s.serverName },
+        opts.appUrl,
+      ),
       expiresAt: r.expiresAt,
     };
   }
 
   async devices(): Promise<DeviceInfo[]> {
-    return (await this.transport.json<{ devices: DeviceInfo[] }>("GET", "/v1/me/devices")).devices;
+    return (
+      await this.transport.json<{ devices: DeviceInfo[] }>(
+        "GET",
+        "/v1/me/devices",
+      )
+    ).devices;
   }
 
   async renameDevice(deviceId: string, name: string): Promise<void> {
-    await this.transport.json("PATCH", `/v1/devices/${encodeURIComponent(deviceId)}`, { json: { name } });
+    await this.transport.json(
+      "PATCH",
+      `/v1/devices/${encodeURIComponent(deviceId)}`,
+      { json: { name } },
+    );
   }
 
   /** Revoke a device (a lost phone): its sessions and its copy of the account key die at once. */
   async revokeDevice(deviceId: string): Promise<void> {
-    await this.transport.request("DELETE", `/v1/devices/${encodeURIComponent(deviceId)}`);
+    await this.transport.request(
+      "DELETE",
+      `/v1/devices/${encodeURIComponent(deviceId)}`,
+    );
   }
 
   /** Sign out; `forget` also erases this device's keys (it must pair again). */
@@ -471,17 +633,25 @@ export class SelfHostedClient {
     if (seq < floor) throw new RollbackError(nsId, floor, seq);
     if (seq > floor) {
       this.floors.set(nsId, seq);
-      void this.putJson(V.floors, Object.fromEntries(this.floors)).catch(() => {});
+      void this.putJson(V.floors, Object.fromEntries(this.floors)).catch(
+        () => {},
+      );
     }
   }
 
   /** Forget a namespace's floor (after an intentional server restore). */
   resetSeq(nsId: string): void {
     this.floors.delete(nsId);
-    void this.putJson(V.floors, Object.fromEntries(this.floors)).catch(() => {});
+    void this.putJson(V.floors, Object.fromEntries(this.floors)).catch(
+      () => {},
+    );
   }
 
-  private async storeNamespaceKey(nsId: string, epoch: number, nk: Uint8Array): Promise<NamespaceKeySet> {
+  private async storeNamespaceKey(
+    nsId: string,
+    epoch: number,
+    nk: Uint8Array,
+  ): Promise<NamespaceKeySet> {
     const keys = await deriveNamespaceKeys(nk, nsId, epoch);
     if (this.vault.kind === "cryptokey") {
       await this.vault.put(`${V.ns(nsId, epoch)}:content`, keys.content);
@@ -493,20 +663,36 @@ export class SelfHostedClient {
     return keys;
   }
 
-  private async loadNamespaceKey(nsId: string, epoch: number): Promise<NamespaceKeySet | null> {
+  private async loadNamespaceKey(
+    nsId: string,
+    epoch: number,
+  ): Promise<NamespaceKeySet | null> {
     if (this.vault.kind === "bytes") {
       const nk = await this.vault.get(V.ns(nsId, epoch));
-      return nk instanceof Uint8Array ? deriveNamespaceKeys(nk, nsId, epoch) : null;
+      return nk instanceof Uint8Array
+        ? deriveNamespaceKeys(nk, nsId, epoch)
+        : null;
     }
     const [content, nameMac, nameEnc] = await Promise.all(
-      ["content", "nameMac", "nameEnc"].map((k) => this.vault.get(`${V.ns(nsId, epoch)}:${k}`)),
+      ["content", "nameMac", "nameEnc"].map((k) =>
+        this.vault.get(`${V.ns(nsId, epoch)}:${k}`),
+      ),
     );
-    if (!(content instanceof CryptoKey) || !(nameMac instanceof CryptoKey) || !(nameEnc instanceof CryptoKey)) return null;
+    if (
+      !(content instanceof CryptoKey) ||
+      !(nameMac instanceof CryptoKey) ||
+      !(nameEnc instanceof CryptoKey)
+    )
+      return null;
     return { epoch, content, nameMac, nameEnc };
   }
 
   /** The namespace keys for an epoch: memory, then vault, then unwrap from the server. */
-  keysFor(nsId: string, epoch: number, wraps?: Record<string, string>): Promise<NamespaceKeySet> {
+  keysFor(
+    nsId: string,
+    epoch: number,
+    wraps?: Record<string, string>,
+  ): Promise<NamespaceKeySet> {
     const id = `${nsId}:${epoch}`;
     let p = this.nsKeys.get(id);
     if (!p) {
@@ -514,10 +700,24 @@ export class SelfHostedClient {
         const local = await this.loadNamespaceKey(nsId, epoch);
         if (local) return local;
         this.requireReady();
-        const w = wraps ?? (await this.transport.json<RawNamespace>("GET", `/v1/namespaces/${nsId}`)).keys;
+        const w =
+          wraps ??
+          (
+            await this.transport.json<RawNamespace>(
+              "GET",
+              `/v1/namespaces/${nsId}`,
+            )
+          ).keys;
         const wrap = w[String(epoch)];
-        if (!wrap) throw new KeysMissingError(`no key for epoch ${epoch} of namespace ${nsId}`);
-        const nk = await openSealed(this.aek!, wrap, nkContext(nsId, epoch, this.sessionRef!.accountId));
+        if (!wrap)
+          throw new KeysMissingError(
+            `no key for epoch ${epoch} of namespace ${nsId}`,
+          );
+        const nk = await openSealed(
+          this.aek!,
+          wrap,
+          nkContext(nsId, epoch, this.sessionRef!.accountId),
+        );
         return this.storeNamespaceKey(nsId, epoch, nk);
       })();
       this.nsKeys.set(id, p);
@@ -529,20 +729,37 @@ export class SelfHostedClient {
   /** Raw namespace key bytes for every epoch (for invites and rotation). */
   async namespaceKeyBytes(nsId: string): Promise<Record<string, Uint8Array>> {
     this.requireReady();
-    const raw = await this.transport.json<RawNamespace>("GET", `/v1/namespaces/${nsId}`);
+    const raw = await this.transport.json<RawNamespace>(
+      "GET",
+      `/v1/namespaces/${nsId}`,
+    );
     const out: Record<string, Uint8Array> = {};
     for (const [epoch, wrap] of Object.entries(raw.keys)) {
-      out[epoch] = await openSealed(this.aek!, wrap, nkContext(nsId, Number(epoch), this.sessionRef!.accountId));
+      out[epoch] = await openSealed(
+        this.aek!,
+        wrap,
+        nkContext(nsId, Number(epoch), this.sessionRef!.accountId),
+      );
     }
     return out;
   }
 
   /** Seal a namespace key to an account (for rotation and sharing). */
-  wrapForAccount(nsId: string, epoch: number, accountId: string, aekPublic: string, nk: Uint8Array): Promise<string> {
+  wrapForAccount(
+    nsId: string,
+    epoch: number,
+    accountId: string,
+    aekPublic: string,
+    nk: Uint8Array,
+  ): Promise<string> {
     return sealToPublic(aekPublic, nk, nkContext(nsId, epoch, accountId));
   }
 
-  async adoptNamespaceKey(nsId: string, epoch: number, nk: Uint8Array): Promise<void> {
+  async adoptNamespaceKey(
+    nsId: string,
+    epoch: number,
+    nk: Uint8Array,
+  ): Promise<void> {
     const keys = await this.storeNamespaceKey(nsId, epoch, nk);
     this.nsKeys.set(`${nsId}:${epoch}`, Promise.resolve(keys));
   }
@@ -560,14 +777,20 @@ export class SelfHostedClient {
 
   async decryptMeta(raw: RawNamespace): Promise<NamespaceMeta> {
     const bytes = unb64u(raw.meta);
-    const plain = await openEnvelope((e) => this.keysFor(raw.id, e, raw.keys), bytes, aad.nsmeta(raw.id));
+    const plain = await openEnvelope(
+      (e) => this.keysFor(raw.id, e, raw.keys),
+      bytes,
+      aad.nsmeta(raw.id),
+    );
     return JSON.parse(fromUtf8(plain)) as NamespaceMeta;
   }
 
   /** Namespaces this account can use in this app (or `app`), names decrypted. */
   async namespaces(app: string = this.app): Promise<NamespaceInfo[]> {
     this.requireReady();
-    const { namespaces } = await this.transport.json<{ namespaces: RawNamespace[] }>("GET", "/v1/namespaces", {
+    const { namespaces } = await this.transport.json<{
+      namespaces: RawNamespace[];
+    }>("GET", "/v1/namespaces", {
       query: { app },
     });
     const out: NamespaceInfo[] = [];
@@ -579,7 +802,10 @@ export class SelfHostedClient {
   }
 
   /** Create a namespace; its key is born here and never leaves in the clear. */
-  async createNamespace(meta: NamespaceMeta, app: string = this.app): Promise<Namespace> {
+  async createNamespace(
+    meta: NamespaceMeta,
+    app: string = this.app,
+  ): Promise<Namespace> {
     this.requireReady();
     const s = this.sessionRef!;
     const id = `ns_${b64u(randomBytes(16))}`;
@@ -587,22 +813,44 @@ export class SelfHostedClient {
     const keys = await this.storeNamespaceKey(id, 1, nk);
     this.nsKeys.set(`${id}:1`, Promise.resolve(keys));
     const me = await this.me();
-    const raw = await this.transport.json<RawNamespace>("POST", "/v1/namespaces", {
-      json: {
-        id,
-        app,
-        meta: b64u(await sealEnvelope(keys, utf8(JSON.stringify(meta)), aad.nsmeta(id))),
-        wrap: await this.wrapForAccount(id, 1, s.accountId, me.keys.aekPublic!, nk),
+    const raw = await this.transport.json<RawNamespace>(
+      "POST",
+      "/v1/namespaces",
+      {
+        json: {
+          id,
+          app,
+          meta: b64u(
+            await sealEnvelope(
+              keys,
+              utf8(JSON.stringify(meta)),
+              aad.nsmeta(id),
+            ),
+          ),
+          wrap: await this.wrapForAccount(
+            id,
+            1,
+            s.accountId,
+            me.keys.aekPublic!,
+            nk,
+          ),
+        },
       },
-    });
+    );
     return new Namespace(this.context(), { ...toInfo(raw), meta });
   }
 
   async namespace(id: string): Promise<Namespace> {
     this.requireReady();
-    const raw = await this.transport.json<RawNamespace>("GET", `/v1/namespaces/${encodeURIComponent(id)}`);
+    const raw = await this.transport.json<RawNamespace>(
+      "GET",
+      `/v1/namespaces/${encodeURIComponent(id)}`,
+    );
     this.observeSeq(raw.id, Number(raw.seq));
-    return new Namespace(this.context(), { ...toInfo(raw), meta: await this.decryptMeta(raw) });
+    return new Namespace(this.context(), {
+      ...toInfo(raw),
+      meta: await this.decryptMeta(raw),
+    });
   }
 
   /**
@@ -612,26 +860,40 @@ export class SelfHostedClient {
    */
   async acceptInvite(
     payload: string | InvitePayload,
-    opts: { accountName?: string; device?: { name: string; platform?: string } } = {},
+    opts: {
+      accountName?: string;
+      device?: { name: string; platform?: string };
+    } = {},
   ): Promise<{ namespace: Namespace; recoveryKey?: string }> {
     const p = typeof payload === "string" ? parsePayload(payload) : payload;
-    if (p.kind !== "invite") throw new Error("that is a pairing code, not an invite");
+    if (p.kind !== "invite")
+      throw new Error("that is a pairing code, not an invite");
     const code = await secretCode(p.secret);
     let result: { namespaceId: string; payload: string };
     let recoveryKey: string | undefined;
-    if (this.sessionRef && this.sessionRef.serverUrl === p.server && this.stateRef === "ready") {
-      result = await this.transport.json("POST", "/v1/invites/accept", { json: { code } });
+    if (
+      this.sessionRef &&
+      this.sessionRef.serverUrl === p.server &&
+      this.stateRef === "ready"
+    ) {
+      result = await this.transport.json("POST", "/v1/invites/accept", {
+        json: { code },
+      });
     } else {
       if (!opts.accountName || !opts.device) {
         throw new Error("to join as a guest, give accountName and device");
       }
       let joined: { namespaceId: string; payload: string } | null = null;
       await this.enrol(p.server, opts.device, async (d, t) => {
-        const r = await t.json<{ namespaceId: string; payload: string; deviceId: string; accountId: string }>(
-          "POST",
-          "/v1/invites/accept",
-          { auth: false, json: { code, device: d, accountName: opts.accountName } },
-        );
+        const r = await t.json<{
+          namespaceId: string;
+          payload: string;
+          deviceId: string;
+          accountId: string;
+        }>("POST", "/v1/invites/accept", {
+          auth: false,
+          json: { code, device: d, accountName: opts.accountName },
+        });
         joined = r;
         return r;
       });
@@ -639,20 +901,76 @@ export class SelfHostedClient {
       recoveryKey = await this.createAccountKeys();
     }
     const epochs = JSON.parse(
-      fromUtf8(await openWithKey(await secretKey(p.secret), result.payload, inviteContext(result.namespaceId))),
+      fromUtf8(
+        await openWithKey(
+          await secretKey(p.secret),
+          result.payload,
+          inviteContext(result.namespaceId),
+        ),
+      ),
     ) as { epochs: Record<string, string> };
     const me = await this.me();
     for (const [epoch, nkText] of Object.entries(epochs.epochs)) {
       const nk = unb64u(nkText);
       await this.adoptNamespaceKey(result.namespaceId, Number(epoch), nk);
-      await this.transport.json("POST", `/v1/namespaces/${result.namespaceId}/keys`, {
-        json: {
-          epoch: Number(epoch),
-          wraps: { [me.account.id]: await this.wrapForAccount(result.namespaceId, Number(epoch), me.account.id, me.keys.aekPublic!, nk) },
+      await this.transport.json(
+        "POST",
+        `/v1/namespaces/${result.namespaceId}/keys`,
+        {
+          json: {
+            epoch: Number(epoch),
+            wraps: {
+              [me.account.id]: await this.wrapForAccount(
+                result.namespaceId,
+                Number(epoch),
+                me.account.id,
+                me.keys.aekPublic!,
+                nk,
+              ),
+            },
+          },
         },
-      });
+      );
     }
     return { namespace: await this.namespace(result.namespaceId), recoveryKey };
+  }
+
+  /**
+   * A per-device AES-256-GCM key for encrypting local caches (e.g.
+   * `createIdbRecordCache({ encryptWith })`), created on first use and kept
+   * non-extractable in the vault — so cached health data is not left in the
+   * browser in the clear either.
+   */
+  async localCacheKey(): Promise<CryptoKey> {
+    const existing = await this.vault.get("cache:key");
+    if (existing instanceof CryptoKey) return existing;
+    if (existing instanceof Uint8Array) {
+      return crypto.subtle.importKey(
+        "raw",
+        new Uint8Array(existing),
+        "AES-GCM",
+        false,
+        ["encrypt", "decrypt"],
+      );
+    }
+    if (this.vault.kind === "cryptokey") {
+      const key = await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"],
+      );
+      await this.vault.put("cache:key", key);
+      return key;
+    }
+    const raw = randomBytes(32);
+    await this.vault.put("cache:key", raw);
+    return crypto.subtle.importKey(
+      "raw",
+      new Uint8Array(raw),
+      "AES-GCM",
+      false,
+      ["encrypt", "decrypt"],
+    );
   }
 
   // ---- live events ----------------------------------------------------------------
@@ -663,12 +981,22 @@ export class SelfHostedClient {
     if (!this.eventsAbort && this.transportRef) {
       const ac = new AbortController();
       this.eventsAbort = ac;
-      void this.transportRef.events((e) => {
-        if (e.type === "device" && e.revoked && e.deviceId === this.sessionRef?.deviceId) {
-          this.log.warn("this device was revoked");
-        }
-        for (const l of [...this.listeners]) l(e);
-      }, { signal: ac.signal, onError: (err) => this.log.warn("event stream interrupted", err) });
+      void this.transportRef.events(
+        (e) => {
+          if (
+            e.type === "device" &&
+            e.revoked &&
+            e.deviceId === this.sessionRef?.deviceId
+          ) {
+            this.log.warn("this device was revoked");
+          }
+          for (const l of [...this.listeners]) l(e);
+        },
+        {
+          signal: ac.signal,
+          onError: (err) => this.log.warn("event stream interrupted", err),
+        },
+      );
     }
     return () => {
       this.listeners.delete(listener);
@@ -693,6 +1021,8 @@ function toInfo(raw: RawNamespace): Omit<NamespaceInfo, "meta"> {
   };
 }
 
-export function createSelfHostedClient(options: SelfHostedClientOptions): SelfHostedClient {
+export function createSelfHostedClient(
+  options: SelfHostedClientOptions,
+): SelfHostedClient {
   return new SelfHostedClient(options);
 }

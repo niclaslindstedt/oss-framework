@@ -18,7 +18,10 @@ export type LocalRow<T> = {
   epoch?: number;
 };
 
-export type RecordCacheState<T> = { cursor: number; rows: [string, LocalRow<T>][] };
+export type RecordCacheState<T> = {
+  cursor: number;
+  rows: [string, LocalRow<T>][];
+};
 
 /** Where a store keeps its local copy between app launches. */
 export type RecordCache<T> = {
@@ -26,7 +29,11 @@ export type RecordCache<T> = {
   save(state: RecordCacheState<T>): Promise<void>;
 };
 
-export type RowMerge<T> = (base: T | null, local: T | null, remote: T | null) => T | null;
+export type RowMerge<T> = (
+  base: T | null,
+  local: T | null,
+  remote: T | null,
+) => T | null;
 
 export type RecordStoreOptions<T> = {
   /** Merge a row both sides changed. Default: three-way field merge; conflicting fields go to the newer `updatedAt`. */
@@ -52,9 +59,14 @@ export function createMemoryRecordCache<T>(): RecordCache<T> {
 export function defaultRowMerge<T>(options: MergeOptions = {}): RowMerge<T> {
   return (base, local, remote) => {
     if (local === null && remote === null) return null;
-    if (local === null) return options.deleteWins && base !== null ? null : remote;
-    if (remote === null) return options.deleteWins && base !== null ? null : local;
-    return threeWayMerge(base ?? undefined, local, remote, { resolve: newerByField("updatedAt"), ...options }) as T;
+    if (local === null)
+      return options.deleteWins && base !== null ? null : remote;
+    if (remote === null)
+      return options.deleteWins && base !== null ? null : local;
+    return threeWayMerge(base ?? undefined, local, remote, {
+      resolve: newerByField("updatedAt"),
+      ...options,
+    }) as T;
   };
 }
 
@@ -119,7 +131,9 @@ export class RecordStore<T = unknown> {
   }
 
   entries(): [string, T][] {
-    return [...this.rows].filter(([, r]) => r.value !== null).map(([k, r]) => [k, r.value as T]);
+    return [...this.rows]
+      .filter(([, r]) => r.value !== null)
+      .map(([k, r]) => [k, r.value as T]);
   }
 
   /** Rows changed locally and not yet on the server. */
@@ -128,7 +142,12 @@ export class RecordStore<T = unknown> {
   }
 
   set(key: string, value: T): void {
-    const r = this.rows.get(key) ?? { value: null, base: null, rev: null, dirty: false };
+    const r = this.rows.get(key) ?? {
+      value: null,
+      base: null,
+      rev: null,
+      dirty: false,
+    };
     this.rows.set(key, { ...r, value, dirty: true });
     void this.persist();
     this.emit([key]);
@@ -143,15 +162,32 @@ export class RecordStore<T = unknown> {
   }
 
   /** Apply what the server says a row now is (merging with local edits). */
-  applyRemote(key: string, remote: T | null, rev: string, epoch?: number): boolean {
+  applyRemote(
+    key: string,
+    remote: T | null,
+    rev: string,
+    epoch?: number,
+  ): boolean {
     const r = this.rows.get(key);
     if (r && r.rev === rev && !r.dirty) return false;
     if (!r || !r.dirty) {
-      this.rows.set(key, { value: remote, base: remote, rev, dirty: false, epoch });
+      this.rows.set(key, {
+        value: remote,
+        base: remote,
+        rev,
+        dirty: false,
+        epoch,
+      });
       return true;
     }
     const merged = this.merge(r.base, r.value, remote);
-    this.rows.set(key, { value: merged, base: remote, rev, dirty: true, epoch });
+    this.rows.set(key, {
+      value: merged,
+      base: remote,
+      rev,
+      dirty: true,
+      epoch,
+    });
     this.mergesSinceSync++;
     return true;
   }
@@ -166,7 +202,8 @@ export class RecordStore<T = unknown> {
     const touched: string[] = [];
     for (const c of changes) {
       if (c.kind !== "record" || c.collection !== this.collection) continue;
-      if (this.applyRemote(c.key, c.deleted ? null : (c.value as T), c.rev)) touched.push(c.key);
+      if (this.applyRemote(c.key, c.deleted ? null : (c.value as T), c.rev))
+        touched.push(c.key);
     }
     this.cursor = Math.max(this.cursor, seq);
     return touched;
@@ -184,11 +221,24 @@ export class RecordStore<T = unknown> {
     for (const row of rows) {
       seen.add(row.key);
       const remote = "deleted" in row ? null : row.value;
-      if (this.applyRemote(row.key, remote, row.rev, "epoch" in row ? row.epoch : undefined)) touched.push(row.key);
+      if (
+        this.applyRemote(
+          row.key,
+          remote,
+          row.rev,
+          "epoch" in row ? row.epoch : undefined,
+        )
+      )
+        touched.push(row.key);
     }
     for (const [key, r] of this.rows) {
       if (!seen.has(key) && !r.dirty && r.value !== null) {
-        this.rows.set(key, { value: null, base: null, rev: null, dirty: false });
+        this.rows.set(key, {
+          value: null,
+          base: null,
+          rev: null,
+          dirty: false,
+        });
         touched.push(key);
       }
     }
@@ -223,7 +273,12 @@ export class RecordStore<T = unknown> {
       // A row created and deleted before it ever reached the server is simply done.
       for (const [key, r] of this.rows) {
         if (r.dirty && r.value === null && r.rev === null) {
-          this.rows.set(key, { value: null, base: null, rev: null, dirty: false });
+          this.rows.set(key, {
+            value: null,
+            base: null,
+            rev: null,
+            dirty: false,
+          });
         }
       }
       const dirty = [...this.rows].filter(([, r]) => r.dirty);
@@ -231,30 +286,66 @@ export class RecordStore<T = unknown> {
       const results = await this.ns.batch(
         dirty.map(([key, r]) =>
           r.value === null
-            ? { op: "delete" as const, collection: this.collection, key, ifRev: r.rev! }
+            ? {
+                op: "delete" as const,
+                collection: this.collection,
+                key,
+                ifRev: r.rev!,
+              }
             : r.rev
-              ? { op: "put" as const, collection: this.collection, key, value: r.value, ifRev: r.rev }
-              : { op: "put" as const, collection: this.collection, key, value: r.value, ifAbsent: true },
+              ? {
+                  op: "put" as const,
+                  collection: this.collection,
+                  key,
+                  value: r.value,
+                  ifRev: r.rev,
+                }
+              : {
+                  op: "put" as const,
+                  collection: this.collection,
+                  key,
+                  value: r.value,
+                  ifAbsent: true,
+                },
         ),
         { atomic: false },
       );
       for (const [i, [key, r]] of dirty.entries()) {
         const res = results.results[i]!;
         if (res.ok) {
-          this.rows.set(key, { value: r.value, base: r.value, rev: r.value === null ? null : res.rev, dirty: false });
+          this.rows.set(key, {
+            value: r.value,
+            base: r.value,
+            rev: r.value === null ? null : res.rev,
+            dirty: false,
+          });
           pushed++;
           continue;
         }
         if (res.error === "not_found") {
           // deleting something the server no longer has: done
-          this.rows.set(key, { value: null, base: null, rev: null, dirty: false });
+          this.rows.set(key, {
+            value: null,
+            base: null,
+            rev: null,
+            dirty: false,
+          });
           continue;
         }
-        if (res.error !== "conflict") throw new Error(`push ${key}: ${res.message}`);
+        if (res.error !== "conflict")
+          throw new Error(`push ${key}: ${res.message}`);
         const current = await this.api.decodeCurrent(res.current);
-        const remote = current && !("deleted" in current && current.deleted) ? (current as { value: T }).value : null;
+        const remote =
+          current && !("deleted" in current && current.deleted)
+            ? (current as { value: T }).value
+            : null;
         const next = this.merge(r.base, r.value, remote);
-        this.rows.set(key, { value: next, base: remote, rev: current?.rev ?? null, dirty: true });
+        this.rows.set(key, {
+          value: next,
+          base: remote,
+          rev: current?.rev ?? null,
+          dirty: true,
+        });
         merged++;
       }
     }
@@ -291,7 +382,9 @@ export class RecordStore<T = unknown> {
   }
 
   /** Keep syncing: on server events, and shortly after local edits. */
-  live(options: { debounceMs?: number; onError?: (err: unknown) => void } = {}): () => void {
+  live(
+    options: { debounceMs?: number; onError?: (err: unknown) => void } = {},
+  ): () => void {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const run = () => {
       this.sync().catch((err) => options.onError?.(err));

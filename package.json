@@ -1,7 +1,7 @@
 {
   "name": "@niclaslindstedt/oss-framework",
   "version": "3.10.0",
-  "description": "Shared React components, hooks and utilities for building local-first PWAs — storage backends, encryption, themes, folders and namespaces extracted from the notes and checklist apps.",
+  "description": "Shared React components, hooks and utilities for building local-first PWAs \u2014 storage backends, encryption, themes, folders and namespaces extracted from the notes and checklist apps.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
   "type": "module",
@@ -193,6 +193,11 @@
       "types": "./dist/references/index.d.ts",
       "import": "./dist/references/index.js",
       "require": "./dist/references/index.cjs"
+    },
+    "./qr": {
+      "types": "./dist/qr/index.d.ts",
+      "import": "./dist/qr/index.js",
+      "require": "./dist/qr/index.cjs"
     }
   },
   "scripts": {
@@ -251,6 +256,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
+    "jsqr": "^1.4.0",
     "prettier": "^3.9.4",
     "tsup": "^8.5.0",
     "typescript": "^6.0.3",

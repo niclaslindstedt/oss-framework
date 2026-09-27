@@ -17,11 +17,7 @@
  * four; an app that adds its own backend keys it under its own string.
  */
 export type StorageBackendId =
-  | "browser"
-  | "folder"
-  | "dropbox"
-  | "gdrive"
-  | "selfhosted";
+  "browser" | "folder" | "dropbox" | "gdrive" | "selfhosted";
 
 /** A document's bytes plus the metadata a backend needs to stay coherent. */
 export type StoredSnapshot = {

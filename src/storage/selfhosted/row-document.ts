@@ -10,7 +10,11 @@
 // `ConflictError` carrying the merged document — the contract apps already
 // handle (adopt / merge, then save again, which then succeeds).
 
-import { ConflictError, type StorageAdapter, type StoredSnapshot } from "../adapter.ts";
+import {
+  ConflictError,
+  type StorageAdapter,
+  type StoredSnapshot,
+} from "../adapter.ts";
 import { AuthError } from "../adapter.ts";
 import { jsonEqual, type MergeOptions } from "./merge.ts";
 import type { Namespace } from "./namespace.ts";
@@ -32,10 +36,21 @@ type Doc = Record<string, unknown>;
 
 const ROOT_KEY = "root";
 
-export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOptions): StorageAdapter {
+export function createRowDocumentAdapter(
+  ns: Namespace,
+  options: RowDocumentOptions,
+): StorageAdapter {
   const rootCollection = options.rootCollection ?? "__doc";
-  const storeOpts = { merge: options.merge, mergeOptions: options.mergeOptions };
-  const maps = new Map(options.rows.map((name) => [name, new RecordStore<unknown>(ns, name, storeOpts)]));
+  const storeOpts = {
+    merge: options.merge,
+    mergeOptions: options.mergeOptions,
+  };
+  const maps = new Map(
+    options.rows.map((name) => [
+      name,
+      new RecordStore<unknown>(ns, name, storeOpts),
+    ]),
+  );
   const root = new RecordStore<unknown>(ns, rootCollection, storeOpts);
   const stores = [root, ...maps.values()];
   let initialized = false;
@@ -48,7 +63,7 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     }
     const since = Math.min(...stores.map((s) => s.since));
     try {
-      for (let cursor = since; ; ) {
+      for (let cursor = since; ;) {
         const page = await ns.changes(cursor, { limit: 1000 });
         for (const s of stores) s.applyChanges(page.changes, page.seq);
         cursor = page.seq;
@@ -65,7 +80,8 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     const anyRows = [...maps.values()].some((s) => s.entries().length > 0);
     if (base === undefined && !anyRows) return null;
     const doc: Doc = { ...(base ?? {}) };
-    for (const [name, store] of maps) doc[name] = Object.fromEntries(store.entries());
+    for (const [name, store] of maps)
+      doc[name] = Object.fromEntries(store.entries());
     return doc;
   }
 
@@ -81,7 +97,12 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     return rest;
   }
 
-  function stageRow(store: RecordStore<unknown>, key: string, prev: unknown, next: unknown): void {
+  function stageRow(
+    store: RecordStore<unknown>,
+    key: string,
+    prev: unknown,
+    next: unknown,
+  ): void {
     if (jsonEqual(prev, next)) return; // not edited by the app
     const current = store.get(key);
     const value =
@@ -93,11 +114,18 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
   }
 
   function stage(doc: Doc): void {
-    stageRow(root, ROOT_KEY, lastDoc ? splitRoot(lastDoc) : undefined, splitRoot(doc));
+    stageRow(
+      root,
+      ROOT_KEY,
+      lastDoc ? splitRoot(lastDoc) : undefined,
+      splitRoot(doc),
+    );
     for (const [name, store] of maps) {
       const next = (doc[name] ?? {}) as Record<string, unknown>;
       if (typeof next !== "object" || next === null || Array.isArray(next)) {
-        throw new Error(`document.${name} must be an object map to be stored as rows`);
+        throw new Error(
+          `document.${name} must be an object map to be stored as rows`,
+        );
       }
       const prev = (lastDoc?.[name] ?? {}) as Record<string, unknown>;
       for (const key of new Set([...Object.keys(prev), ...Object.keys(next)])) {
@@ -112,7 +140,9 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     await pullAll();
     const doc = assemble();
     lastDoc = doc;
-    return doc === null ? null : { text: JSON.stringify(doc), revision: revision() };
+    return doc === null
+      ? null
+      : { text: JSON.stringify(doc), revision: revision() };
   }
 
   async function save(text: string): Promise<StoredSnapshot> {
@@ -130,7 +160,10 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     const merged = assemble() ?? {};
     lastDoc = merged;
     if (!jsonEqual(merged, doc)) {
-      throw new ConflictError({ text: JSON.stringify(merged), revision: revision() });
+      throw new ConflictError({
+        text: JSON.stringify(merged),
+        revision: revision(),
+      });
     }
     return { text, revision: revision() };
   }

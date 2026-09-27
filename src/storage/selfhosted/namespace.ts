@@ -38,7 +38,10 @@ import {
   type NamespaceAdapterOptions,
   type NamespaceFileStore,
 } from "./adapters.ts";
-import { createRowDocumentAdapter, type RowDocumentOptions } from "./row-document.ts";
+import {
+  createRowDocumentAdapter,
+  type RowDocumentOptions,
+} from "./row-document.ts";
 import { rotateNamespaceKey } from "./rotation.ts";
 
 export type NsRole = "owner" | "editor" | "viewer";
@@ -72,28 +75,78 @@ export type NamespaceInfo = {
   meta: NamespaceMeta;
 };
 
-export type Member = { accountId: string; name: string; role: NsRole; hasKey: boolean; aekPublic: string | null };
+export type Member = {
+  accountId: string;
+  name: string;
+  role: NsRole;
+  hasKey: boolean;
+  aekPublic: string | null;
+};
 
 export type Change =
-  | { kind: "file"; path: string; rev: string; deleted: boolean; file?: FileInfo }
-  | { kind: "record"; collection: string; key: string; rev: string; deleted: boolean; value?: unknown }
+  | {
+      kind: "file";
+      path: string;
+      rev: string;
+      deleted: boolean;
+      file?: FileInfo;
+    }
+  | {
+      kind: "record";
+      collection: string;
+      key: string;
+      rev: string;
+      deleted: boolean;
+      value?: unknown;
+    }
   | { kind: "namespace"; rev: string; epoch: number; meta: NamespaceMeta }
   | { kind: "members"; rev: string };
 
 type RawChange =
-  | { kind: "file"; path: string; fileId: string; rev: string; size: number; meta: string | null; deleted: boolean }
-  | { kind: "record"; collection: string; key: string; rev: string; value: string | null; deleted: boolean }
+  | {
+      kind: "file";
+      path: string;
+      fileId: string;
+      rev: string;
+      size: number;
+      meta: string | null;
+      deleted: boolean;
+    }
+  | {
+      kind: "record";
+      collection: string;
+      key: string;
+      rev: string;
+      value: string | null;
+      deleted: boolean;
+    }
   | { kind: "namespace"; rev: string; meta: string; epoch: number }
   | { kind: "members"; rev: string };
 
 export type PlainOp =
-  | { op: "put"; collection: string; key: string; value: unknown; ifRev?: string; ifAbsent?: boolean }
+  | {
+      op: "put";
+      collection: string;
+      key: string;
+      value: unknown;
+      ifRev?: string;
+      ifAbsent?: boolean;
+    }
   | { op: "delete"; collection: string; key: string; ifRev?: string }
   | { op: "check"; collection: string; key: string; rev: string }
-  | { op: "file.put"; path: string; data: Uint8Array | string; ifRev?: string; ifAbsent?: boolean; mime?: string }
+  | {
+      op: "file.put";
+      path: string;
+      data: Uint8Array | string;
+      ifRev?: string;
+      ifAbsent?: boolean;
+      mime?: string;
+    }
   | { op: "file.delete"; path: string; ifRev?: string };
 
-export type BatchResult = { ok: true; rev: string } | { ok: false; error: string; message: string; current?: unknown };
+export type BatchResult =
+  | { ok: true; rev: string }
+  | { ok: false; error: string; message: string; current?: unknown };
 
 export type NamespaceContext = {
   client: SelfHostedClient;
@@ -105,7 +158,11 @@ export type NamespaceContext = {
 };
 
 export function isStaleEpoch(err: unknown): boolean {
-  return err instanceof ApiRequestError && err.status === 400 && err.details.reason === "stale_epoch";
+  return (
+    err instanceof ApiRequestError &&
+    err.status === 400 &&
+    err.details.reason === "stale_epoch"
+  );
 }
 
 export class Namespace {
@@ -148,7 +205,10 @@ export class Namespace {
 
   /** Epochs this device can decrypt, newest first. */
   epochs(): number[] {
-    return Object.keys(this.info.keys).map(Number).filter((e) => e <= this.epoch).sort((a, b) => b - a);
+    return Object.keys(this.info.keys)
+      .map(Number)
+      .filter((e) => e <= this.epoch)
+      .sort((a, b) => b - a);
   }
 
   observe(seq: number | string): void {
@@ -157,7 +217,10 @@ export class Namespace {
   }
 
   async refresh(): Promise<void> {
-    const raw = await this.transport.json<RawNamespace>("GET", `/v1/namespaces/${this.id}`);
+    const raw = await this.transport.json<RawNamespace>(
+      "GET",
+      `/v1/namespaces/${this.id}`,
+    );
     this.observe(raw.seq);
     this.info = {
       id: raw.id,
@@ -200,7 +263,9 @@ export class Namespace {
   }
 
   async decryptPath(tokens: string): Promise<string> {
-    return (await Promise.all(tokens.split("/").map((t) => this.decryptName(t)))).join("/");
+    return (
+      await Promise.all(tokens.split("/").map((t) => this.decryptName(t)))
+    ).join("/");
   }
 
   async seal(plain: Uint8Array, aadText: string): Promise<Uint8Array> {
@@ -215,8 +280,14 @@ export class Namespace {
 
   async updateMeta(meta: NamespaceMeta): Promise<void> {
     await this.withEpochRetry(async () => {
-      const sealed = b64u(await this.seal(utf8(JSON.stringify(meta)), aad.nsmeta(this.id)));
-      const raw = await this.transport.json<RawNamespace>("PATCH", `/v1/namespaces/${this.id}`, { json: { meta: sealed } });
+      const sealed = b64u(
+        await this.seal(utf8(JSON.stringify(meta)), aad.nsmeta(this.id)),
+      );
+      const raw = await this.transport.json<RawNamespace>(
+        "PATCH",
+        `/v1/namespaces/${this.id}`,
+        { json: { meta: sealed } },
+      );
       this.observe(raw.seq);
       this.info.meta = meta;
     });
@@ -228,29 +299,44 @@ export class Namespace {
     return new RecordsApi<T>(this, collection);
   }
 
-  recordStore<T = unknown>(collection: string, options: RecordStoreOptions<T> = {}): RecordStore<T> {
+  recordStore<T = unknown>(
+    collection: string,
+    options: RecordStoreOptions<T> = {},
+  ): RecordStore<T> {
     return new RecordStore<T>(this, collection, options);
   }
 
   /** Every collection in the namespace (names decrypted) with its live row count. */
-  async collections(): Promise<{ collection: string; rows: number; epoch: number; token: string }[]> {
-    const { collections } = await this.transport.json<{ collections: { collection: string; rows: number }[] }>(
-      "GET",
-      `${this.base}/collections`,
-    );
+  async collections(): Promise<
+    { collection: string; rows: number; epoch: number; token: string }[]
+  > {
+    const { collections } = await this.transport.json<{
+      collections: { collection: string; rows: number }[];
+    }>("GET", `${this.base}/collections`);
     const out = [];
     for (const c of collections) {
-      out.push({ collection: await this.decryptName(c.collection), rows: c.rows, epoch: nameEpoch(c.collection), token: c.collection });
+      out.push({
+        collection: await this.decryptName(c.collection),
+        rows: c.rows,
+        epoch: nameEpoch(c.collection),
+        token: c.collection,
+      });
     }
     return out;
   }
 
   /** Several writes at one sequence number; `atomic` (default) = all or nothing. */
-  async batch(ops: PlainOp[], opts: { atomic?: boolean } = {}): Promise<{ seq: string; results: BatchResult[] }> {
+  async batch(
+    ops: PlainOp[],
+    opts: { atomic?: boolean } = {},
+  ): Promise<{ seq: string; results: BatchResult[] }> {
     return this.withEpochRetry(async () => {
       const wire = [];
       for (const op of ops) wire.push(await this.encodeOp(op));
-      const out = await this.transport.json<{ seq: string; results: BatchResult[] }>("POST", `${this.base}/batch`, {
+      const out = await this.transport.json<{
+        seq: string;
+        results: BatchResult[];
+      }>("POST", `${this.base}/batch`, {
         json: { atomic: opts.atomic !== false, ops: wire },
       });
       this.observe(out.seq);
@@ -266,25 +352,61 @@ export class Namespace {
         const collection = await this.encryptName(op.collection);
         const key = await this.encryptName(op.key);
         if (op.op === "put") {
-          const value = b64u(await this.seal(utf8(JSON.stringify(op.value)), aad.record(this.id, collection, key)));
-          return { op: "put", collection, key, value, ifRev: op.ifRev, ifAbsent: op.ifAbsent };
+          const value = b64u(
+            await this.seal(
+              utf8(JSON.stringify(op.value)),
+              aad.record(this.id, collection, key),
+            ),
+          );
+          return {
+            op: "put",
+            collection,
+            key,
+            value,
+            ifRev: op.ifRev,
+            ifAbsent: op.ifAbsent,
+          };
         }
-        return op.op === "delete" ? { op: "delete", collection, key, ifRev: op.ifRev } : { op: "check", collection, key, rev: op.rev };
+        return op.op === "delete"
+          ? { op: "delete", collection, key, ifRev: op.ifRev }
+          : { op: "check", collection, key, rev: op.rev };
       }
       case "file.put": {
-        const sealed = await this.files.sealFile(op.path, typeof op.data === "string" ? utf8(op.data) : op.data, { mime: op.mime });
-        return { op: "file.put", path: sealed.encPath, content: b64u(sealed.content), meta: sealed.meta, ifRev: op.ifRev, ifAbsent: op.ifAbsent };
+        const sealed = await this.files.sealFile(
+          op.path,
+          typeof op.data === "string" ? utf8(op.data) : op.data,
+          { mime: op.mime },
+        );
+        return {
+          op: "file.put",
+          path: sealed.encPath,
+          content: b64u(sealed.content),
+          meta: sealed.meta,
+          ifRev: op.ifRev,
+          ifAbsent: op.ifAbsent,
+        };
       }
       case "file.delete":
-        return { op: "file.delete", path: await this.encryptPath(op.path), ifRev: op.ifRev };
+        return {
+          op: "file.delete",
+          path: await this.encryptPath(op.path),
+          ifRev: op.ifRev,
+        };
     }
   }
 
   // ---- change feed ---------------------------------------------------------------------
 
   /** What changed since `since` (0 = everything still in the feed), decrypted. */
-  async changes(since: number, opts: { waitSeconds?: number; limit?: number; signal?: AbortSignal } = {}): Promise<{ seq: number; changes: Change[]; more: boolean }> {
-    const raw = await this.transport.json<{ seq: string; changes: RawChange[]; more: boolean }>("GET", `${this.base}/changes`, {
+  async changes(
+    since: number,
+    opts: { waitSeconds?: number; limit?: number; signal?: AbortSignal } = {},
+  ): Promise<{ seq: number; changes: Change[]; more: boolean }> {
+    const raw = await this.transport.json<{
+      seq: string;
+      changes: RawChange[];
+      more: boolean;
+    }>("GET", `${this.base}/changes`, {
       query: { since, wait: opts.waitSeconds, limit: opts.limit },
       signal: opts.signal,
     });
@@ -304,16 +426,45 @@ export class Namespace {
   private async decodeChange(c: RawChange): Promise<Change> {
     switch (c.kind) {
       case "file": {
-        if (c.deleted || !c.meta) return { kind: "file", path: await this.decryptPath(c.path), rev: c.rev, deleted: true };
-        const file = await this.files.decodeEntry({ path: c.path, fileId: c.fileId, rev: c.rev, size: c.size, meta: c.meta });
-        return { kind: "file", path: file.path, rev: c.rev, deleted: false, file };
+        if (c.deleted || !c.meta)
+          return {
+            kind: "file",
+            path: await this.decryptPath(c.path),
+            rev: c.rev,
+            deleted: true,
+          };
+        const file = await this.files.decodeEntry({
+          path: c.path,
+          fileId: c.fileId,
+          rev: c.rev,
+          size: c.size,
+          meta: c.meta,
+        });
+        return {
+          kind: "file",
+          path: file.path,
+          rev: c.rev,
+          deleted: false,
+          file,
+        };
       }
       case "record": {
         const collection = await this.decryptName(c.collection);
         const key = await this.decryptName(c.key);
-        if (c.deleted || c.value === null) return { kind: "record", collection, key, rev: c.rev, deleted: true };
-        const plain = await this.open(unb64u(c.value), aad.record(this.id, c.collection, c.key));
-        return { kind: "record", collection, key, rev: c.rev, deleted: false, value: JSON.parse(fromUtf8(plain)) };
+        if (c.deleted || c.value === null)
+          return { kind: "record", collection, key, rev: c.rev, deleted: true };
+        const plain = await this.open(
+          unb64u(c.value),
+          aad.record(this.id, c.collection, c.key),
+        );
+        return {
+          kind: "record",
+          collection,
+          key,
+          rev: c.rev,
+          deleted: false,
+          value: JSON.parse(fromUtf8(plain)),
+        };
       }
       case "namespace": {
         const plain = await this.open(unb64u(c.meta), aad.nsmeta(this.id));
@@ -337,7 +488,12 @@ export class Namespace {
   // ---- sharing -------------------------------------------------------------------------
 
   async members(): Promise<Member[]> {
-    return (await this.transport.json<{ members: Member[] }>("GET", `/v1/namespaces/${this.id}/members`)).members;
+    return (
+      await this.transport.json<{ members: Member[] }>(
+        "GET",
+        `/v1/namespaces/${this.id}/members`,
+      )
+    ).members;
   }
 
   /**
@@ -345,42 +501,105 @@ export class Namespace {
    * link) carries a secret the server never sees; the namespace keys travel
    * sealed under it.
    */
-  async invite(opts: { role?: "editor" | "viewer"; ttlSeconds?: number; maxUses?: number; appUrl?: string } = {}): Promise<{ payload: string; inviteId: string; expiresAt: number }> {
-    if (this.role !== "owner") throw new ForbiddenError("only owners can invite");
+  async invite(
+    opts: {
+      role?: "editor" | "viewer";
+      ttlSeconds?: number;
+      maxUses?: number;
+      appUrl?: string;
+    } = {},
+  ): Promise<{ payload: string; inviteId: string; expiresAt: number }> {
+    if (this.role !== "owner")
+      throw new ForbiddenError("only owners can invite");
     const x = randomBytes(32);
     const epochs: Record<string, string> = {};
-    for (const [e, nk] of Object.entries(await this.ctx.client.namespaceKeyBytes(this.id))) epochs[e] = b64u(nk);
-    const sealed = await sealWithKey(await secretKey(x), utf8(JSON.stringify({ epochs })), inviteContext(this.id));
+    for (const [e, nk] of Object.entries(
+      await this.ctx.client.namespaceKeyBytes(this.id),
+    ))
+      epochs[e] = b64u(nk);
+    const sealed = await sealWithKey(
+      await secretKey(x),
+      utf8(JSON.stringify({ epochs })),
+      inviteContext(this.id),
+    );
     const role = opts.role ?? "viewer";
-    const r = await this.transport.json<{ inviteId: string; expiresAt: number }>("POST", `/v1/namespaces/${this.id}/invites`, {
-      json: { role, code: await secretCode(x), payload: sealed, ttlSeconds: opts.ttlSeconds, maxUses: opts.maxUses },
+    const r = await this.transport.json<{
+      inviteId: string;
+      expiresAt: number;
+    }>("POST", `/v1/namespaces/${this.id}/invites`, {
+      json: {
+        role,
+        code: await secretCode(x),
+        payload: sealed,
+        ttlSeconds: opts.ttlSeconds,
+        maxUses: opts.maxUses,
+      },
     });
     return {
-      payload: formatPayload({ kind: "invite", server: this.ctx.serverUrl, secret: x, role, name: this.ctx.serverName }, opts.appUrl),
+      payload: formatPayload(
+        {
+          kind: "invite",
+          server: this.ctx.serverUrl,
+          secret: x,
+          role,
+          name: this.ctx.serverName,
+        },
+        opts.appUrl,
+      ),
       ...r,
     };
   }
 
-  async invites(): Promise<{ id: string; role: string; expiresAt: number; uses: number; maxUses: number; revoked: boolean }[]> {
-    return (await this.transport.json<{ invites: never[] }>("GET", `/v1/namespaces/${this.id}/invites`)).invites;
+  async invites(): Promise<
+    {
+      id: string;
+      role: string;
+      expiresAt: number;
+      uses: number;
+      maxUses: number;
+      revoked: boolean;
+    }[]
+  > {
+    return (
+      await this.transport.json<{ invites: never[] }>(
+        "GET",
+        `/v1/namespaces/${this.id}/invites`,
+      )
+    ).invites;
   }
 
   async revokeInvite(inviteId: string): Promise<void> {
-    await this.transport.request("DELETE", `/v1/namespaces/${this.id}/invites/${encodeURIComponent(inviteId)}`);
+    await this.transport.request(
+      "DELETE",
+      `/v1/namespaces/${this.id}/invites/${encodeURIComponent(inviteId)}`,
+    );
   }
 
   async setRole(accountId: string, role: NsRole): Promise<void> {
-    await this.transport.request("PATCH", `/v1/namespaces/${this.id}/members/${encodeURIComponent(accountId)}`, { json: { role } });
+    await this.transport.request(
+      "PATCH",
+      `/v1/namespaces/${this.id}/members/${encodeURIComponent(accountId)}`,
+      { json: { role } },
+    );
   }
 
   /** Remove a member; by default also rotate the key so they cannot read anything new. */
-  async removeMember(accountId: string, opts: { rotate?: boolean } = {}): Promise<void> {
-    await this.transport.request("DELETE", `/v1/namespaces/${this.id}/members/${encodeURIComponent(accountId)}`);
+  async removeMember(
+    accountId: string,
+    opts: { rotate?: boolean } = {},
+  ): Promise<void> {
+    await this.transport.request(
+      "DELETE",
+      `/v1/namespaces/${this.id}/members/${encodeURIComponent(accountId)}`,
+    );
     if (opts.rotate !== false) await this.rotateKey();
   }
 
   async leave(): Promise<void> {
-    await this.transport.request("DELETE", `/v1/namespaces/${this.id}/members/${encodeURIComponent(this.ctx.accountId)}`);
+    await this.transport.request(
+      "DELETE",
+      `/v1/namespaces/${this.id}/members/${encodeURIComponent(this.ctx.accountId)}`,
+    );
   }
 
   /** Delete the namespace and everything in it, for every member. */
@@ -417,7 +636,9 @@ export class Namespace {
 export function splitPath(path: string): string[] {
   const segs = path.split("/");
   if (segs.some((s) => s === "" || s === "." || s === "..")) {
-    throw new Error(`invalid path "${path}": use non-empty segments without "." or ".."`);
+    throw new Error(
+      `invalid path "${path}": use non-empty segments without "." or ".."`,
+    );
   }
   return segs;
 }

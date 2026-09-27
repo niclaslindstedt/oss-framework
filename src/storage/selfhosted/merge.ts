@@ -33,20 +33,40 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  )
+    return false;
   if (Array.isArray(a) !== Array.isArray(b)) return false;
   if (Array.isArray(a)) {
     const bb = b as unknown[];
     return a.length === bb.length && a.every((x, i) => jsonEqual(x, bb[i]));
   }
-  const ka = Object.keys(a as object).filter((k) => (a as Record<string, unknown>)[k] !== undefined);
-  const kb = Object.keys(b as object).filter((k) => (b as Record<string, unknown>)[k] !== undefined);
+  const ka = Object.keys(a as object).filter(
+    (k) => (a as Record<string, unknown>)[k] !== undefined,
+  );
+  const kb = Object.keys(b as object).filter(
+    (k) => (b as Record<string, unknown>)[k] !== undefined,
+  );
   if (ka.length !== kb.length) return false;
-  return ka.every((k) => jsonEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+  return ka.every((k) =>
+    jsonEqual(
+      (a as Record<string, unknown>)[k],
+      (b as Record<string, unknown>)[k],
+    ),
+  );
 }
 
-function unionArrays(base: unknown[] | undefined, local: unknown[], remote: unknown[]): unknown[] {
-  const has = (list: unknown[] | undefined, x: unknown) => (list ?? []).some((y) => jsonEqual(x, y));
+function unionArrays(
+  base: unknown[] | undefined,
+  local: unknown[],
+  remote: unknown[],
+): unknown[] {
+  const has = (list: unknown[] | undefined, x: unknown) =>
+    (list ?? []).some((y) => jsonEqual(x, y));
   const removedRemotely = (x: unknown) => has(base, x) && !has(remote, x);
   const out = local.filter((x) => !removedRemotely(x));
   for (const x of remote) {
@@ -56,7 +76,12 @@ function unionArrays(base: unknown[] | undefined, local: unknown[], remote: unkn
   return out;
 }
 
-export function threeWayMerge(base: unknown, local: unknown, remote: unknown, options: MergeOptions = {}): unknown {
+export function threeWayMerge(
+  base: unknown,
+  local: unknown,
+  remote: unknown,
+  options: MergeOptions = {},
+): unknown {
   return merge(base, local, remote, [], options, local, remote);
 }
 
@@ -79,17 +104,38 @@ function merge(
     return o.deleteWins ? ABSENT : (local ?? remote);
   }
 
-  if (isPlainObject(local) && isPlainObject(remote) && (base === ABSENT || isPlainObject(base))) {
+  if (
+    isPlainObject(local) &&
+    isPlainObject(remote) &&
+    (base === ABSENT || isPlainObject(base))
+  ) {
     const b = (base ?? {}) as Record<string, unknown>;
     const out: Record<string, unknown> = {};
-    for (const key of new Set([...Object.keys(local), ...Object.keys(remote), ...Object.keys(b)])) {
-      const v = merge(b[key], local[key], remote[key], [...path, key], o, localRoot, remoteRoot);
+    for (const key of new Set([
+      ...Object.keys(local),
+      ...Object.keys(remote),
+      ...Object.keys(b),
+    ])) {
+      const v = merge(
+        b[key],
+        local[key],
+        remote[key],
+        [...path, key],
+        o,
+        localRoot,
+        remoteRoot,
+      );
       if (v !== ABSENT) out[key] = v;
     }
     return out;
   }
 
-  if (o.arrays === "union" && Array.isArray(local) && Array.isArray(remote) && (base === ABSENT || Array.isArray(base))) {
+  if (
+    o.arrays === "union" &&
+    Array.isArray(local) &&
+    Array.isArray(remote) &&
+    (base === ABSENT || Array.isArray(base))
+  ) {
     return unionArrays(base as unknown[] | undefined, local, remote);
   }
 
@@ -113,7 +159,9 @@ function stamp(root: unknown, field: string): number | null {
  * `field` (epoch ms or an ISO string) is newer wins a conflicting field;
  * ties go to remote so every device converges on the same value.
  */
-export function newerByField(field = "updatedAt"): (ctx: ConflictContext) => unknown {
+export function newerByField(
+  field = "updatedAt",
+): (ctx: ConflictContext) => unknown {
   return (ctx) => {
     const l = stamp(ctx.localRoot, field);
     const r = stamp(ctx.remoteRoot, field);

@@ -57,25 +57,50 @@ export type DeviceKeyPair = {
  * Generate a device's key pairs. Private halves are non-extractable unless a
  * native key vault needs the bytes to store them in the platform keystore.
  */
-export async function generateDeviceKeys(extractable = false): Promise<DeviceKeyPair> {
-  const dsk = await subtle().generateKey({ name: "ECDSA", namedCurve: "P-256" }, extractable, ["sign", "verify"]);
-  const dek = await subtle().generateKey({ name: "ECDH", namedCurve: "P-256" }, extractable, ["deriveBits"]);
+export async function generateDeviceKeys(
+  extractable = false,
+): Promise<DeviceKeyPair> {
+  const dsk = await subtle().generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
+    extractable,
+    ["sign", "verify"],
+  );
+  const dek = await subtle().generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    extractable,
+    ["deriveBits"],
+  );
   return {
     dsk,
     dek,
-    dskPublic: b64u(new Uint8Array(await subtle().exportKey("raw", dsk.publicKey))),
-    dekPublic: b64u(new Uint8Array(await subtle().exportKey("raw", dek.publicKey))),
+    dskPublic: b64u(
+      new Uint8Array(await subtle().exportKey("raw", dsk.publicKey)),
+    ),
+    dekPublic: b64u(
+      new Uint8Array(await subtle().exportKey("raw", dek.publicKey)),
+    ),
   };
 }
 
 /** ECDSA P-256 / SHA-256 signature (IEEE P1363, 64 bytes), base64url. */
-export async function signMessage(key: CryptoKey, message: string): Promise<string> {
-  const sig = await subtle().sign({ name: "ECDSA", hash: "SHA-256" }, key, buf(utf8(message)));
+export async function signMessage(
+  key: CryptoKey,
+  message: string,
+): Promise<string> {
+  const sig = await subtle().sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    buf(utf8(message)),
+  );
   return b64u(new Uint8Array(sig));
 }
 
 /** The message a device signs to sign in (SPEC §6.1). */
-export function authMessage(serverId: string, deviceId: string, challenge: string): string {
+export function authMessage(
+  serverId: string,
+  deviceId: string,
+  challenge: string,
+): string {
   return `${PREFIX}/auth|${serverId}|${deviceId}|${challenge}`;
 }
 
@@ -84,11 +109,19 @@ export function authMessage(serverId: string, deviceId: string, challenge: strin
  * of five — what two screens compare before one hands the other the account
  * key. Identical to the server's derivation.
  */
-export async function safetyCode(dskPublic: string, dekPublic: string): Promise<string> {
+export async function safetyCode(
+  dskPublic: string,
+  dekPublic: string,
+): Promise<string> {
   const d = await sha256(concatBytes(unb64u(dskPublic), unb64u(dekPublic)));
   const groups: string[] = [];
   for (let g = 0; g < 5; g++) {
-    const n = ((d[g * 4]! << 24) | (d[g * 4 + 1]! << 16) | (d[g * 4 + 2]! << 8) | d[g * 4 + 3]!) >>> 0;
+    const n =
+      ((d[g * 4]! << 24) |
+        (d[g * 4 + 1]! << 16) |
+        (d[g * 4 + 2]! << 8) |
+        d[g * 4 + 3]!) >>>
+      0;
     groups.push(String(n % 100000).padStart(5, "0"));
   }
   return groups.join(" ");
@@ -97,20 +130,44 @@ export async function safetyCode(dskPublic: string, dekPublic: string): Promise<
 // ---- account key and ECDH-ES sealing ------------------------------------------
 
 /** A fresh account key pair: raw public point + PKCS#8 private bytes. */
-export async function generateAccountKey(): Promise<{ publicRaw: string; pkcs8: Uint8Array }> {
-  const pair = await subtle().generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+export async function generateAccountKey(): Promise<{
+  publicRaw: string;
+  pkcs8: Uint8Array;
+}> {
+  const pair = await subtle().generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    true,
+    ["deriveBits"],
+  );
   return {
-    publicRaw: b64u(new Uint8Array(await subtle().exportKey("raw", pair.publicKey))),
+    publicRaw: b64u(
+      new Uint8Array(await subtle().exportKey("raw", pair.publicKey)),
+    ),
     pkcs8: new Uint8Array(await subtle().exportKey("pkcs8", pair.privateKey)),
   };
 }
 
-export function importAccountPrivate(pkcs8: Uint8Array, extractable = false): Promise<CryptoKey> {
-  return subtle().importKey("pkcs8", buf(pkcs8), { name: "ECDH", namedCurve: "P-256" }, extractable, ["deriveBits"]);
+export function importAccountPrivate(
+  pkcs8: Uint8Array,
+  extractable = false,
+): Promise<CryptoKey> {
+  return subtle().importKey(
+    "pkcs8",
+    buf(pkcs8),
+    { name: "ECDH", namedCurve: "P-256" },
+    extractable,
+    ["deriveBits"],
+  );
 }
 
 export function importEcdhPublic(raw: string): Promise<CryptoKey> {
-  return subtle().importKey("raw", buf(unb64u(raw)), { name: "ECDH", namedCurve: "P-256" }, false, []);
+  return subtle().importKey(
+    "raw",
+    buf(unb64u(raw)),
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    [],
+  );
 }
 
 async function hkdfKey(
@@ -119,32 +176,65 @@ async function hkdfKey(
   info: string,
   alg: "AES-GCM" | "HMAC",
 ): Promise<CryptoKey> {
-  const base = await subtle().importKey("raw", buf(secret), "HKDF", false, ["deriveKey", "deriveBits"]);
+  const base = await subtle().importKey("raw", buf(secret), "HKDF", false, [
+    "deriveKey",
+    "deriveBits",
+  ]);
   return subtle().deriveKey(
     { name: "HKDF", hash: "SHA-256", salt: buf(salt), info: buf(utf8(info)) },
     base,
-    alg === "AES-GCM" ? { name: "AES-GCM", length: 256 } : { name: "HMAC", hash: "SHA-256", length: 256 },
+    alg === "AES-GCM"
+      ? { name: "AES-GCM", length: 256 }
+      : { name: "HMAC", hash: "SHA-256", length: 256 },
     false,
     alg === "AES-GCM" ? ["encrypt", "decrypt"] : ["sign"],
   );
 }
 
-async function hkdfBytes(secret: Uint8Array, salt: Uint8Array, info: string): Promise<Uint8Array> {
-  const base = await subtle().importKey("raw", buf(secret), "HKDF", false, ["deriveBits"]);
+async function hkdfBytes(
+  secret: Uint8Array,
+  salt: Uint8Array,
+  info: string,
+): Promise<Uint8Array> {
+  const base = await subtle().importKey("raw", buf(secret), "HKDF", false, [
+    "deriveBits",
+  ]);
   return new Uint8Array(
-    await subtle().deriveBits({ name: "HKDF", hash: "SHA-256", salt: buf(salt), info: buf(utf8(info)) }, base, 256),
+    await subtle().deriveBits(
+      { name: "HKDF", hash: "SHA-256", salt: buf(salt), info: buf(utf8(info)) },
+      base,
+      256,
+    ),
   );
 }
 
-async function gcmEncrypt(key: CryptoKey, plaintext: Uint8Array, aadText: string, iv = randomBytes(12)) {
-  const ct = await subtle().encrypt({ name: "AES-GCM", iv: buf(iv), additionalData: buf(utf8(aadText)) }, key, buf(plaintext));
+async function gcmEncrypt(
+  key: CryptoKey,
+  plaintext: Uint8Array,
+  aadText: string,
+  iv = randomBytes(12),
+) {
+  const ct = await subtle().encrypt(
+    { name: "AES-GCM", iv: buf(iv), additionalData: buf(utf8(aadText)) },
+    key,
+    buf(plaintext),
+  );
   return { iv, ct: new Uint8Array(ct) };
 }
 
-async function gcmDecrypt(key: CryptoKey, iv: Uint8Array, ct: Uint8Array, aadText: string): Promise<Uint8Array> {
+async function gcmDecrypt(
+  key: CryptoKey,
+  iv: Uint8Array,
+  ct: Uint8Array,
+  aadText: string,
+): Promise<Uint8Array> {
   try {
     return new Uint8Array(
-      await subtle().decrypt({ name: "AES-GCM", iv: buf(iv), additionalData: buf(utf8(aadText)) }, key, buf(ct)),
+      await subtle().decrypt(
+        { name: "AES-GCM", iv: buf(iv), additionalData: buf(utf8(aadText)) },
+        key,
+        buf(ct),
+      ),
     );
   } catch {
     throw new DecryptError();
@@ -155,29 +245,54 @@ async function gcmDecrypt(key: CryptoKey, iv: Uint8Array, ct: Uint8Array, aadTex
  * Seal bytes to a P-256 public key (ECDH-ES): an ephemeral key pair, HKDF over
  * the shared secret, AES-256-GCM bound to `context`. Output: epk ‖ iv ‖ ct.
  */
-export async function sealToPublic(recipientPublic: string, plaintext: Uint8Array, context: string): Promise<string> {
-  const eph = await subtle().generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]);
+export async function sealToPublic(
+  recipientPublic: string,
+  plaintext: Uint8Array,
+  context: string,
+): Promise<string> {
+  const eph = await subtle().generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    ["deriveBits"],
+  );
   const epk = new Uint8Array(await subtle().exportKey("raw", eph.publicKey));
   const z = new Uint8Array(
-    await subtle().deriveBits({ name: "ECDH", public: await importEcdhPublic(recipientPublic) }, eph.privateKey, 256),
+    await subtle().deriveBits(
+      { name: "ECDH", public: await importEcdhPublic(recipientPublic) },
+      eph.privateKey,
+      256,
+    ),
   );
   const key = await hkdfKey(z, epk, `${PREFIX}/wrap|${context}`, "AES-GCM");
   const { iv, ct } = await gcmEncrypt(key, plaintext, context);
   return b64u(concatBytes(epk, iv, ct));
 }
 
-export async function openSealed(privateKey: CryptoKey, sealed: string, context: string): Promise<Uint8Array> {
+export async function openSealed(
+  privateKey: CryptoKey,
+  sealed: string,
+  context: string,
+): Promise<Uint8Array> {
   let bytes: Uint8Array;
   try {
     bytes = unb64u(sealed);
   } catch {
     throw new DecryptError("malformed sealed key");
   }
-  if (bytes.length < 65 + 12 + 16) throw new DecryptError("malformed sealed key");
+  if (bytes.length < 65 + 12 + 16)
+    throw new DecryptError("malformed sealed key");
   const epk = bytes.slice(0, 65);
   try {
-    const pub = await subtle().importKey("raw", buf(epk), { name: "ECDH", namedCurve: "P-256" }, false, []);
-    const z = new Uint8Array(await subtle().deriveBits({ name: "ECDH", public: pub }, privateKey, 256));
+    const pub = await subtle().importKey(
+      "raw",
+      buf(epk),
+      { name: "ECDH", namedCurve: "P-256" },
+      false,
+      [],
+    );
+    const z = new Uint8Array(
+      await subtle().deriveBits({ name: "ECDH", public: pub }, privateKey, 256),
+    );
     const key = await hkdfKey(z, epk, `${PREFIX}/wrap|${context}`, "AES-GCM");
     return await gcmDecrypt(key, bytes.slice(65, 77), bytes.slice(77), context);
   } catch (err) {
@@ -200,19 +315,28 @@ export function secretKey(x: Uint8Array): Promise<CryptoKey> {
   return hkdfKey(x, NO_SALT, `${PREFIX}/key`, "AES-GCM");
 }
 
-export async function sealWithKey(key: CryptoKey, plaintext: Uint8Array, aadText: string): Promise<string> {
+export async function sealWithKey(
+  key: CryptoKey,
+  plaintext: Uint8Array,
+  aadText: string,
+): Promise<string> {
   const { iv, ct } = await gcmEncrypt(key, plaintext, aadText);
   return b64u(concatBytes(iv, ct));
 }
 
-export async function openWithKey(key: CryptoKey, sealed: string, aadText: string): Promise<Uint8Array> {
+export async function openWithKey(
+  key: CryptoKey,
+  sealed: string,
+  aadText: string,
+): Promise<Uint8Array> {
   let bytes: Uint8Array;
   try {
     bytes = unb64u(sealed);
   } catch {
     throw new DecryptError("malformed sealed payload");
   }
-  if (bytes.length < 12 + 16) throw new DecryptError("malformed sealed payload");
+  if (bytes.length < 12 + 16)
+    throw new DecryptError("malformed sealed payload");
   return gcmDecrypt(key, bytes.slice(0, 12), bytes.slice(12), aadText);
 }
 
@@ -277,16 +401,24 @@ export async function parseRecoveryKey(text: string): Promise<Uint8Array> {
     .replace(/O/g, "0")
     .replace(/[IL]/g, "1")
     .replace(/U/g, "V");
-  if (clean.length !== 56) throw new Error("not a recovery key: it has 56 characters in groups of four");
+  if (clean.length !== 56)
+    throw new Error(
+      "not a recovery key: it has 56 characters in groups of four",
+    );
   const bytes = fromBase32(clean.slice(0, 52), 32);
   if ((await checksum(bytes)) !== clean.slice(52)) {
-    throw new Error("not a recovery key: a character is mistyped (checksum mismatch)");
+    throw new Error(
+      "not a recovery key: a character is mistyped (checksum mismatch)",
+    );
   }
   return bytes;
 }
 
 /** The key that seals the account key under a recovery key. */
-export function recoveryKeyFor(rk: Uint8Array, accountId: string): Promise<CryptoKey> {
+export function recoveryKeyFor(
+  rk: Uint8Array,
+  accountId: string,
+): Promise<CryptoKey> {
   return hkdfKey(rk, utf8(accountId), `${PREFIX}/recovery`, "AES-GCM");
 }
 
@@ -299,7 +431,11 @@ export type NamespaceKeySet = {
   nameEnc: CryptoKey;
 };
 
-export async function deriveNamespaceKeys(nk: Uint8Array, namespaceId: string, epoch: number): Promise<NamespaceKeySet> {
+export async function deriveNamespaceKeys(
+  nk: Uint8Array,
+  namespaceId: string,
+  epoch: number,
+): Promise<NamespaceKeySet> {
   const salt = utf8(namespaceId);
   return {
     epoch,
@@ -313,14 +449,19 @@ export async function deriveNamespaceKeys(nk: Uint8Array, namespaceId: string, e
 export const aad = {
   file: (ns: string, cid: string) => `${PREFIX}|${ns}|file|${cid}`,
   meta: (ns: string, encPath: string) => `${PREFIX}|${ns}|meta|${encPath}`,
-  record: (ns: string, encCollection: string, encKey: string) => `${PREFIX}|${ns}|record|${encCollection}/${encKey}`,
+  record: (ns: string, encCollection: string, encKey: string) =>
+    `${PREFIX}|${ns}|record|${encCollection}/${encKey}`,
   nsmeta: (ns: string) => `${PREFIX}|${ns}|nsmeta|`,
 };
 
 const MAGIC = [0x4f, 0x53, 0x45, 0x31];
 
 /** `OSE1` | version 1 | epoch u32 BE | iv | AES-256-GCM(ciphertext ‖ tag). */
-export async function sealEnvelope(keys: NamespaceKeySet, plaintext: Uint8Array, aadText: string): Promise<Uint8Array> {
+export async function sealEnvelope(
+  keys: NamespaceKeySet,
+  plaintext: Uint8Array,
+  aadText: string,
+): Promise<Uint8Array> {
   const header = new Uint8Array(9);
   header.set(MAGIC, 0);
   header[4] = 1;
@@ -330,10 +471,18 @@ export async function sealEnvelope(keys: NamespaceKeySet, plaintext: Uint8Array,
 }
 
 export function envelopeEpoch(bytes: Uint8Array): number {
-  if (bytes.length < 9 + 12 + 16 || MAGIC.some((m, i) => bytes[i] !== m) || bytes[4] !== 1) {
+  if (
+    bytes.length < 9 + 12 + 16 ||
+    MAGIC.some((m, i) => bytes[i] !== m) ||
+    bytes[4] !== 1
+  ) {
     throw new DecryptError("not an OSE1 envelope");
   }
-  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(5);
+  return new DataView(
+    bytes.buffer,
+    bytes.byteOffset,
+    bytes.byteLength,
+  ).getUint32(5);
 }
 
 export async function openEnvelope(
@@ -353,12 +502,23 @@ const MAX_SEGMENT_BYTES = 255;
  * lookups work — while the server learns nothing but equality. The token
  * carries its key epoch: `<epoch base36>.<b64u(iv ‖ ct)>`.
  */
-export async function encryptName(keys: NamespaceKeySet, segment: string): Promise<string> {
+export async function encryptName(
+  keys: NamespaceKeySet,
+  segment: string,
+): Promise<string> {
   const bytes = utf8(segment);
-  if (segment.length === 0 || segment.includes("/") || bytes.length > MAX_SEGMENT_BYTES) {
-    throw new Error(`invalid name segment: must be 1-${MAX_SEGMENT_BYTES} bytes without "/"`);
+  if (
+    segment.length === 0 ||
+    segment.includes("/") ||
+    bytes.length > MAX_SEGMENT_BYTES
+  ) {
+    throw new Error(
+      `invalid name segment: must be 1-${MAX_SEGMENT_BYTES} bytes without "/"`,
+    );
   }
-  const mac = new Uint8Array(await subtle().sign("HMAC", keys.nameMac, buf(utf8(`seg|${segment}`))));
+  const mac = new Uint8Array(
+    await subtle().sign("HMAC", keys.nameMac, buf(utf8(`seg|${segment}`))),
+  );
   const iv = mac.slice(0, 12);
   const { ct } = await gcmEncrypt(keys.nameEnc, bytes, `${PREFIX}|name`, iv);
   return `${keys.epoch.toString(36)}.${b64u(concatBytes(iv, ct))}`;
@@ -367,12 +527,17 @@ export async function encryptName(keys: NamespaceKeySet, segment: string): Promi
 export function nameEpoch(token: string): number {
   const dot = token.indexOf(".");
   const epoch = dot > 0 ? parseInt(token.slice(0, dot), 36) : NaN;
-  if (!Number.isSafeInteger(epoch) || epoch < 1) throw new DecryptError("not an encrypted name");
+  if (!Number.isSafeInteger(epoch) || epoch < 1)
+    throw new DecryptError("not an encrypted name");
   return epoch;
 }
 
-export async function decryptName(keys: NamespaceKeySet, token: string): Promise<string> {
-  if (nameEpoch(token) !== keys.epoch) throw new DecryptError("name is sealed under another epoch");
+export async function decryptName(
+  keys: NamespaceKeySet,
+  token: string,
+): Promise<string> {
+  if (nameEpoch(token) !== keys.epoch)
+    throw new DecryptError("name is sealed under another epoch");
   let bytes: Uint8Array;
   try {
     bytes = unb64u(token.slice(token.indexOf(".") + 1));
@@ -380,5 +545,12 @@ export async function decryptName(keys: NamespaceKeySet, token: string): Promise
     throw new DecryptError("not an encrypted name");
   }
   if (bytes.length < 12 + 16) throw new DecryptError("not an encrypted name");
-  return fromUtf8(await gcmDecrypt(keys.nameEnc, bytes.slice(0, 12), bytes.slice(12), `${PREFIX}|name`));
+  return fromUtf8(
+    await gcmDecrypt(
+      keys.nameEnc,
+      bytes.slice(0, 12),
+      bytes.slice(12),
+      `${PREFIX}|name`,
+    ),
+  );
 }

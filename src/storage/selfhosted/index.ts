@@ -20,8 +20,17 @@ export {
   type NsRole as NamespaceRole,
   type PlainOp as NamespaceOp,
 } from "./namespace.ts";
-export { FileConflictError, NamespaceFiles, type FileInfo as NamespaceFileInfo, type WriteOptions as NamespaceWriteOptions } from "./files.ts";
-export { RecordsApi, RowConflictError, type Row as NamespaceRow } from "./records-api.ts";
+export {
+  FileConflictError,
+  NamespaceFiles,
+  type FileInfo as NamespaceFileInfo,
+  type WriteOptions as NamespaceWriteOptions,
+} from "./files.ts";
+export {
+  RecordsApi,
+  RowConflictError,
+  type Row as NamespaceRow,
+} from "./records-api.ts";
 export {
   createMemoryRecordCache,
   defaultRowMerge,
@@ -40,8 +49,17 @@ export {
   type NamespaceAdapterOptions,
   type NamespaceFileStore,
 } from "./adapters.ts";
-export { createRowDocumentAdapter, type RowDocumentOptions } from "./row-document.ts";
-export { jsonEqual, newerByField, threeWayMerge, type ConflictContext, type MergeOptions } from "./merge.ts";
+export {
+  createRowDocumentAdapter,
+  type RowDocumentOptions,
+} from "./row-document.ts";
+export {
+  jsonEqual,
+  newerByField,
+  threeWayMerge,
+  type ConflictContext,
+  type MergeOptions,
+} from "./merge.ts";
 export {
   createHostKeyVault,
   createIndexedDbKeyVault,

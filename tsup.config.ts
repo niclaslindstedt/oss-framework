@@ -64,6 +64,7 @@ export default defineConfig({
     "history/index": "src/history/index.ts",
     "revisions/index": "src/revisions/index.ts",
     "references/index": "src/references/index.ts",
+    "qr/index": "src/qr/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

@@ -8,22 +8,36 @@ import { createIdbStore } from "../idb-store.ts";
 import { fromUtf8, randomBytes, utf8 } from "./crypto.ts";
 import type { RecordCache, RecordCacheState } from "./record-store.ts";
 
-export function createIdbRecordCache<T>(options: { dbName: string; key: string; encryptWith?: CryptoKey }): RecordCache<T> {
-  const store = createIdbStore<Uint8Array | string>({ dbName: options.dbName, storeName: "records" });
+export function createIdbRecordCache<T>(options: {
+  dbName: string;
+  key: string;
+  encryptWith?: CryptoKey;
+}): RecordCache<T> {
+  const store = createIdbStore<Uint8Array | string>({
+    dbName: options.dbName,
+    storeName: "records",
+  });
   const aadText = `record-cache|${options.key}`;
   return {
     async load() {
       const raw = await store.get(options.key);
       if (raw === null) return null;
       try {
-        if (!options.encryptWith) return JSON.parse(raw as string) as RecordCacheState<T>;
+        if (!options.encryptWith)
+          return JSON.parse(raw as string) as RecordCacheState<T>;
         const bytes = raw as Uint8Array;
         const plain = await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: new Uint8Array(bytes.slice(0, 12)), additionalData: new Uint8Array(utf8(aadText)) },
+          {
+            name: "AES-GCM",
+            iv: new Uint8Array(bytes.slice(0, 12)),
+            additionalData: new Uint8Array(utf8(aadText)),
+          },
           options.encryptWith,
           new Uint8Array(bytes.slice(12)),
         );
-        return JSON.parse(fromUtf8(new Uint8Array(plain))) as RecordCacheState<T>;
+        return JSON.parse(
+          fromUtf8(new Uint8Array(plain)),
+        ) as RecordCacheState<T>;
       } catch {
         return null; // unreadable (key changed): start clean and resync
       }
@@ -36,7 +50,11 @@ export function createIdbRecordCache<T>(options: { dbName: string; key: string; 
       }
       const iv = randomBytes(12);
       const ct = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: new Uint8Array(iv), additionalData: new Uint8Array(utf8(aadText)) },
+        {
+          name: "AES-GCM",
+          iv: new Uint8Array(iv),
+          additionalData: new Uint8Array(utf8(aadText)),
+        },
         options.encryptWith,
         new Uint8Array(utf8(json)),
       );

@@ -45,7 +45,9 @@ const RATE_LIMIT_FALLBACK_MS = 1000;
 
 /** Map an error response to the typed error a caller can act on. */
 export async function errorFor(res: Response): Promise<Error> {
-  let body: { error?: { code?: string; message?: string; [k: string]: unknown } } = {};
+  let body: {
+    error?: { code?: string; message?: string; [k: string]: unknown };
+  } = {};
   try {
     body = (await res.json()) as typeof body;
   } catch {
@@ -63,15 +65,22 @@ export async function errorFor(res: Response): Promise<Error> {
     case 409:
     case 412:
       if (res.status === 412 || "current" in e) {
-        return new PreconditionError((e.current as Record<string, unknown> | null | undefined) ?? null);
+        return new PreconditionError(
+          (e.current as Record<string, unknown> | null | undefined) ?? null,
+        );
       }
       return new ApiRequestError(res.status, e.code ?? "conflict", message, e);
     case 410:
       return new CursorExpiredError();
     case 429:
-      return new RateLimitError(parseRetryAfterMs(res.headers, RATE_LIMIT_FALLBACK_MS));
+      return new RateLimitError(
+        parseRetryAfterMs(res.headers, RATE_LIMIT_FALLBACK_MS),
+      );
     case 507:
-      return new QuotaExceededError(Number(e.usedBytes ?? 0), Number(e.quotaBytes ?? 0));
+      return new QuotaExceededError(
+        Number(e.usedBytes ?? 0),
+        Number(e.quotaBytes ?? 0),
+      );
     default:
       return new ApiRequestError(res.status, e.code ?? "error", message, e);
   }
@@ -99,8 +108,13 @@ export class Transport {
   }
 
   private url(path: string, query?: RequestOptions["query"]): string {
-    const u = new URL(path, this.serverUrl.endsWith("/") ? this.serverUrl : `${this.serverUrl}/`);
-    u.pathname = (new URL(this.serverUrl).pathname.replace(/\/$/, "") + path).replace(/\/{2,}/g, "/");
+    const u = new URL(
+      path,
+      this.serverUrl.endsWith("/") ? this.serverUrl : `${this.serverUrl}/`,
+    );
+    u.pathname = (
+      new URL(this.serverUrl).pathname.replace(/\/$/, "") + path
+    ).replace(/\/{2,}/g, "/");
     for (const [k, v] of Object.entries(query ?? {})) {
       if (v !== undefined) u.searchParams.set(k, String(v));
     }
@@ -117,7 +131,9 @@ export class Transport {
     });
     if (!ch.ok) throw await errorFor(ch);
     const { challenge } = (await ch.json()) as { challenge: string };
-    const signature = await s.sign(authMessage(s.serverId, s.deviceId, challenge));
+    const signature = await s.sign(
+      authMessage(s.serverId, s.deviceId, challenge),
+    );
     const tok = await this.fetchImpl(this.url("/v1/auth/token"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -127,13 +143,15 @@ export class Transport {
     const out = (await tok.json()) as { token: string; expiresAt: number };
     this.token = out.token;
     // Refresh a little early; server and device clocks may differ.
-    this.tokenExpiresAt = Date.now() + Math.max(10_000, out.expiresAt - Date.now() - 30_000);
+    this.tokenExpiresAt =
+      Date.now() + Math.max(10_000, out.expiresAt - Date.now() - 30_000);
     return out.token;
   }
 
   /** A valid token, signing in (once, for concurrent callers) when needed. */
   async accessToken(force = false): Promise<string> {
-    if (!force && this.token && Date.now() < this.tokenExpiresAt) return this.token;
+    if (!force && this.token && Date.now() < this.tokenExpiresAt)
+      return this.token;
     this.pendingAuth ??= this.signIn().finally(() => {
       this.pendingAuth = null;
     });
@@ -141,7 +159,11 @@ export class Transport {
   }
 
   /** Perform a request; non-2xx answers become typed errors. */
-  async request(method: string, path: string, opts: RequestOptions = {}): Promise<Response> {
+  async request(
+    method: string,
+    path: string,
+    opts: RequestOptions = {},
+  ): Promise<Response> {
     const headers: Record<string, string> = { ...opts.headers };
     let body: BodyInit | undefined;
     if (opts.json !== undefined) {
@@ -153,8 +175,14 @@ export class Transport {
     }
     const auth = opts.auth !== false;
     const send = async (force: boolean) => {
-      if (auth) headers.Authorization = `Bearer ${await this.accessToken(force)}`;
-      return this.fetchImpl(this.url(path, opts.query), { method, headers, body, signal: opts.signal });
+      if (auth)
+        headers.Authorization = `Bearer ${await this.accessToken(force)}`;
+      return this.fetchImpl(this.url(path, opts.query), {
+        method,
+        headers,
+        body,
+        signal: opts.signal,
+      });
     };
     let res = await send(false);
     if (res.status === 401 && auth && this.signer) {
@@ -165,7 +193,11 @@ export class Transport {
     return res;
   }
 
-  async json<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
+  async json<T>(
+    method: string,
+    path: string,
+    opts: RequestOptions = {},
+  ): Promise<T> {
     const res = await this.request(method, path, opts);
     if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
@@ -178,7 +210,11 @@ export class Transport {
    */
   async events(
     onEvent: (event: ServerEvent) => void,
-    opts: { signal: AbortSignal; onError?: (err: unknown) => void; maxBackoffMs?: number },
+    opts: {
+      signal: AbortSignal;
+      onError?: (err: unknown) => void;
+      maxBackoffMs?: number;
+    },
   ): Promise<void> {
     let delay = 500;
     while (!opts.signal.aborted) {
@@ -201,7 +237,11 @@ export class Transport {
   }
 }
 
-async function readSse(res: Response, onEvent: (e: ServerEvent) => void, signal: AbortSignal): Promise<void> {
+async function readSse(
+  res: Response,
+  onEvent: (e: ServerEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";

@@ -42,7 +42,8 @@ function checkServer(url: string | null): string {
   } catch {
     throw new PayloadError("the code's server URL is malformed");
   }
-  if (u.protocol !== "https:" && u.protocol !== "http:") throw new PayloadError("the server URL must be http(s)");
+  if (u.protocol !== "https:" && u.protocol !== "http:")
+    throw new PayloadError("the server URL must be http(s)");
   return url.replace(/\/+$/, "");
 }
 
@@ -74,7 +75,10 @@ export function parsePayload(input: string): Payload {
   };
   if (m[1] === "pair") {
     const code = q.get("c") ?? undefined;
-    if (!code && !secret) throw new PayloadError("the code carries neither a pairing code nor a secret");
+    if (!code && !secret)
+      throw new PayloadError(
+        "the code carries neither a pairing code nor a secret",
+      );
     return {
       kind: "pair",
       server,

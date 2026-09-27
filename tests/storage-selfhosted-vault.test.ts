@@ -19,7 +19,11 @@ afterEach(() => {
 });
 
 async function aesKey(extractable = false) {
-  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, extractable, ["encrypt", "decrypt"]);
+  return crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    extractable,
+    ["encrypt", "decrypt"],
+  );
 }
 
 describe("key vaults", () => {
@@ -60,7 +64,9 @@ describe("key vaults", () => {
         for (const k of [...map.keys()]) if (k.startsWith(p)) map.delete(k);
       },
     };
-    (globalThis as Record<string, unknown>).window = { [KEY_VAULT_HOST_PROPERTY]: host };
+    (globalThis as Record<string, unknown>).window = {
+      [KEY_VAULT_HOST_PROPERTY]: host,
+    };
     expect(getKeyVaultHost()).toBe(host);
     const v = defaultKeyVault("app");
     expect(v.kind).toBe("bytes");
@@ -71,7 +77,9 @@ describe("key vaults", () => {
   });
 
   it("ignores a malformed host", () => {
-    (globalThis as Record<string, unknown>).window = { [KEY_VAULT_HOST_PROPERTY]: { version: 2 } };
+    (globalThis as Record<string, unknown>).window = {
+      [KEY_VAULT_HOST_PROPERTY]: { version: 2 },
+    };
     expect(getKeyVaultHost()).toBeNull();
   });
 });
