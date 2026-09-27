@@ -30,3 +30,42 @@ export {
   type PasswordRef,
   type WithEncryptionOptions,
 } from "./encrypting.ts";
+
+// The two passphrase failures, as classes.
+export { EncryptionLockedError, WrongPasswordError } from "./errors.ts";
+
+// Encryption as a requirement of a backend: the state machine that holds
+// every write back until a passphrase is set, and the dialog that asks for it.
+export {
+  PASSPHRASE_MIN_LENGTH,
+  classifyStored,
+  useRequiredEncryption,
+  type PassphraseStorage,
+  type RequiredEncryption,
+  type RequiredEncryptionState,
+  type UseRequiredEncryptionOptions,
+} from "./useRequiredEncryption.ts";
+export {
+  PassphraseDialog,
+  type PassphraseDialogLabels,
+  type PassphraseDialogMode,
+} from "./PassphraseDialog.tsx";
+
+// A soft app lock: the PIN verifier, the hook, and its settings control. The
+// gate itself is the components module's `UnlockGate` with a numeric keypad.
+export {
+  PIN_MIN_LENGTH,
+  createPinVerifier,
+  isPinVerifier,
+  verifyPin,
+  type PinVerifier,
+} from "./pin.ts";
+export {
+  usePinLock,
+  type PinLock,
+  type UsePinLockOptions,
+} from "./usePinLock.ts";
+export {
+  PinLockControl,
+  type PinLockControlLabels,
+} from "./PinLockControl.tsx";

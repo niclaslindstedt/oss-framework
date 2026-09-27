@@ -11,6 +11,8 @@
 // envelope so a future iteration bump can be honored without breaking older
 // blobs.
 
+import { WrongPasswordError } from "./errors.ts";
+
 /** Discriminator + version tag stamped on every envelope this module writes. */
 const ENVELOPE_TAG = "oss.encrypted.v1" as const;
 const DEFAULT_ITERATIONS = 600_000;
@@ -55,13 +57,13 @@ function safeJsonParse(text: string): unknown {
   }
 }
 
-function toBase64(bytes: Uint8Array): string {
+export function toBase64(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
-function fromBase64(value: string): Uint8Array {
+export function fromBase64(value: string): Uint8Array {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -138,8 +140,9 @@ export async function encryptText(
 /**
  * Decrypt an envelope string produced by {@link encryptText}. Throws
  * `"Not an encrypted envelope"` if `envelopeText` is not one, `"Password is
- * required"` if `password` is empty, and `"Wrong password"` if AES-GCM
- * authentication fails (wrong password or tampered bytes).
+ * required"` if `password` is empty, and a {@link WrongPasswordError}
+ * (`"Wrong password"`) if AES-GCM authentication fails (wrong password or
+ * tampered bytes).
  */
 export async function decryptEnvelope(
   envelopeText: string,
@@ -168,7 +171,7 @@ export async function decryptEnvelope(
     );
   } catch {
     // AES-GCM authentication failure — wrong password or tampered data.
-    throw new Error("Wrong password");
+    throw new WrongPasswordError();
   }
   return new TextDecoder().decode(plaintext);
 }
