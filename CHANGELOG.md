@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-09-27
+
+### Added
+
+- **Encryption a backend requires** — `useRequiredEncryption` holds every write to a backend back until a passphrase is set and seals everything after it, with a `PassphraseDialog` for choosing, entering and changing the passphrase.
+- **PIN app lock** — `usePinLock`, `PinLockControl` and the PIN verifier (`createPinVerifier` / `verifyPin`) add a soft app lock, and `UnlockGate` takes an `inputMode` and an `icon` so it can be the PIN gate.
+
+### Fixed
+
+- **Encrypted conflicts carry plaintext** — A save conflict through `withEncryption` now hands the backend's newer copy up decrypted, so a caller's merge reads the document instead of the envelope; wrong and missing passphrases throw the new `WrongPasswordError` and `EncryptionLockedError` classes with the same messages as before.
+
 ## [3.6.0] - 2026-09-24
 
 ### Added
