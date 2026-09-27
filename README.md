@@ -321,6 +321,9 @@ Today:
 | undo timeline            | `.` and `./history`      | The two stacks behind Cmd/Ctrl+Z: pure `committed` / `undone` / `redone`, generic in what a rung holds, plus `useHistory` for the value-in-state case.                                                                 |
 | stored arrangements      | `.` and `./order`        | `applyOrder` / `moveInOrder` — a persisted list of ids applied back onto whatever entries this build ships.                                                                                                            |
 | record history           | `.` and `./revisions`    | `recordRevision` / `revisionAt` / `mergeRevisions` / `changedPaths` — a record's edit history as snapshots: skip an unchanged save, look up a date, union two devices' lists, name what changed.                       |
+| references registry      | `.` and `./references`   | OSS_SPEC §24 sources: `referenceList` / `byTopic` rank and group `docs/references.json`, `byline` / `publication` / `sourceLink` cite an entry, `useReferences` lazy-loads it.                                         |
+| references audit         | `.` and `./references`   | `auditReferences` / `findCitations` — every `[ref:<id>]` tag resolves, every entry is cited, `usedBy` is exact, every entry complete. For an app's own test.                                                           |
+| `ReferenceCard`          | `.` and `./references`   | One source as a reference list cites it — evidence, byline, summary, the quotes behind a disclosure, the DOI or URL. Labels injected.                                                                                  |
 
 The `changelog` module is a self-contained "What's new" dialog: it parses a
 [Keep a Changelog](https://keepachangelog.com) `CHANGELOG.md` into a typed

@@ -180,6 +180,10 @@ export default defineConfig({
         replacement: here("../src/color/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/references",
+        replacement: here("../src/references/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework/history",
         replacement: here("../src/history/index.ts"),
       },

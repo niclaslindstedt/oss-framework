@@ -53,6 +53,7 @@ belong to the framework at all:
 | 15  | Colour mixing              | `color`              | S/M  | Medium       | **Landed** (paint consolidation: hex ⇄ HSV + `ColorMixer`)                                                                    |
 | 16  | Undo timeline              | `history`            | S    | High         | **Landed** (paint consolidation: pure stacks + `useHistory`)                                                                  |
 | 17  | Stored arrangements        | `order`              | S    | Medium       | **Landed** (paint consolidation)                                                                                              |
+| 18  | Scientific references      | `references`         | S    | High         | **Landed** (baby consolidation: §24 registry, audit, loader, `ReferenceCard`)                                                 |
 | —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
 | —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
 | —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
@@ -385,6 +386,34 @@ is written in), `hooks/keyboardTarget.ts`, `hooks/tap.ts`,
 | paint's `useCanvasView.ts` / `viewport.ts`                 | Overlaps `viewer/usePanZoom` without matching it. The right move is to grow `usePanZoom` (wheel, a settle frame, a clamp that keeps the sheet reachable) rather than ship a second pan/zoom.                                                   |
 | paint's `clipboard.ts`                                     | Reads images and files, where `hooks/useClipboard` only writes text. Should grow that hook rather than land beside it.                                                                                                                         |
 | paint's `units.ts`, `canvasSize.ts`                        | Page sizes in millimetres against a calibrated dpi. Arguably `format`, but it is one app's calibration; deferred.                                                                                                                              |
+
+## 18. Scientific references — `references` (landed)
+
+Lifted from the sibling [`baby`](https://github.com/niclaslindstedt/baby) app,
+where it backs the About screen, ahead of `meds` and `cycle` needing the same
+thing: every app that compares a user's data with a published recommendation
+falls under OSS_SPEC.md §24, and §24 asks each of them for the same registry,
+the same tag rules and the same in-product list.
+
+- **Pure core** — `Registry<Topic>` / `Reference<Topic>` (§24.2's shape, generic
+  in the app's topics; `summary` keyed by language), `EVIDENCE` ranked
+  strongest first, `referenceList` / `byTopic` / `unlistedTopics`, and the
+  citation helpers `byline` / `publication` / `sourceLink` /
+  `referenceSummary`.
+- **Audit** — `auditReferences` returns §24.3's four rules' problems (plus the
+  app's own `summary` languages and `topics`, when asked) over a path → text
+  map the caller reads, so each app's test is a directory walk and one
+  `toEqual([])`.
+- **Loader** — `useReferences(load)` / `loadReferences(load)`: the app's own
+  `import()` of its JSON, run once per loader, ranked, and retried after a
+  failure.
+- **Component** — `ReferenceCard`, labels injected with English defaults.
+
+**Decisions of record.** The topics are a type parameter rather than a
+vocabulary: baby's are trackers, a medication app's might be substances. The
+page around the cards — headings, grouping, the §24.5 disclaimer — stays in
+the app, because it is the app's layout and its words. The audit takes file
+text rather than reading a directory so the module stays browser-safe.
 
 ## Rejected / deferred
 

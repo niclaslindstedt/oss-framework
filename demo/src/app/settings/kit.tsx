@@ -26,14 +26,20 @@ import {
   formatInsets,
   readViewportReport,
 } from "@niclaslindstedt/oss-framework/pwa";
+import {
+  auditReferences,
+  ReferenceCard,
+  referenceList,
+  type Registry,
+} from "@niclaslindstedt/oss-framework/references";
 
 import { ChartIcon, ListIcon } from "../icons.tsx";
 
 // The pieces of the framework that are easier to understand by poking at them
-// than by reading their signatures: a pager, a mixer, an undo timeline, and
-// text sized against a box it cannot leave. Lives in the Developer tab rather
-// than in a screen of its own because it is a *kit* preview — nothing here is
-// part of the demo app's own domain.
+// than by reading their signatures: a pager, a mixer, an undo timeline, a
+// sources list, and text sized against a box it cannot leave. Lives in the
+// Developer tab rather than in a screen of its own because it is a *kit*
+// preview — nothing here is part of the demo app's own domain.
 
 export function KitSections() {
   return (
@@ -42,6 +48,7 @@ export function KitSections() {
       <FitDemo />
       <MixerDemo />
       <HistoryDemo />
+      <ReferencesDemo />
       <ViewportDemo />
     </>
   );
@@ -221,6 +228,85 @@ function HistoryDemo() {
         {draft.timeline.past.length} behind · {draft.timeline.future.length}{" "}
         ahead
       </p>
+    </Section>
+  );
+}
+
+// --- references ------------------------------------------------------------
+
+// Two entries of an OSS_SPEC §24 registry, inline — an app imports its
+// `docs/references.json` through `useReferences` instead — and the one file
+// that cites them.
+const DEMO_REGISTRY: Registry = {
+  references: {
+    "galland-2012": {
+      evidence: "systematic-review",
+      authors: ["Galland BC", "Taylor BJ", "Elder DE", "Herbison P"],
+      title:
+        "Normal sleep patterns in infants and children: a systematic review of observational studies",
+      container: "Sleep Medicine Reviews",
+      year: 2012,
+      volume: "16",
+      issue: "3",
+      pages: "213–222",
+      doi: "10.1016/j.smrv.2011.06.001",
+      language: "en",
+      quotes: [
+        {
+          text: "≈6 months 12.9 (8.8–17.0)",
+          at: "table 2, sleep duration in hours per 24 h",
+        },
+      ],
+      supports: "The observed range of total sleep at each age.",
+      summary: { en: "What children of each age are observed to sleep." },
+      usedBy: ["src/sleep.ts"],
+    },
+    "who-2019-under5": {
+      evidence: "guideline",
+      organization: "World Health Organization",
+      title:
+        "Guidelines on physical activity, sedentary behaviour and sleep for children under 5 years of age",
+      year: 2019,
+      isbn: "978-92-4-155053-6",
+      language: "en",
+      quotes: [{ text: "14–17h (0–3 months of age) or 12–16h (4–11 months)" }],
+      supports: "The recommended total sleep per 24 hours.",
+      usedBy: ["src/sleep.ts"],
+    },
+  },
+};
+
+const DEMO_SOURCES = {
+  "src/sleep.ts":
+    "// 12–16 h [ref:who-2019-under5]; observed 8.8–17.0 [ref:galland-2012]",
+};
+
+function ReferencesDemo() {
+  const [tagged, setTagged] = useState(true);
+  const sources = tagged
+    ? DEMO_SOURCES
+    : { "src/sleep.ts": "// 12–16 h [ref:who-2019]" };
+  const problems = auditReferences(DEMO_REGISTRY, sources);
+  return (
+    <Section title="references">
+      <p className="text-xs text-muted">
+        The sources behind an app's numbers, strongest evidence first, each
+        cited the way a reference list cites it. Below them, the audit an app's
+        test runs: break a tag and it names what no longer agrees.
+      </p>
+      {referenceList(DEMO_REGISTRY).map((ref) => (
+        <ReferenceCard key={ref.id} reference={ref} />
+      ))}
+      <Button variant="secondary" onClick={() => setTagged((v) => !v)}>
+        {tagged ? "Break a tag" : "Fix the tag"}
+      </Button>
+      <ul className="text-xs text-fg">
+        {problems.length === 0 ? (
+          <li>Registry and code agree.</li>
+        ) : (
+          problems.map((p) => <li key={p.message}>{p.message}</li>)
+        )}
+      </ul>
     </Section>
   );
 }
