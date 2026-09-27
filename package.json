@@ -188,6 +188,11 @@
       "types": "./dist/revisions/index.d.ts",
       "import": "./dist/revisions/index.js",
       "require": "./dist/revisions/index.cjs"
+    },
+    "./references": {
+      "types": "./dist/references/index.d.ts",
+      "import": "./dist/references/index.js",
+      "require": "./dist/references/index.cjs"
     }
   },
   "scripts": {

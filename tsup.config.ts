@@ -63,6 +63,7 @@ export default defineConfig({
     "color/index": "src/color/index.ts",
     "history/index": "src/history/index.ts",
     "revisions/index": "src/revisions/index.ts",
+    "references/index": "src/references/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

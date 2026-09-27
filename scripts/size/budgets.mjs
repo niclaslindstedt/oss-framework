@@ -41,6 +41,19 @@ export const CASES = [
     code: `import { recordRevision } from "@niclaslindstedt/oss-framework";\nconsole.log(recordRevision([], { a: 1 }, "2026-01-01"));`,
     budget: 900,
   },
+  // The references core: ranking a registry must not drag the card (and its
+  // calendar formatting and icon) in with it. The audit is heavier only by
+  // its messages — each problem names the rule it broke in words.
+  {
+    name: "references/referenceList",
+    code: `import { referenceList } from "@niclaslindstedt/oss-framework/references";\nconsole.log(referenceList({ references: {} }));`,
+    budget: 900,
+  },
+  {
+    name: "references/auditReferences",
+    code: `import { auditReferences } from "@niclaslindstedt/oss-framework/references";\nconsole.log(auditReferences({ references: {} }, {}));`,
+    budget: 3700,
+  },
   {
     name: "root/formatBytes",
     code: `import { formatBytes } from "@niclaslindstedt/oss-framework";\nconsole.log(formatBytes(1024));`,
