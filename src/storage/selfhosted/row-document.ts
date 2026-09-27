@@ -69,19 +69,40 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     return doc;
   }
 
-  function stage(doc: Doc): void {
+  // The document the app last saw (from load or a save). Edits are what
+  // changed relative to it; everything else in the store — including rows
+  // another device changed meanwhile — is left alone, and rows both sides
+  // changed are merged three ways.
+  let lastDoc: Doc | null = null;
+
+  function splitRoot(doc: Doc): Doc {
     const rest: Doc = {};
     for (const [k, v] of Object.entries(doc)) if (!maps.has(k)) rest[k] = v;
-    if (!jsonEqual(root.get(ROOT_KEY), rest)) root.set(ROOT_KEY, rest);
+    return rest;
+  }
+
+  function stageRow(store: RecordStore<unknown>, key: string, prev: unknown, next: unknown): void {
+    if (jsonEqual(prev, next)) return; // not edited by the app
+    const current = store.get(key);
+    const value =
+      jsonEqual(current, prev) || (current === undefined && prev === undefined)
+        ? (next ?? null)
+        : store.resolve(prev ?? null, next ?? null, current ?? null);
+    if (value === null) store.delete(key);
+    else if (!jsonEqual(current, value)) store.set(key, value);
+  }
+
+  function stage(doc: Doc): void {
+    stageRow(root, ROOT_KEY, lastDoc ? splitRoot(lastDoc) : undefined, splitRoot(doc));
     for (const [name, store] of maps) {
       const next = (doc[name] ?? {}) as Record<string, unknown>;
       if (typeof next !== "object" || next === null || Array.isArray(next)) {
         throw new Error(`document.${name} must be an object map to be stored as rows`);
       }
-      for (const [key, value] of Object.entries(next)) {
-        if (!jsonEqual(store.get(key), value)) store.set(key, value);
+      const prev = (lastDoc?.[name] ?? {}) as Record<string, unknown>;
+      for (const key of new Set([...Object.keys(prev), ...Object.keys(next)])) {
+        stageRow(store, key, prev[key], next[key]);
       }
-      for (const [key] of store.entries()) if (!(key in next)) store.delete(key);
     }
   }
 
@@ -90,6 +111,7 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
   async function load(): Promise<StoredSnapshot | null> {
     await pullAll();
     const doc = assemble();
+    lastDoc = doc;
     return doc === null ? null : { text: JSON.stringify(doc), revision: revision() };
   }
 
@@ -106,6 +128,7 @@ export function createRowDocumentAdapter(ns: Namespace, options: RowDocumentOpti
     // Anything that landed meanwhile is merged in by the next pull.
     await pullAll();
     const merged = assemble() ?? {};
+    lastDoc = merged;
     if (!jsonEqual(merged, doc)) {
       throw new ConflictError({ text: JSON.stringify(merged), revision: revision() });
     }

@@ -70,6 +70,7 @@ export class RecordStore<T = unknown> {
   private loaded: Promise<void> | null = null;
   private syncing: Promise<SyncResult> | null = null;
   private again = false;
+  private mergesSinceSync = 0;
 
   constructor(
     readonly ns: Namespace,
@@ -151,7 +152,13 @@ export class RecordStore<T = unknown> {
     }
     const merged = this.merge(r.base, r.value, remote);
     this.rows.set(key, { value: merged, base: remote, rev, dirty: true, epoch });
+    this.mergesSinceSync++;
     return true;
+  }
+
+  /** The store's row merge, for callers staging edits against remote state. */
+  resolve(base: T | null, local: T | null, remote: T | null): T | null {
+    return this.merge(base, local, remote);
   }
 
   /** Feed decrypted changes from a shared pull (see the row-document adapter). */
@@ -265,11 +272,16 @@ export class RecordStore<T = unknown> {
       let total: SyncResult = { pulled: 0, pushed: 0, merged: 0 };
       do {
         this.again = false;
+        this.mergesSinceSync = 0;
         const touched = await this.pull();
         const { pushed, merged } = await this.push();
         await this.persist();
         this.emit(touched);
-        total = { pulled: total.pulled + touched.length, pushed: total.pushed + pushed, merged: total.merged + merged };
+        total = {
+          pulled: total.pulled + touched.length,
+          pushed: total.pushed + pushed,
+          merged: total.merged + merged + this.mergesSinceSync,
+        };
       } while (this.again);
       return total;
     })().finally(() => {
