@@ -455,8 +455,11 @@ describe("EncryptionGate", () => {
       target: { value: "long enough one" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Encrypt" }));
-    await waitFor(() =>
-      expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true),
+    // Sealing runs the real key derivation, which can take longer than
+    // waitFor's 1 s default on a busy runner.
+    await waitFor(
+      () => expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true),
+      { timeout: 10_000 },
     );
     await waitFor(() =>
       expect(screen.queryByText("Choose a passphrase")).toBeNull(),
@@ -485,7 +488,9 @@ describe("EncryptionGate", () => {
       target: { value: "pw pw pw pw" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
-    expect(await screen.findByText("state:ready")).toBeTruthy();
+    expect(
+      await screen.findByText("state:ready", undefined, { timeout: 10_000 }),
+    ).toBeTruthy();
   });
 });
 
