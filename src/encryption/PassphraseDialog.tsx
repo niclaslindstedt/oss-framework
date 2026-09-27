@@ -5,62 +5,53 @@ import { Button } from "../components/Button.tsx";
 import { CipherGlyph } from "../components/CipherGlyph.tsx";
 import { Modal } from "../components/Modal.tsx";
 import { CloseIcon, LockIcon } from "../components/icons.tsx";
+import { isOfflineError } from "../storage/cache/index.ts";
 
 import { WrongPasswordError } from "./errors.ts";
-import { PASSPHRASE_MIN_LENGTH } from "./useRequiredEncryption.ts";
+import { resolveEncryptionLabels, type EncryptionLabels } from "./labels.ts";
+import {
+  PASSPHRASE_MIN_LENGTH,
+  type EncryptionProgress,
+} from "./useEncryption.ts";
 
-// The one dialog every passphrase question goes through: choosing one for a
-// backend that holds nothing sealed yet, entering the one another device
-// chose, entering the new one after it changed elsewhere, and changing it
-// from settings. The modes differ only in copy and in whether the answer is
-// typed twice — a passphrase that is being *chosen* gets a confirm field,
-// because a typo there is unrecoverable; one being *checked* does not.
+// The one dialog every passphrase question goes through: choosing one,
+// entering one, entering the new one after it changed elsewhere, and changing
+// it. The modes differ only in copy and in whether the answer is typed twice
+// — a passphrase being *chosen* gets a confirm field, because a typo there is
+// unrecoverable; one being *checked* does not.
 //
-// Every visible string injects through `labels` (English defaults), so the
-// app owns its vocabulary. `onSubmit` does the work; a rejection maps to a
-// message through `mapError`, falling back to the wrong-passphrase copy for
-// a `WrongPasswordError` and a generic one for anything else.
+// `onSubmit` does the work and may report phases through the progress sink,
+// which the dialog flashes beside a `CipherGlyph`. A rejection maps to a
+// message: `mapError` first, then a `WrongPasswordError` → the wrong-
+// passphrase copy, an offline error → the offline copy, anything else → the
+// generic failure.
 
 export type PassphraseDialogMode = "create" | "unlock" | "changed" | "change";
 
-export type PassphraseDialogLabels = {
-  /** Heading per mode. */
-  createTitle?: string;
-  unlockTitle?: string;
-  changedTitle?: string;
-  changeTitle?: string;
-  /** Body copy per mode. */
-  createHint?: string;
-  unlockHint?: string;
-  changedHint?: string;
-  changeHint?: string;
-  /** The one line that must not be skipped when a passphrase is chosen. */
-  noRecovery?: string;
-  passphrase?: string;
-  confirm?: string;
-  /** Submit button per mode. */
-  createSubmit?: string;
+/**
+ * @deprecated The 3.7.0 labels, still honoured: `unlockSubmit` is now
+ * `unlock` and `working` is `steps`. Use `EncryptionLabels`.
+ */
+export type PassphraseDialogLabels = EncryptionLabels & {
   unlockSubmit?: string;
-  changeSubmit?: string;
-  cancel?: string;
-  close?: string;
-  /** `{min}` is replaced with the minimum length. */
-  tooShort?: string;
-  mismatch?: string;
-  wrong?: string;
-  failed?: string;
-  /** The status line while the key is derived. */
   working?: string;
 };
 
 type Props = {
   open: boolean;
   mode: PassphraseDialogMode;
-  onSubmit: (passphrase: string) => Promise<void>;
+  onSubmit: (
+    passphrase: string,
+    onProgress: EncryptionProgress,
+  ) => Promise<void>;
   onClose: () => void;
+  /** Named in the copy wherever it says `{location}`. */
+  location?: string;
+  /** Use the "turned on from another device" copy in `unlock` mode. */
+  remote?: boolean;
   mapError?: (err: unknown) => string | null | undefined;
   labels?: PassphraseDialogLabels;
-  /** Minimum length for a chosen passphrase. Defaults to {@link PASSPHRASE_MIN_LENGTH}. */
+  /** Minimum length for a chosen passphrase. */
   minLength?: number;
 };
 
@@ -72,42 +63,55 @@ export function PassphraseDialog({
   mode,
   onSubmit,
   onClose,
+  location = "your storage",
+  remote = false,
   mapError,
-  labels = {},
+  labels,
   minLength = PASSPHRASE_MIN_LENGTH,
 }: Props) {
+  const l = resolveEncryptionLabels(
+    labels && {
+      ...labels,
+      unlock: labels.unlock ?? labels.unlockSubmit,
+      steps: labels.working
+        ? {
+            reading: labels.working,
+            derivingKey: labels.working,
+            encrypting: labels.working,
+            decrypting: labels.working,
+            saving: labels.working,
+            finalizing: labels.working,
+            ...labels.steps,
+          }
+        : labels.steps,
+    },
+    location,
+  );
   const choosing = mode === "create" || mode === "change";
-  const title =
-    mode === "create"
-      ? (labels.createTitle ?? "Choose a passphrase")
-      : mode === "unlock"
-        ? (labels.unlockTitle ?? "Enter your passphrase")
-        : mode === "changed"
-          ? (labels.changedTitle ?? "The passphrase has changed")
-          : (labels.changeTitle ?? "Change passphrase");
-  const hint =
-    mode === "create"
-      ? (labels.createHint ??
-        "Everything stored here is encrypted on this device before it leaves. Choose a passphrase to seal it with — every device that opens this copy will need it.")
-      : mode === "unlock"
-        ? (labels.unlockHint ??
-          "This copy is encrypted. Enter the passphrase it was sealed with on your other device.")
-        : mode === "changed"
-          ? (labels.changedHint ??
-            "The passphrase was changed on another device. Enter the new one to keep syncing.")
-          : (labels.changeHint ??
-            "The copy is re-sealed under the new passphrase. Your other devices will ask for it on their next sync.");
+  const title = {
+    create: l.createTitle,
+    unlock: l.unlockTitle,
+    changed: l.changedTitle,
+    change: l.changeTitle,
+  }[mode];
+  const hint = {
+    create: l.createHint,
+    unlock: remote ? l.unlockHintRemote : l.unlockHint,
+    changed: l.changedHint,
+    change: l.changeHint,
+  }[mode];
   const submitLabel =
     mode === "create"
-      ? (labels.createSubmit ?? "Encrypt")
+      ? l.createSubmit
       : mode === "change"
-        ? (labels.changeSubmit ?? "Change")
-        : (labels.unlockSubmit ?? "Unlock");
+        ? l.changeSubmit
+        : l.unlock;
 
   const [value, setValue] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // A fresh question every time the dialog opens or changes what it asks.
@@ -116,6 +120,7 @@ export function PassphraseDialog({
     setConfirm("");
     setError(null);
     setBusy(false);
+    setStep(null);
   }, [open, mode]);
 
   const submit = async (e: FormEvent) => {
@@ -123,37 +128,33 @@ export function PassphraseDialog({
     if (busy || !value) return;
     if (choosing) {
       if (value.length < minLength) {
-        setError(
-          (labels.tooShort ?? "Use at least {min} characters.").replace(
-            "{min}",
-            String(minLength),
-          ),
-        );
+        setError(l.tooShort.replace("{min}", String(minLength)));
         return;
       }
       if (value !== confirm) {
-        setError(labels.mismatch ?? "The two passphrases don't match.");
+        setError(l.mismatch);
         return;
       }
     }
     setBusy(true);
     setError(null);
     try {
-      await onSubmit(value);
+      await onSubmit(value, (s) => setStep(l.steps[s]));
     } catch (err) {
       setError(
         mapError?.(err) ||
           (err instanceof WrongPasswordError
-            ? (labels.wrong ?? "Wrong passphrase. Try again.")
-            : (labels.failed ?? "That didn't work. Try again.")),
+            ? l.wrong
+            : isOfflineError(err)
+              ? l.offline
+              : l.failed),
       );
       inputRef.current?.focus({ preventScroll: true });
     } finally {
       setBusy(false);
+      setStep(null);
     }
   };
-
-  const closeLabel = labels.close ?? "Close";
 
   return (
     <Modal
@@ -163,7 +164,7 @@ export function PassphraseDialog({
       }}
       labelledBy="passphrase-dialog-title"
       centered
-      closeLabel={closeLabel}
+      closeLabel={l.close}
       initialFocusRef={inputRef}
     >
       <form onSubmit={(e) => void submit(e)} className="flex flex-col">
@@ -179,7 +180,7 @@ export function PassphraseDialog({
             type="button"
             onClick={onClose}
             disabled={busy}
-            aria-label={closeLabel}
+            aria-label={l.close}
             className="-mr-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CloseIcon className="h-5 w-5" />
@@ -188,10 +189,7 @@ export function PassphraseDialog({
         <div className="flex flex-col gap-3 px-4 py-4">
           <p className="text-sm text-fg">{hint}</p>
           {choosing && (
-            <p className="text-xs font-medium text-flag">
-              {labels.noRecovery ??
-                "There is no way to recover a forgotten passphrase — not by us, not by the storage provider. Write it down somewhere safe."}
-            </p>
+            <p className="text-xs font-medium text-flag">{l.noRecovery}</p>
           )}
           <input
             ref={inputRef}
@@ -199,8 +197,9 @@ export function PassphraseDialog({
             autoComplete={choosing ? "new-password" : "current-password"}
             value={value}
             onInput={(e) => setValue(e.currentTarget.value)}
-            placeholder={labels.passphrase ?? "Passphrase"}
-            aria-label={labels.passphrase ?? "Passphrase"}
+            placeholder={l.passphrase}
+            aria-label={l.passphrase}
+            disabled={busy}
             className={INPUT_CLASS}
           />
           {choosing && (
@@ -209,8 +208,9 @@ export function PassphraseDialog({
               autoComplete="new-password"
               value={confirm}
               onInput={(e) => setConfirm(e.currentTarget.value)}
-              placeholder={labels.confirm ?? "Repeat the passphrase"}
-              aria-label={labels.confirm ?? "Repeat the passphrase"}
+              placeholder={l.confirm}
+              aria-label={l.confirm}
+              disabled={busy}
               className={INPUT_CLASS}
             />
           )}
@@ -222,11 +222,12 @@ export function PassphraseDialog({
           {busy && (
             <div
               role="status"
+              aria-label={l.statusAria}
               className="flex items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5 py-1.5"
             >
               <CipherGlyph className="shrink-0 text-xs text-accent" />
               <span className="truncate text-xs text-muted">
-                {labels.working ?? "Working on the encryption…"}
+                {step ?? l.steps.derivingKey}
               </span>
             </div>
           )}
@@ -238,7 +239,7 @@ export function PassphraseDialog({
             onClick={onClose}
             disabled={busy}
           >
-            {labels.cancel ?? "Cancel"}
+            {l.cancel}
           </Button>
           <Button type="submit" variant="primary" disabled={busy || !value}>
             {submitLabel}

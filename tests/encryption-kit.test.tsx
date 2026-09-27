@@ -26,10 +26,13 @@ import {
   verifyPin,
 } from "../src/encryption/pin.ts";
 import { usePinLock } from "../src/encryption/usePinLock.ts";
+import { EncryptionGate } from "../src/encryption/EncryptionGate.tsx";
+import { EncryptionSettings } from "../src/encryption/EncryptionSettings.tsx";
 import {
   classifyStored,
-  useRequiredEncryption,
-} from "../src/encryption/useRequiredEncryption.ts";
+  useEncryption,
+} from "../src/encryption/useEncryption.ts";
+import { useRequiredEncryption } from "../src/encryption/useRequiredEncryption.ts";
 import {
   ConflictError,
   type AdapterCapability,
@@ -139,64 +142,88 @@ describe("classifyStored", () => {
   });
 });
 
-describe("useRequiredEncryption", () => {
-  it("passes a backend that does not require encryption straight through", () => {
-    const inner = backend();
-    const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: false,
-        storage: memoryStorage(),
-        storageKey: "k",
-      }),
-    );
-    expect(result.current.state).toBe("off");
-    expect(result.current.adapter).toBe(inner);
-  });
+let keySeq = 0;
+// A fresh device-storage key per test: session passphrases are shared by key.
+const freshKey = () => `test:${++keySeq}`;
 
+describe("useEncryption — required policy", () => {
   it("holds every write back until a passphrase is chosen, then seals", async () => {
     const inner = backend("plain doc");
     const storage = memoryStorage();
+    const storageKey = freshKey();
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
+      useEncryption({
+        adapter: inner,
+        policy: "required",
+        remember: "device",
         storage,
-        storageKey: "k",
+        storageKey,
       }),
     );
     expect(result.current.adapter).toBeNull();
-    await waitFor(() => expect(result.current.state).toBe("create"));
+    await waitFor(() => expect(result.current.state).toBe("setup"));
     expect(result.current.adapter).toBeNull();
 
-    await act(() => result.current.create("a long passphrase"));
+    const steps: string[] = [];
+    await act(() =>
+      result.current.enable("a long passphrase", (s) => steps.push(s)),
+    );
+    expect(steps).toEqual([
+      "reading",
+      "derivingKey",
+      "encrypting",
+      "saving",
+      "finalizing",
+    ]);
     expect(result.current.state).toBe("ready");
-    expect(storage.map.get("k")).toBe("a long passphrase");
-
-    // The first read seals the old plaintext copy in place.
-    const snap = await result.current.adapter!.load();
-    expect(snap?.text).toBe("plain doc");
+    expect(storage.map.get(`${storageKey}:passphrase`)).toBe(
+      "a long passphrase",
+    );
     expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true);
+    expect((await result.current.adapter!.load())?.text).toBe("plain doc");
+  });
+
+  it("refuses a passphrase shorter than the minimum", async () => {
+    const { result } = renderHook(() =>
+      useEncryption({
+        adapter: backend(),
+        policy: "required",
+        storage: memoryStorage(),
+        storageKey: "test:site:0",
+      }),
+    );
+    await expect(result.current.enable("short")).rejects.toThrow(/at least/);
+  });
+
+  it("cannot be turned off", async () => {
+    const { result } = renderHook(() =>
+      useEncryption({
+        adapter: backend(),
+        policy: "required",
+        storage: memoryStorage(),
+        storageKey: "test:site:1",
+      }),
+    );
+    await expect(result.current.disable()).rejects.toThrow(/required/);
   });
 
   it("asks for the existing passphrase when the backend holds an envelope", async () => {
     const inner = backend(await encryptText("doc", "their passphrase"));
-    const storage = memoryStorage();
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
-        storage,
-        storageKey: "k",
+      useEncryption({
+        adapter: inner,
+        policy: "required",
+        storage: memoryStorage(),
+        storageKey: "test:site:2",
       }),
     );
-    await waitFor(() => expect(result.current.state).toBe("unlock"));
+    await waitFor(() => expect(result.current.state).toBe("locked"));
+    expect(result.current.locked).toBe(true);
 
     await expect(
       act(() => result.current.unlock("a guess")),
     ).rejects.toBeInstanceOf(WrongPasswordError);
-    expect(result.current.state).toBe("unlock");
-    expect(storage.map.has("k")).toBe(false);
+    expect(result.current.state).toBe("locked");
 
     await act(() => result.current.unlock("their passphrase"));
     expect(result.current.state).toBe("ready");
@@ -204,28 +231,34 @@ describe("useRequiredEncryption", () => {
   });
 
   it("starts ready on a device that remembers the passphrase", async () => {
+    const storageKey = freshKey();
     const inner = backend(await encryptText("doc", "pw pw pw pw"));
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
-        storage: memoryStorage({ k: "pw pw pw pw" }),
-        storageKey: "k",
+      useEncryption({
+        adapter: inner,
+        policy: "required",
+        remember: "device",
+        storage: memoryStorage({ [`${storageKey}:passphrase`]: "pw pw pw pw" }),
+        storageKey,
       }),
     );
     expect(result.current.state).toBe("ready");
     expect((await result.current.adapter!.load())?.text).toBe("doc");
   });
 
-  it("drops to `changed` when the remembered passphrase stops opening it", async () => {
+  it("drops to `changed` when the passphrase stops opening it", async () => {
+    const storageKey = freshKey();
+    const storage = memoryStorage({
+      [`${storageKey}:passphrase`]: "old passphrase",
+    });
     const inner = backend(await encryptText("doc", "new passphrase"));
-    const storage = memoryStorage({ k: "old passphrase" });
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
+      useEncryption({
+        adapter: inner,
+        policy: "required",
+        remember: "device",
         storage,
-        storageKey: "k",
+        storageKey,
       }),
     );
     const adapter = result.current.adapter!;
@@ -234,24 +267,29 @@ describe("useRequiredEncryption", () => {
     });
     expect(result.current.state).toBe("changed");
     expect(result.current.adapter).toBeNull();
-    expect(storage.map.has("k")).toBe(false);
-    // The check that follows does not paper over the reason.
+    expect(storage.map.has(`${storageKey}:passphrase`)).toBe(false);
     await waitFor(() => expect(result.current.state).toBe("changed"));
   });
 
   it("re-seals the backend under a changed passphrase", async () => {
+    const storageKey = freshKey();
     const inner = backend(await encryptText("doc", "first passphrase"));
-    const storage = memoryStorage({ k: "first passphrase" });
+    const storage = memoryStorage({
+      [`${storageKey}:passphrase`]: "first passphrase",
+    });
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
+      useEncryption({
+        adapter: inner,
+        policy: "required",
+        remember: "device",
         storage,
-        storageKey: "k",
+        storageKey,
       }),
     );
-    await act(() => result.current.change("second passphrase"));
-    expect(storage.map.get("k")).toBe("second passphrase");
+    await act(() => result.current.changePassphrase("second passphrase"));
+    expect(storage.map.get(`${storageKey}:passphrase`)).toBe(
+      "second passphrase",
+    );
     expect(await decryptEnvelope(inner.stored!.text, "second passphrase")).toBe(
       "doc",
     );
@@ -263,30 +301,211 @@ describe("useRequiredEncryption", () => {
       load: () => Promise.reject(new TypeError("Failed to fetch")),
     };
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner,
-        required: true,
+      useEncryption({
+        adapter: inner,
+        policy: "required",
         storage: memoryStorage(),
-        storageKey: "k",
+        storageKey: "test:site:3",
       }),
     );
     await waitFor(() => expect(result.current.state).toBe("unreachable"));
     expect(result.current.error).toBeInstanceOf(TypeError);
   });
+});
 
-  it("forgets the passphrase on a disconnect", async () => {
-    const storage = memoryStorage({ k: "pw pw pw pw" });
+describe("useEncryption — optional policy", () => {
+  it("passes plaintext through while off", async () => {
+    const inner = backend();
     const { result } = renderHook(() =>
-      useRequiredEncryption({
-        inner: backend(),
-        required: true,
-        storage,
-        storageKey: "k",
+      useEncryption({
+        adapter: inner,
+        storage: memoryStorage(),
+        storageKey: "test:site:4",
       }),
     );
+    expect(result.current.state).toBe("off");
+    await result.current.adapter!.save("hello");
+    expect(inner.stored!.text).toBe("hello");
+  });
+
+  it("turns on, locks like a reload, unlocks, and turns off", async () => {
+    const storageKey = freshKey();
+    const storage = memoryStorage();
+    const inner = backend("my notes");
+    const { result } = renderHook(() =>
+      useEncryption({ adapter: inner, storage, storageKey }),
+    );
+    await act(() => result.current.enable("correct horse"));
+    expect(result.current.state).toBe("ready");
+    expect(storage.map.get(`${storageKey}:mode`)).toBe("encrypted");
+    // Session memory: nothing about the passphrase is written down.
+    expect(storage.map.has(`${storageKey}:passphrase`)).toBe(false);
+    expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true);
+
+    act(() => result.current.lock());
+    await waitFor(() => expect(result.current.state).toBe("locked"));
+    expect(result.current.adapter).toBeNull();
+
+    await act(() => result.current.unlock("correct horse"));
+    expect(result.current.state).toBe("ready");
+
+    const steps: string[] = [];
+    await act(() => result.current.disable((s) => steps.push(s)));
+    expect(steps).toContain("decrypting");
+    expect(result.current.state).toBe("off");
+    expect(inner.stored!.text).toBe("my notes");
+    expect(storage.map.has(`${storageKey}:mode`)).toBe(false);
+  });
+
+  it("adopts encryption turned on from another device and locks", async () => {
+    const inner = backend(await encryptText("doc", "elsewhere"));
+    const { result } = renderHook(() =>
+      useEncryption({
+        adapter: inner,
+        storage: memoryStorage(),
+        storageKey: "test:site:5",
+      }),
+    );
+    expect(result.current.state).toBe("off");
+    await act(async () => {
+      await expect(result.current.adapter!.load()).rejects.toBeInstanceOf(
+        EncryptionLockedError,
+      );
+    });
+    await waitFor(() => expect(result.current.state).toBe("locked"));
+    expect(result.current.fromRemote).toBe(true);
+    await act(() => result.current.unlock("elsewhere"));
+    expect(result.current.state).toBe("ready");
+    expect(result.current.fromRemote).toBe(false);
+  });
+
+  it("forgets the passphrase and the mode on a disconnect", async () => {
+    const storageKey = freshKey();
+    const storage = memoryStorage();
+    const { result } = renderHook(() =>
+      useEncryption({
+        adapter: backend(),
+        remember: "device",
+        storage,
+        storageKey,
+      }),
+    );
+    await act(() => result.current.enable("pw pw pw pw"));
     act(() => result.current.forget());
-    expect(storage.map.has("k")).toBe(false);
+    expect(result.current.state).toBe("off");
+    expect(storage.map.size).toBe(0);
+  });
+});
+
+describe("useRequiredEncryption (deprecated)", () => {
+  it("keeps 3.7.0's shape and passphrase key over useEncryption", async () => {
+    const inner = backend("plain doc");
+    const storage = memoryStorage();
+    const { result } = renderHook(() =>
+      useRequiredEncryption({
+        inner,
+        required: true,
+        storage,
+        storageKey: "legacy:passphrase:dropbox",
+      }),
+    );
     await waitFor(() => expect(result.current.state).toBe("create"));
+    expect(result.current.adapter).toBeNull();
+    await act(() => result.current.create("a long passphrase"));
+    expect(result.current.state).toBe("ready");
+    expect(storage.map.get("legacy:passphrase:dropbox")).toBe(
+      "a long passphrase",
+    );
+    expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true);
+  });
+
+  it("passes a backend that does not require encryption straight through", () => {
+    const inner = backend();
+    const { result } = renderHook(() =>
+      useRequiredEncryption({
+        inner,
+        required: false,
+        storage: memoryStorage(),
+        storageKey: "legacy:off",
+      }),
+    );
+    expect(result.current.state).toBe("off");
+    expect(result.current.adapter).toBe(inner);
+  });
+});
+
+describe("EncryptionGate", () => {
+  it("asks to choose a passphrase in setup, and seals on submit", async () => {
+    const inner = backend("doc");
+    function Harness() {
+      const enc = useEncryption({
+        adapter: inner,
+        policy: "required",
+        storage: memoryStorage(),
+        storageKey: "test:site:6",
+      });
+      return <EncryptionGate encryption={enc} location="the cloud" />;
+    }
+    render(<Harness />);
+    expect(await screen.findByText("Choose a passphrase")).toBeTruthy();
+    fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
+      target: { value: "long enough one" },
+    });
+    fireEvent.input(screen.getByPlaceholderText("Repeat the passphrase"), {
+      target: { value: "long enough one" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Encrypt" }));
+    await waitFor(() =>
+      expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Choose a passphrase")).toBeNull(),
+    );
+  });
+
+  it("is a full-screen gate when blocking and locked", async () => {
+    const inner = backend(await encryptText("doc", "pw pw pw pw"));
+    const storageKey = freshKey();
+    function Harness() {
+      const enc = useEncryption({
+        adapter: inner,
+        storage: memoryStorage({ [`${storageKey}:mode`]: "encrypted" }),
+        storageKey,
+      });
+      return (
+        <>
+          <EncryptionGate encryption={enc} blocking />
+          <p>state:{enc.state}</p>
+        </>
+      );
+    }
+    render(<Harness />);
+    expect(await screen.findByText("Enter your passphrase")).toBeTruthy();
+    fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
+      target: { value: "pw pw pw pw" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
+    expect(await screen.findByText("state:ready")).toBeTruthy();
+  });
+});
+
+describe("EncryptionSettings", () => {
+  it("offers to turn encryption on while off, and nothing without a backend", () => {
+    function Harness({ connected }: { connected: boolean }) {
+      const enc = useEncryption({
+        adapter: connected ? backend() : null,
+        storage: memoryStorage(),
+        storageKey: "test:site:7",
+      });
+      return <EncryptionSettings encryption={enc} />;
+    }
+    const { rerender, container } = render(<Harness connected={false} />);
+    expect(container.textContent).toBe("");
+    rerender(<Harness connected />);
+    expect(screen.getByText("Encryption is off")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Turn on encryption" }),
+    ).toBeTruthy();
   });
 });
 

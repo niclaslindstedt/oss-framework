@@ -286,8 +286,8 @@ Today:
 | achievements UI          | `.` and `./achievements` | `AchievementsModal` (tour), `AchievementUnlockModal`, `TrophyButton` + `unlock`.                                                                                                                                       |
 | `withEncryption`         | `.` and `./encryption`   | Wraps any `StorageAdapter` to encipher bytes at rest with a passphrase.                                                                                                                                                |
 | `encryptText` / crypto   | `.` and `./encryption`   | Pure AES-GCM + PBKDF2 envelope round-trip + `isEncryptedEnvelope` sniffers.                                                                                                                                            |
-| `useRequiredEncryption`  | `.` and `./encryption`   | No passphrase, no adapter: a backend that must only ever hold envelopes, plus `PassphraseDialog` to choose / enter / change it.                                                                                        |
-| `usePinLock`             | `.` and `./encryption`   | A soft app lock behind a PIN verifier, with `PinLockControl` for settings and `UnlockGate` as the gate.                                                                                                                |
+| `useEncryption`          | `.` and `./encryption`   | The whole encryption lifecycle over one adapter (optional or required, session or device memory), with the drop-in `EncryptionSettings` and `EncryptionGate`.                                                          |
+| `usePinLock`             | `.` and `./encryption`   | A soft app lock behind a PIN verifier: `AppLock` around the shell, `PinLockControl` in settings.                                                                                                                       |
 | `createI18n`             | `.` and `./i18n`         | Build a typed, dependency-free `t()` runtime over your catalogs (lazy-loaded langs).                                                                                                                                   |
 | `detectBrowserLanguage`  | `.` and `./i18n`         | First-run language detection from `navigator.language` against your supported set.                                                                                                                                     |
 | namespace data + ops     | `.` and `./namespaces`   | `Namespace` type + pure list ops (create/rename/restyle/remove, merge, slugify).                                                                                                                                       |
@@ -532,12 +532,14 @@ by reference, and owns the lock/unlock UI. See
 [`src/encryption/README.md`](src/encryption/README.md) for the envelope format
 and an adoption guide.
 
-Two opinionated layers sit on top. `useRequiredEncryption` makes encryption a
-**requirement** of a backend rather than a setting: its `adapter` is `null`
-until a passphrase is held, so nothing reaches a cloud or synced folder in
-plaintext, and `PassphraseDialog` asks the questions (choose, enter, entered
-elsewhere, change). `usePinLock` + `PinLockControl` add a soft **app lock**
-behind a PIN, gated by `UnlockGate` with a numeric keypad.
+On top sits a finished **encryption kit**, modelled on the notes app's:
+`useEncryption` runs the whole lifecycle — on / off, locked after a reload,
+unlock, change the passphrase, adopt encryption turned on from another device
+— as an optional setting or a requirement of the backend, with the passphrase
+held for the session or remembered on the device. `EncryptionSettings` is the
+settings block and `EncryptionGate` asks whenever an answer is needed; an app
+integrates it in about ten lines. `usePinLock` + `AppLock` + `PinLockControl`
+add a soft **app lock** behind a PIN.
 
 ```ts
 import {

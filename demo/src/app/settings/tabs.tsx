@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -8,7 +8,6 @@ import {
   Section,
   SelectPicker,
   ToggleRow,
-  UnlockGate,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   backoffDelayMs,
@@ -19,8 +18,10 @@ import {
   type StorageAdapter,
 } from "@niclaslindstedt/oss-framework/storage";
 import {
-  type PasswordRef,
-  withEncryption,
+  EncryptionGate,
+  EncryptionSettings,
+  useEncryption,
+  type EncryptionLabels,
 } from "@niclaslindstedt/oss-framework/encryption";
 import {
   LogModal,
@@ -189,42 +190,49 @@ const DEMO_BACKOFF = { baseMs: 250, factor: 2, maxMs: 1500 };
 // renders, alongside the `encrypt` scope.
 const saveLog = logStore.createLogger("save");
 
-// Encryption lifecycle, mirroring a real app's: the document is plaintext, or
-// being set up with a fresh passphrase (`setup`), or an envelope we can read
-// (`unlocked`), or an envelope we can't because the session passphrase is gone
-// after a (simulated) reload (`locked`).
-type EncMode = "plaintext" | "setup" | "unlocked" | "locked";
-
-const inputClass =
-  "rounded-md border border-line bg-surface-2 px-2 py-1 font-mono text-sm text-fg outline-none focus:border-accent";
+// Diagnostics for encrypt/decrypt route into the same buffer, dogfooding the
+// storage `Logger` seam.
+const encryptLog = logStore.createLogger("encrypt");
 
 export function StorageTab({ sync }: { sync: MockSync }) {
   const t = useT();
-  // The raw browser backend, and a passphrase ref the encrypting wrapper reads
-  // fresh on every op — the seam a real app owns: the framework holds the
-  // passphrase nowhere, the app threads it in by reference.
+  // The raw browser backend. Everything about encryption — turning it on and
+  // off, the lock a reload leaves behind, unlocking, changing the passphrase —
+  // is the framework's `useEncryption`; the playground only owns the document
+  // and what it does with the adapter the hook hands back (null while locked).
   const [inner] = useState<StorageAdapter>(
     () => new BrowserLocalStorageAdapter({ key: STORAGE_DOC_KEY }),
   );
-  const passwordRef = useRef<PasswordRef["current"]>(null);
-  const adapter = useMemo(
-    () =>
-      withEncryption(inner, passwordRef, {
-        // Route the wrapper's encrypt/decrypt diagnostics into the same in-app
-        // buffer the Logs tab renders — dogfooding the storage `Logger` seam.
-        logger: logStore.createLogger("encrypt"),
-      }),
-    [inner],
-  );
+  const enc = useEncryption({
+    adapter: inner,
+    storageKey: "oss-demo:encryption",
+    logger: encryptLog,
+  });
+  const adapter = enc.adapter;
+  const locked = adapter === null;
+  const encLabels: EncryptionLabels = {
+    on: t("settings.storage.encryptedUnlocked"),
+    hint: t("settings.storage.encryptDocumentHint"),
+    enable: t("settings.storage.encryptDocument"),
+    lock: t("settings.storage.lock"),
+    passphrase: t("settings.storage.passphrase"),
+    unlock: t("settings.storage.unlock"),
+    createSubmit: t("settings.storage.encrypt"),
+    unlockTitle: t("settings.storage.gateTitle"),
+    unlockHint: t("settings.storage.gateHint"),
+    wrong: t("settings.storage.gateWrong"),
+    statusAria: t("settings.storage.gateStatusAria"),
+    steps: {
+      derivingKey: t("settings.storage.gateDeriving"),
+      decrypting: t("settings.storage.gateDecrypting"),
+    },
+  };
 
   const [text, setText] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState<null | "writing" | "reading">(null);
   const baseRevision = useRef<string | undefined>(undefined);
 
-  const [mode, setMode] = useState<EncMode>("plaintext");
-  const [pass, setPass] = useState("");
-  const [encError, setEncError] = useState("");
   const [rawBytes, setRawBytes] = useState<string | null>(null);
 
   // "Flaky backend" simulation: when on, the next save injects FLAKY_FAILURES
@@ -253,6 +261,7 @@ export function StorageTab({ sync }: { sync: MockSync }) {
         pendingFailures.current -= 1;
         throw new Error("simulated transient backend failure (HTTP 5xx)");
       }
+      if (!adapter) throw new Error("locked — unlock to save");
       return adapter.save(txt, rev);
     },
     [adapter],
@@ -283,6 +292,11 @@ export function StorageTab({ sync }: { sync: MockSync }) {
   const reload = useCallback(
     () =>
       withBusy("reading", async () => {
+        if (!adapter) {
+          setText("");
+          setStatus("locked — only the envelope remains");
+          return;
+        }
         const snap = await adapter.load();
         setText(snap?.text ?? "");
         baseRevision.current = snap?.revision;
@@ -357,76 +371,18 @@ export function StorageTab({ sync }: { sync: MockSync }) {
     });
   }
 
-  // Turn encryption on with the entered passphrase, then re-save so the bytes
-  // on disk become an envelope.
-  async function enableEncryption() {
-    if (!pass) return;
-    passwordRef.current = pass;
-    setMode("unlocked");
-    setPass("");
-    setEncError("");
-    await save();
-  }
-
-  // Turn encryption off and re-save plaintext.
-  async function disableEncryption() {
-    passwordRef.current = null;
-    setMode("plaintext");
-    setEncError("");
-    await save();
-  }
-
-  // Simulate a reload: the session passphrase is in memory only, so dropping it
-  // leaves the envelope on disk unreadable until the user re-enters it.
-  function lock() {
-    passwordRef.current = null;
-    setMode("locked");
-    setText("");
-    setStatus("locked — the passphrase is gone, only the envelope remains");
-    refreshRaw();
-  }
-
-  // Re-enter the passphrase and decrypt, driving the framework's full-screen
-  // `UnlockGate` — the real lock screen an app shows after a reload, not a
-  // settings-tab affordance. The gate hands us a progress sink: we narrate the
-  // key-derivation/decrypt beats it flashes beside the cipher animation. A
-  // wrong passphrase fails at the AES-GCM auth tag; we rethrow so the gate
-  // surfaces it (routed through `mapError` to a friendly line).
-  async function gateUnlock(
-    password: string,
-    onProgress: (label: string) => void,
-  ) {
-    onProgress(t("settings.storage.gateDeriving"));
-    passwordRef.current = password;
-    try {
-      const snap = await adapter.load();
-      onProgress(t("settings.storage.gateDecrypting"));
-      setText(snap?.text ?? "");
-      baseRevision.current = snap?.revision;
-      setMode("unlocked");
-      setStatus(snap ? `loaded ${snap.text.length} B` : "nothing stored yet");
-      refreshRaw();
-    } catch (err) {
-      // Drop the bad passphrase so the next attempt re-derives from scratch.
-      passwordRef.current = null;
-      throw err;
-    }
-  }
-
-  const locked = mode === "locked";
-
   return (
     <div>
       <p className="mb-3 text-xs text-muted">
         A live playground over the framework's <code>StorageAdapter</code>{" "}
-        contract (the browser backend), optionally wrapped with{" "}
-        <code>withEncryption</code> so the bytes on disk are an AES-GCM
-        envelope. Save persists across reloads; a second tab saving meanwhile
-        surfaces a <code>ConflictError</code>. While a read or write is in
-        flight the framework's <code>CipherGlyph</code> stands in for a spinner.
-        Flip <em>Simulate a flaky backend</em> to inject transient failures and
-        watch the framework's retry policy ride the backoff curve until the
-        write lands (the attempts log under the <code>save</code> scope).
+        contract (the browser backend), optionally wrapped with the framework's{" "}
+        <code>useEncryption</code> so the bytes on disk are an AES-GCM envelope.
+        Save persists across reloads; a second tab saving meanwhile surfaces a{" "}
+        <code>ConflictError</code>. While a read or write is in flight the
+        framework's <code>CipherGlyph</code> stands in for a spinner. Flip{" "}
+        <em>Simulate a flaky backend</em> to inject transient failures and watch
+        the framework's retry policy ride the backoff curve until the write
+        lands (the attempts log under the <code>save</code> scope).
       </p>
       <Section title={t("settings.storage.documentTitle")}>
         <textarea
@@ -482,70 +438,14 @@ export function StorageTab({ sync }: { sync: MockSync }) {
       </Section>
 
       <Section title={t("settings.storage.encryptionTitle")}>
-        <ToggleRow
-          label={t("settings.storage.encryptDocument")}
-          hint={t("settings.storage.encryptDocumentHint")}
-          checked={mode !== "plaintext"}
-          onChange={(next) => {
-            setEncError("");
-            if (next) {
-              if (mode === "plaintext") setMode("setup");
-            } else if (mode === "setup") {
-              setMode("plaintext"); // cancel — nothing was written
-            } else if (mode === "unlocked") {
-              void disableEncryption();
-            } else {
-              // Locked: can't re-save plaintext without first decrypting.
-              setEncError("Unlock first to turn encryption off.");
-            }
-          }}
+        {/* The whole settings block is the framework's: on/off, lock,
+            change the passphrase, with the phases on a CipherGlyph line. */}
+        <EncryptionSettings
+          encryption={enc}
+          location={t("settings.storage.thisBrowser")}
+          labels={encLabels}
+          onChanged={() => void reload()}
         />
-
-        {mode === "unlocked" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-success">
-              {t("settings.storage.encryptedUnlocked")}
-            </span>
-            <Button variant="secondary" onClick={lock}>
-              {t("settings.storage.lock")}
-            </Button>
-          </div>
-        )}
-
-        {mode === "setup" && (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs text-muted">
-              Choose a passphrase. Saving re-writes the document as an envelope;
-              the passphrase is held in memory only.
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="password"
-                value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && void enableEncryption()}
-                placeholder={t("settings.storage.passphrase")}
-                className={inputClass}
-              />
-              <Button
-                variant="primary"
-                onClick={() => void enableEncryption()}
-                disabled={!pass || busy !== null}
-              >
-                {t("settings.storage.encrypt")}
-              </Button>
-            </div>
-            {encError && (
-              <span className="text-sm text-danger">{encError}</span>
-            )}
-          </div>
-        )}
-
-        {locked && (
-          <span className="text-xs text-muted">
-            {t("settings.storage.gateExplainer")}
-          </span>
-        )}
       </Section>
 
       <Section title={t("settings.storage.bytesTitle")}>
@@ -625,23 +525,14 @@ export function StorageTab({ sync }: { sync: MockSync }) {
         }}
       />
 
-      {/* The framework's full-screen lock screen — what a real app paints on a
-          fresh load when the document is an envelope but the session passphrase
-          is gone. It blocks the app until the passphrase decrypts the bytes,
-          fronting a `CipherGlyph` beside the progress line we narrate. A wrong
-          passphrase routes through `mapError` to a friendly message. */}
-      <UnlockGate
-        open={locked}
-        onUnlock={gateUnlock}
-        mapError={() => t("settings.storage.gateWrong")}
-        labels={{
-          title: t("settings.storage.gateTitle"),
-          hint: t("settings.storage.gateHint"),
-          passphrase: t("settings.storage.passphrase"),
-          unlock: t("settings.storage.unlock"),
-          statusAria: t("settings.storage.gateStatusAria"),
-          clear: t("common.clear"),
-        }}
+      {/* Asks whenever the hook needs an answer. `blocking`: the document is
+          the whole app here, so a locked one is the full-screen gate — what a
+          real app paints on a fresh load, and after "Lock". */}
+      <EncryptionGate
+        encryption={enc}
+        location={t("settings.storage.thisBrowser")}
+        labels={encLabels}
+        blocking
       />
     </div>
   );
