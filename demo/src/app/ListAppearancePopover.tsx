@@ -67,13 +67,13 @@ export function ListAppearancePopover({ list, onChange }: Props) {
         className="rounded-md border border-line bg-surface-1 p-3 shadow-lg"
       >
         <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
-          Colour
+          Color
         </p>
         <ColorPalette
           colors={GLYPH_COLORS}
           value={list.color ?? null}
           onChange={(color) => onChange({ color })}
-          ariaLabelPrefix="Colour"
+          ariaLabelPrefix="Color"
         />
         <p className="mt-3 mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">
           Icon

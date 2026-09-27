@@ -65,7 +65,7 @@ function PagerDemo() {
   return (
     <Section title="SwipeDeck">
       <p className="text-xs text-muted">
-        A pager: drag and the neighbour follows your finger, then springs into
+        A pager: drag and the neighbor follows your finger, then springs into
         place. Nothing here re-renders while you drag — the track's transform is
         written straight to the DOM — and a page turn moves the anchor{" "}
         <em>before</em> it animates, so the render lands in the pause after your
@@ -172,8 +172,8 @@ function MixerDemo() {
     <Section title="ColorMixer">
       <p className="text-xs text-muted">
         A saturation/value field and a hue strip — the arrangement where "the
-        same colour but lighter" is a straight line. The value stays HSV
-        throughout: a colour with no light in it has no hue left to carry, so a
+        same color but lighter" is a straight line. The value stays HSV
+        throughout: a color with no light in it has no hue left to carry, so a
         hex round trip per pointer move would reset the strip.
       </p>
       <ColorMixer value={hsv} onChange={setHsv} />

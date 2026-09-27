@@ -248,7 +248,7 @@ describe("ColorPalette", () => {
         colors={GLYPH_COLORS}
         value={GLYPH_COLORS[3]!}
         onChange={onChange}
-        ariaLabelPrefix="Colour"
+        ariaLabelPrefix="Color"
       />,
     );
     const swatches = screen.getAllByRole("radio");

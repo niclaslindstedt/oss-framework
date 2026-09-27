@@ -17,7 +17,7 @@ type Props = {
   /** The selected colour, or null when none is chosen yet. */
   value: string | null;
   onChange: (color: string) => void;
-  /** Per-swatch aria-label prefix, e.g. "Colour" → "Colour #e06c75". */
+  /** Per-swatch aria-label prefix, e.g. "Color" → "Color #e06c75". */
   ariaLabelPrefix: string;
 };
 

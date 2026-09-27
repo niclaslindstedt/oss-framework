@@ -117,7 +117,7 @@ export const CATALOG: readonly Achievement<AchState>[] = [
     tier: "pro",
     glyph: PaletteIcon,
     name: "Made It Yours",
-    condition: "Give a list an icon or colour.",
+    condition: "Give a list an icon or color.",
     learnMore:
       "Open a list's appearance popover from its header and pick a glyph or accent — the menu icon and the browser tab follow it.",
     trigger: derived(hasStyled, (d) => d.lists),

@@ -115,12 +115,12 @@ export const DEFAULT_APPEARANCE_LABELS: AppearanceLabels = {
   density: "Density",
   borderWidth: "Border width",
   reduceMotion: "Reduce motion",
-  reduceMotionHint: "Minimise animations and transitions.",
+  reduceMotionHint: "Minimize animations and transitions.",
   components: "Components",
   buttonStyle: "Buttons",
   controlStyle: "Checkboxes",
   elevation: "Elevation",
-  colours: "Colours",
+  colours: "Colors",
   preview: "Preview",
 };
 

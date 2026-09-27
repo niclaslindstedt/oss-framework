@@ -84,13 +84,13 @@ export const en = {
     open: "Manage namespaces",
     heading: "Namespaces",
     blurb:
-      "Each namespace is its own workspace with its own lists. Switch between them, or give one an icon and colour.",
+      "Each namespace is its own workspace with its own lists. Switch between them, or give one an icon and color.",
     newAction: "New namespace",
     namePlaceholder: "Namespace name",
     nameLabel: "Namespace name",
     create: "Create",
     nameRequired: "A name is required",
-    colorLabel: "Colour",
+    colorLabel: "Color",
     glyphLabel: "Icon",
     glyphNone: "No icon",
     save: "Save",
@@ -154,7 +154,7 @@ export const en = {
     reauthRequired: "Reconnect needed — tap to fix",
     syncConflict: "Sync conflict — tap to resolve",
     offline: "Offline — editing a local copy",
-    // The command centre (`SyncDetailsModal`).
+    // The command center (`SyncDetailsModal`).
     cloudSync: "Sync",
     status: "Status",
     backend: "Backend",
@@ -278,15 +278,15 @@ export const en = {
       refresh: "Refresh",
       cloudSyncTitle: "Where your data lives",
       cloudSyncHint:
-        "Pick a backend for the document. The header's cloud glyph reflects the save state; tap it for the sync command centre. The cloud here is simulated — no data leaves your device.",
+        "Pick a backend for the document. The header's cloud glyph reflects the save state; tap it for the sync command center. The cloud here is simulated — no data leaves your device.",
       backendThisDevice: "This device",
       backendCloud: "Simulated cloud",
       cloudProviderTitle: "Cloud drive",
       cloudProviderHint:
-        'Which drive the simulated cloud syncs to. Open the menu and start typing — "one" jumps to OneDrive. Your pick shows up after "synced to …" on the header glyph and as the folder in the command centre.',
+        'Which drive the simulated cloud syncs to. Open the menu and start typing — "one" jumps to OneDrive. Your pick shows up after "synced to …" on the header glyph and as the folder in the command center.',
       encryptSync: "Encrypt at rest",
       encryptSyncHint:
-        "Show the backend as encrypted in the command centre's details grid (On/Off).",
+        "Show the backend as encrypted in the command center's details grid (On/Off).",
     },
     developer: {
       intro: "Diagnostic tools. These stay on this device.",
@@ -299,7 +299,7 @@ export const en = {
       simulateUpdate: "Simulate an available update",
       syncFaultsTitle: "Sync faults",
       syncFaultsIntro:
-        "Inject a fault into the simulated cloud backend, then open the header's sync glyph to see how the command centre surfaces and recovers from it. Switch the backend to the simulated cloud (Storage tab) first.",
+        "Inject a fault into the simulated cloud backend, then open the header's sync glyph to see how the command center surfaces and recovers from it. Switch the backend to the simulated cloud (Storage tab) first.",
       faultOffline: "Go offline",
       faultAuth: "Expire the session",
       faultConflict: "Trigger a conflict",

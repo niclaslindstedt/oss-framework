@@ -75,7 +75,7 @@ function loadGisScript(log: Logger): Promise<void> {
         gisLoaderPromise = null;
         reject(
           new Error(
-            "Google sign-in loaded but didn't initialise. Reload the page and try again.",
+            "Google sign-in loaded but didn't initialize. Reload the page and try again.",
           ),
         );
       }

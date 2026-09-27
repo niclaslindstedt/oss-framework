@@ -130,7 +130,7 @@ describe("ColorPalette — 1-D horizontal roving tabindex", () => {
         colors={colors}
         value="#c"
         onChange={() => {}}
-        ariaLabelPrefix="Colour"
+        ariaLabelPrefix="Color"
       />,
     );
     expect(buttons(container).filter((b) => b.tabIndex === 0)).toHaveLength(1);
@@ -143,7 +143,7 @@ describe("ColorPalette — 1-D horizontal roving tabindex", () => {
         colors={colors}
         value="#a"
         onChange={() => {}}
-        ariaLabelPrefix="Colour"
+        ariaLabelPrefix="Color"
       />,
     );
     fireEvent.keyDown(btn(container, 0), { key: "ArrowLeft" });
@@ -157,7 +157,7 @@ describe("ColorPalette — 1-D horizontal roving tabindex", () => {
         colors={colors}
         value="#a"
         onChange={() => {}}
-        ariaLabelPrefix="Colour"
+        ariaLabelPrefix="Color"
       />,
     );
     fireEvent.keyDown(btn(container, 0), { key: "ArrowDown" });

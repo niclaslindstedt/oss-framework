@@ -106,7 +106,7 @@ export const SEED: AppData = {
     },
     {
       id: "beach",
-      title: "Beach holiday",
+      title: "Beach vacation",
       folderId: "packing",
       glyph: "plane",
       color: "#61afef",

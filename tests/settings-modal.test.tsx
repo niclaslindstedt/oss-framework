@@ -68,12 +68,12 @@ describe("SettingsModal", () => {
       theme: "custom",
     };
     renderModal({ appearance: custom });
-    expect(screen.getByText("Colours")).toBeTruthy();
+    expect(screen.getByText("Colors")).toBeTruthy();
   });
 
   it("hides the colour section outside Custom mode", () => {
     renderModal();
-    expect(screen.queryByText("Colours")).toBeNull();
+    expect(screen.queryByText("Colors")).toBeNull();
   });
 
   it("resets to the default appearance from the footer", () => {

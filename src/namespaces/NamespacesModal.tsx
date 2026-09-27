@@ -73,13 +73,13 @@ export type NamespacesLabels = {
 const DEFAULTS = {
   heading: "Namespaces",
   blurb:
-    "Each namespace keeps its own data. Switch between them, or give one an icon and colour.",
+    "Each namespace keeps its own data. Switch between them, or give one an icon and color.",
   newAction: "New namespace",
   namePlaceholder: "Namespace name",
   nameLabel: "Namespace name",
   create: "Create",
   nameRequired: "A name is required",
-  colorLabel: "Colour",
+  colorLabel: "Color",
   glyphLabel: "Icon",
   glyphNone: "No icon",
   save: "Save",

@@ -42,7 +42,7 @@ export const DEFAULT_EVIDENCE_LABELS: Record<Evidence, string> = {
   consensus: "Consensus statement",
   "systematic-review": "Systematic review",
   "meta-analysis": "Meta-analysis",
-  "randomized-trial": "Randomised trial",
+  "randomized-trial": "Randomized trial",
   cohort: "Cohort study",
   "clinical-study": "Clinical study",
   review: "Review",

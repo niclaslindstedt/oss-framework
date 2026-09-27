@@ -68,7 +68,7 @@ function AppearanceEditor({ glyph, color, onChange }) {
         colors={GLYPH_COLORS}
         value={color}
         onChange={(c) => onChange({ color: c })}
-        ariaLabelPrefix="Colour"
+        ariaLabelPrefix="Color"
       />
       <GlyphPicker
         glyphs={GLYPH_NAMES}

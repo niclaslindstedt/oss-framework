@@ -226,7 +226,7 @@ export async function runAuthSessionAuth(
   } catch (err) {
     sessionStorage.removeItem(config.verifierKey);
     if (err instanceof AuthCancelledError) {
-      log.info(`${config.providerName}: auth session cancelled`);
+      log.info(`${config.providerName}: auth session canceled`);
     } else {
       log.error(`${config.providerName}: auth session failed`, err);
     }
@@ -237,7 +237,7 @@ export async function runAuthSessionAuth(
 /** Thrown by `runAuthSessionAuth` when the user closed the sign-in sheet. */
 export class AuthCancelledError extends Error {
   constructor(providerName: string) {
-    super(`${providerName} sign-in was cancelled`);
+    super(`${providerName} sign-in was canceled`);
     this.name = "AuthCancelledError";
   }
 }
