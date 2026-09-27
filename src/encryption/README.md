@@ -129,71 +129,135 @@ held, rather than waiting for the next edit. Use it where plaintext at rest is
 the thing being prevented. A cached (`offline`) snapshot is never re-sealed —
 the save would only reach the cache.
 
-## Encryption a backend requires
+## The encryption kit — the quick way
 
-Some backends should never hold plaintext: a cloud app folder, a picked folder
-another program may be syncing. `useRequiredEncryption` is the state machine
-for that rule:
+Everything above is the machinery. Most apps want the finished thing: turn it
+on in settings, get locked out after a reload, unlock, change the passphrase,
+notice a second device turned it on. That is one hook and two components:
 
 ```tsx
-const enc = useRequiredEncryption({
-  inner: cloudAdapter, // null when nothing is connected
-  required: backend !== "local",
-  storageKey: `my-app:sync:passphrase:${backend}`,
-});
-// enc.adapter is null until a passphrase is held — sync through nothing else.
+import {
+  EncryptionGate,
+  EncryptionSettings,
+  useEncryption,
+} from "@niclaslindstedt/oss-framework/encryption";
+
+function App() {
+  const encryption = useEncryption({
+    adapter: myBackend, // any StorageAdapter, or null when none is connected
+    storageKey: "my-app:encryption",
+  });
+  // Read and write through encryption.adapter — null while locked.
+  useMyDocument(encryption.adapter);
+
+  return (
+    <>
+      <Shell />
+      {/* Asks whenever an answer is needed: choose / enter / changed. */}
+      <EncryptionGate encryption={encryption} location="Dropbox" blocking />
+    </>
+  );
+}
+
+// In settings:
+<EncryptionSettings encryption={encryption} location="Dropbox" />;
 ```
 
-| `state`       | Meaning                                                                    |
-| ------------- | -------------------------------------------------------------------------- |
-| `off`         | No backend, or one that does not require encryption (`adapter` = `inner`). |
-| `checking`    | Reading the backend to know which question to ask.                         |
-| `create`      | Nothing sealed there yet — choose a passphrase (`create`).                 |
-| `unlock`      | An envelope is there — enter its passphrase (`unlock`).                    |
-| `changed`     | The remembered passphrase stopped opening it — enter the new one.          |
-| `unreachable` | Could not read, no passphrase held — `recheck` later.                      |
-| `ready`       | Passphrase held; `adapter` seals every save and opens every load.          |
+That is the whole integration. English copy is built in; pass one `labels`
+object (`EncryptionLabels`) to both components to translate it, and a
+`location` to name where the bytes go (it fills `{location}` in the copy).
 
-The guarantee is structural: `adapter` is `null` whenever a required backend
-has no passphrase, so a sync engine that only talks to `adapter` has no path to
-write plaintext. The first read after a passphrase lands seals an existing
-plaintext copy in place (`sealPlaintext`). `change(next)` re-seals the backend
-under a new passphrase; other devices land in `changed` on their next read.
+### Choosing the behaviour
 
-The passphrase is **remembered on the device** under `storageKey` (default
-storage `localStorage`), so a device asks once. That is the right trade for an
-app whose working copy already sits in plaintext in the same storage — the key
-beside it exposes nothing new, and the copy that left the device stays
-unreadable to its provider. Pass `storage: null` to hold it for the session
-only. `forget()` drops it (on a disconnect). Key it per backend.
+| Option     | Values                               | Pick…                                                                                                                                                                                                              |
+| ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `policy`   | `"optional"` (default), `"required"` | `optional` when encryption is a setting the user turns on. `required` when the backend may only ever hold envelopes — a copy that leaves the device. There is no off.                                              |
+| `remember` | `"session"` (default), `"device"`    | `session` when the on-device copy is what's protected: a reload locks it. `device` when the working copy is already plaintext on the device and the passphrase guards the copy that leaves it: a device asks once. |
+| `storage`  | `localStorage` (default), `null`     | Where the mode (and a `device` passphrase) live.                                                                                                                                                                   |
 
-`PassphraseDialog` asks every one of those questions — `mode` is `create`,
-`unlock`, `changed` or `change`; a chosen passphrase is typed twice and has a
-minimum length (`PASSPHRASE_MIN_LENGTH`, 8); a `WrongPasswordError` maps to the
-wrong-passphrase copy. Every string injects through `labels`.
+`storageKey` prefixes what the device keeps (`<key>:mode`,
+`<key>:passphrase`). Key it per backend — `my-app:encryption:${backend}` — so
+each asks its own question, and keep it a stable string.
+
+### States
+
+| `state`       | Meaning                                                                   | `adapter`              |
+| ------------- | ------------------------------------------------------------------------- | ---------------------- |
+| `off`         | Not encrypted (optional policy), or no backend.                           | the backend, plaintext |
+| `checking`    | Encrypted, no passphrase: reading the backend to know what to ask.        | `null`                 |
+| `setup`       | Encrypted, nothing sealed yet — choose a passphrase (`enable`).           | `null`                 |
+| `locked`      | An envelope, no passphrase held — enter it (`unlock`).                    | `null`                 |
+| `changed`     | The held passphrase stopped opening it: it was changed on another device. | `null`                 |
+| `unreachable` | Could not read the backend to decide — `recheck` later.                   | `null`                 |
+| `ready`       | Every save sealed, every load opened.                                     | sealing adapter        |
+
+The verbs — `enable`, `disable` (optional only), `unlock`, `changePassphrase`,
+`lock`, `forget` (on a disconnect), `recheck` — each take an optional progress
+callback of `EncryptionStep`s (`reading` → `derivingKey` → `encrypting` /
+`decrypting` → `saving` → `finalizing`) for a status line; the components
+already show them on a `CipherGlyph` line.
+
+### What it does for you
+
+- **No plaintext while locked.** `adapter` is `null` whenever the backend is
+  encrypted and no passphrase is held, so a sync engine that only talks to it
+  cannot write plaintext over an envelope — nor, under `required`, write
+  plaintext at all.
+- **Adopts encryption from another device.** With the optional policy off, a
+  read that finds an envelope switches this device to encrypted and locks
+  (`fromRemote` is true, and the gate says so) — the notes behaviour.
+- **Seals leftovers.** In `ready`, a plaintext copy is re-written as an
+  envelope the first time it is read.
+- **Notices a changed passphrase.** A held passphrase that stops opening the
+  backend drops to `changed` and is forgotten, so sync stops instead of
+  failing on every push.
+- **Sticky.** Adoption only goes towards encrypted. Turning it off is each
+  device's decision; a device that still holds the passphrase re-seals on its
+  next read. (The alternative lets one device quietly unseal everyone.)
+
+### `EncryptionGate` presentations
+
+By default a dismissable **dialog** over the app — right when the app still
+works behind it (a local working copy; only sync waits). With `blocking`, a
+locked state is the full-screen **`UnlockGate`** instead — right when the
+encrypted document _is_ the app. `paused` silences it (while a demo has taken
+over storage, say).
+
+### Coming from 3.7.0
+
+3.7.0 shipped a narrower `useRequiredEncryption`. It still works — it is now a
+view of `useEncryption` with `policy: "required"` and `remember: "device"`, and
+keeps the passphrase under the key it always did — but it is deprecated; call
+`useEncryption` directly. `PassphraseDialogLabels` likewise gives way to
+`EncryptionLabels` (`unlockSubmit` is `unlock`, `working` is `steps`).
+
+### When the kit is not enough
+
+It seals **one document** behind one adapter. A backend that stores many files
+and encrypts each one separately (notes' per-note folders, with opaque file
+names and a background re-encryption queue) needs its own state machine; build
+it from `encryptText` / `decryptEnvelope` / `withEncryption` as notes does.
 
 ## A PIN app lock
 
 `usePinLock({ storageKey, relockAfterMs })` keeps a PBKDF2 verifier (never the
 code) in device storage and reports `locked` from the first render when one is
-set, and again once the page has been hidden for `relockAfterMs`. Render the
-components module's `UnlockGate` as the gate:
+set, and again once the page has been hidden for `relockAfterMs`. Wrap the
+shell in `AppLock` — it renders the PIN gate instead of its children while
+locked, so nothing behind it paints:
 
 ```tsx
 const pin = usePinLock({ storageKey: "my-app:pin", relockAfterMs: 5 * 60_000 });
 
-<UnlockGate
-  open={pin.locked}
-  inputMode="numeric"
-  icon={<LockIcon className="h-6 w-6" />}
-  labels={{ title: "Locked", hint: "Enter your PIN.", passphrase: "PIN" }}
-  onUnlock={async (code) => {
-    if (!(await pin.unlock(code))) throw new Error("wrong");
-  }}
-/>;
+<AppLock pin={pin}>
+  <Shell />
+</AppLock>;
+
+// In settings:
+<PinLockControl pin={pin} />;
 ```
 
-and `PinLockControl` in settings to set, change or remove it. A PIN is a
+`PinGate` is the gate on its own, if the shell wants to place it. A PIN is a
 **soft** lock — a short code has a small keyspace, and it encrypts nothing — so
 its default copy says so. Encryption is what protects bytes that leave the
 device.

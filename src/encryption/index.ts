@@ -34,25 +34,46 @@ export {
 // The two passphrase failures, as classes.
 export { EncryptionLockedError, WrongPasswordError } from "./errors.ts";
 
-// Encryption as a requirement of a backend: the state machine that holds
-// every write back until a passphrase is set, and the dialog that asks for it.
+// The encryption kit: one hook for the whole lifecycle (on / off / locked /
+// unlock / change / adopted from another device, optional or required), and
+// the three pieces of UI an app drops in — the settings block, the gate that
+// asks when an answer is needed, and the dialog both use. One labels object
+// translates all of it.
 export {
   PASSPHRASE_MIN_LENGTH,
   classifyStored,
-  useRequiredEncryption,
+  useEncryption,
+  type Encryption,
+  type EncryptionMemory,
+  type EncryptionPolicy,
+  type EncryptionProgress,
+  type EncryptionState,
+  type EncryptionStep,
   type PassphraseStorage,
-  type RequiredEncryption,
-  type RequiredEncryptionState,
-  type UseRequiredEncryptionOptions,
-} from "./useRequiredEncryption.ts";
+  type UseEncryptionOptions,
+} from "./useEncryption.ts";
+export { EncryptionSettings } from "./EncryptionSettings.tsx";
+export { EncryptionGate } from "./EncryptionGate.tsx";
 export {
   PassphraseDialog,
   type PassphraseDialogLabels,
   type PassphraseDialogMode,
 } from "./PassphraseDialog.tsx";
+// 3.7.0's narrower hook, now a view of `useEncryption`.
+export {
+  useRequiredEncryption,
+  type RequiredEncryption,
+  type RequiredEncryptionState,
+  type UseRequiredEncryptionOptions,
+} from "./useRequiredEncryption.ts";
+export {
+  DEFAULT_ENCRYPTION_LABELS,
+  resolveEncryptionLabels,
+  type EncryptionLabels,
+} from "./labels.ts";
 
-// A soft app lock: the PIN verifier, the hook, and its settings control. The
-// gate itself is the components module's `UnlockGate` with a numeric keypad.
+// A soft app lock: the PIN verifier, the hook, its settings control, and the
+// gate (`AppLock` wraps a shell in it).
 export {
   PIN_MIN_LENGTH,
   createPinVerifier,
@@ -69,3 +90,4 @@ export {
   PinLockControl,
   type PinLockControlLabels,
 } from "./PinLockControl.tsx";
+export { AppLock, PinGate, type PinGateLabels } from "./PinGate.tsx";

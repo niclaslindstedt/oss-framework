@@ -253,15 +253,14 @@ export const sv: Catalog = {
       encryptionTitle: "Kryptering i vila",
       encryptDocument: "Kryptera det här dokumentet",
       encryptDocumentHint:
-        "Linda lagringen med withEncryption — byten på disk blir ett AES-GCM-kuvert som nycklas av din lösenfras.",
+        "Omslut lagringen med useEncryption — byten på disken blir ett AES-GCM-kuvert nycklat med din lösenfras, som hålls i minnet under sessionen.",
       encryptedUnlocked:
         "Krypterad & upplåst — sparningar krypterar, laddningar dekrypterar.",
       lock: "Lås (simulera omladdning)",
+      thisBrowser: "den här webbläsaren",
       passphrase: "Lösenfras",
       unlock: "Lås upp",
       encrypt: "Kryptera",
-      gateExplainer:
-        "Lösenfrasen lever bara i minnet, så den simulerade omladdningen låste dokumentet. Ramverkets upplåsningsruta i helskärm visas — ange lösenfrasen för att dekryptera kuvertet på disk.",
       gateTitle: "Dokumentet är låst",
       gateHint:
         "Ange din lösenfras för att låsa upp och läsa dokumentet på den här enheten.",

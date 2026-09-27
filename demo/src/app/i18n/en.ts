@@ -256,15 +256,14 @@ export const en = {
       encryptionTitle: "Encryption at rest",
       encryptDocument: "Encrypt this document",
       encryptDocumentHint:
-        "Wrap the backend with withEncryption — bytes on disk become an AES-GCM envelope keyed by your passphrase.",
+        "Wrap the backend with useEncryption — bytes on disk become an AES-GCM envelope keyed by your passphrase, held in memory for the session.",
       encryptedUnlocked:
         "Encrypted & unlocked — saves encipher, loads decrypt.",
       lock: "Lock (simulate reload)",
+      thisBrowser: "this browser",
       passphrase: "Passphrase",
       unlock: "Unlock",
       encrypt: "Encrypt",
-      gateExplainer:
-        "The passphrase lives only in memory, so the simulated reload locked the document. The framework's full-screen unlock gate is up — enter the passphrase to decrypt the envelope on disk.",
       gateTitle: "Document is locked",
       gateHint:
         "Enter your passphrase to unlock and read this document on this device.",

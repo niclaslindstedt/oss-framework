@@ -17,7 +17,7 @@ import {
   verifyPin,
   type PinVerifier,
 } from "./pin.ts";
-import type { PassphraseStorage } from "./useRequiredEncryption.ts";
+import type { PassphraseStorage } from "./useEncryption.ts";
 
 export type UsePinLockOptions = {
   /** Where the verifier lives. Defaults to `localStorage`. */
