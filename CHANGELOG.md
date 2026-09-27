@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-09-27
+
+### Changed
+
+- **References audit checks summary and topics shape** — `auditReferences` now holds a present `summary` and `topics` to the shape OSS_SPEC 2.11.0 §24.2 gives them — a summary keyed by language tag with no blank line, topics a non-empty list of kebab-case names — even when no `languages` or `topics` option is passed.
+- **US spelling in default strings** — The framework's default English copy now uses US spelling — "Colors", "Color", "Minimize animations and transitions.", "Randomized trial", "canceled", "initialize" — while label keys, prop names and exported identifiers are unchanged.
+
 ## [3.9.0] - 2026-09-27
 
 ### Added
