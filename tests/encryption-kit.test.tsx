@@ -9,6 +9,13 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+// A wait that spans a real key derivation — 600,000 PBKDF2 iterations, on
+// purpose — gets longer than testing-library's one-second default, which a
+// busy CI runner overruns (the release run of 2026-09-27 took 1.2 s to seal).
+// The test's own timeout is raised above it so vitest's 5 s cannot cut in.
+const KDF_WAIT = { timeout: 8_000 } as const;
+const KDF_TEST_TIMEOUT = 15_000;
+
 import {
   decryptEnvelope,
   encryptText,
@@ -435,58 +442,69 @@ describe("useRequiredEncryption (deprecated)", () => {
 });
 
 describe("EncryptionGate", () => {
-  it("asks to choose a passphrase in setup, and seals on submit", async () => {
-    const inner = backend("doc");
-    function Harness() {
-      const enc = useEncryption({
-        adapter: inner,
-        policy: "required",
-        storage: memoryStorage(),
-        storageKey: "test:site:6",
+  it(
+    "asks to choose a passphrase in setup, and seals on submit",
+    async () => {
+      const inner = backend("doc");
+      function Harness() {
+        const enc = useEncryption({
+          adapter: inner,
+          policy: "required",
+          storage: memoryStorage(),
+          storageKey: "test:site:6",
+        });
+        return <EncryptionGate encryption={enc} location="the cloud" />;
+      }
+      render(<Harness />);
+      expect(await screen.findByText("Choose a passphrase")).toBeTruthy();
+      fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
+        target: { value: "long enough one" },
       });
-      return <EncryptionGate encryption={enc} location="the cloud" />;
-    }
-    render(<Harness />);
-    expect(await screen.findByText("Choose a passphrase")).toBeTruthy();
-    fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
-      target: { value: "long enough one" },
-    });
-    fireEvent.input(screen.getByPlaceholderText("Repeat the passphrase"), {
-      target: { value: "long enough one" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Encrypt" }));
-    await waitFor(() =>
-      expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true),
-    );
-    await waitFor(() =>
-      expect(screen.queryByText("Choose a passphrase")).toBeNull(),
-    );
-  });
-
-  it("is a full-screen gate when blocking and locked", async () => {
-    const inner = backend(await encryptText("doc", "pw pw pw pw"));
-    const storageKey = freshKey();
-    function Harness() {
-      const enc = useEncryption({
-        adapter: inner,
-        storage: memoryStorage({ [`${storageKey}:mode`]: "encrypted" }),
-        storageKey,
+      fireEvent.input(screen.getByPlaceholderText("Repeat the passphrase"), {
+        target: { value: "long enough one" },
       });
-      return (
-        <>
-          <EncryptionGate encryption={enc} blocking />
-          <p>state:{enc.state}</p>
-        </>
+      fireEvent.click(screen.getByRole("button", { name: "Encrypt" }));
+      await waitFor(
+        () => expect(isEncryptedEnvelope(inner.stored!.text)).toBe(true),
+        KDF_WAIT,
       );
-    }
-    render(<Harness />);
-    expect(await screen.findByText("Enter your passphrase")).toBeTruthy();
-    fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
-      target: { value: "pw pw pw pw" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
-    expect(await screen.findByText("state:ready")).toBeTruthy();
-  });
+      await waitFor(() =>
+        expect(screen.queryByText("Choose a passphrase")).toBeNull(),
+      );
+    },
+    KDF_TEST_TIMEOUT,
+  );
+
+  it(
+    "is a full-screen gate when blocking and locked",
+    async () => {
+      const inner = backend(await encryptText("doc", "pw pw pw pw"));
+      const storageKey = freshKey();
+      function Harness() {
+        const enc = useEncryption({
+          adapter: inner,
+          storage: memoryStorage({ [`${storageKey}:mode`]: "encrypted" }),
+          storageKey,
+        });
+        return (
+          <>
+            <EncryptionGate encryption={enc} blocking />
+            <p>state:{enc.state}</p>
+          </>
+        );
+      }
+      render(<Harness />);
+      expect(await screen.findByText("Enter your passphrase")).toBeTruthy();
+      fireEvent.input(screen.getByPlaceholderText("Passphrase"), {
+        target: { value: "pw pw pw pw" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
+      expect(
+        await screen.findByText("state:ready", undefined, KDF_WAIT),
+      ).toBeTruthy();
+    },
+    KDF_TEST_TIMEOUT,
+  );
 });
 
 describe("EncryptionSettings", () => {
