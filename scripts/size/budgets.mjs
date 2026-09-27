@@ -155,4 +155,23 @@ export const CASES = [
     code: `import { SwipeDeck } from "@niclaslindstedt/oss-framework/components";\nconsole.log(SwipeDeck);`,
     budget: 7800,
   },
+  // The self-hosted backend. The merge engine is pure and must stay alone;
+  // the client is the whole backend (crypto, transport, files, rows,
+  // adapters) and must not drag in the other backends or any React.
+  {
+    name: "storage/threeWayMerge",
+    code: `import { threeWayMerge } from "@niclaslindstedt/oss-framework/storage";\nconsole.log(threeWayMerge({}, { a: 1 }, { b: 2 }));`,
+    budget: 1800,
+  },
+  {
+    name: "storage/createSelfHostedClient",
+    code: `import { createSelfHostedClient, createMemoryKeyVault } from "@niclaslindstedt/oss-framework/storage";\nconsole.log(createSelfHostedClient({ app: "x", vault: createMemoryKeyVault() }));`,
+    budget: 73000,
+  },
+  // The QR encoder: tables, Reed-Solomon and masks — and no React.
+  {
+    name: "qr/encodeQr",
+    code: `import { encodeQr } from "@niclaslindstedt/oss-framework/qr";\nconsole.log(encodeQr("x"));`,
+    budget: 7600,
+  },
 ];

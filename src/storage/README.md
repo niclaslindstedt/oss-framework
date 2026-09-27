@@ -3,8 +3,10 @@
 # `@niclaslindstedt/oss-framework/storage`
 
 The shared persistence layer for local-first PWAs: one `StorageAdapter`
-contract and four backends — the browser's `localStorage`, a user-picked local
-folder, Dropbox, and Google Drive — behind a single interface, so an app can
+contract and five backends — the browser's `localStorage`, a user-picked local
+folder, Dropbox, Google Drive, and a **self-hosted, end-to-end encrypted
+server** ([storage-server](https://github.com/niclaslindstedt/storage)) —
+behind a single interface, so an app can
 offer "where do my documents live?" as a setting without the rest of it caring
 which backend is active.
 
@@ -297,6 +299,83 @@ Drive uses the GIS popup flow (no refresh token) — re-prompt with
 `startGdriveAuth` on an `AuthError`. The `drive.file` scope (`GDRIVE_SCOPE`)
 limits the app to files it created.
 
+## Self-hosted (storage-server)
+
+A server the user owns — at home or on any host — that stores only
+ciphertext. Everything is encrypted on the device before it leaves:
+contents, file and folder names, row keys and values, namespace names. It is
+the backend meant for health data.
+
+```ts
+import {
+  createSelfHostedClient,
+  defaultKeyVault,
+} from "@niclaslindstedt/oss-framework/storage";
+
+// Keys live in IndexedDB as non-extractable CryptoKeys (or, in a native
+// wrapper that installs `window.__ossKeyVault`, in Keychain / Keystore).
+const client = createSelfHostedClient({
+  app: "meds",
+  vault: defaultKeyVault("meds"),
+});
+
+if ((await client.restore()) === "signed-out") {
+  // `scanned` = the QR / pasted `oss-storage://pair?…` code
+  const state = await client.pair(scanned, { name: "Pixel 9" });
+  if (state === "needs-keys" && !(await client.accountHasKeys())) {
+    const recoveryKey = await client.createAccountKeys(); // show ONCE
+  }
+  // else: client.recover(recoveryKey), or approve from another device
+}
+
+const [first] = await client.namespaces();
+const ns = first
+  ? await client.namespace(first.id)
+  : await client.createNamespace({ name: "Me" });
+```
+
+### Pick the binding your app already uses
+
+| Your app today                                                         | Use                                                                                                                                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createDropboxAdapter({ fileName })` (one document)                    | `ns.adapter({ fileName })` — same contract; conflicts are detected atomically on the server, and `watch` pushes remote changes                              |
+| a JSON document of records with `updatedAt` (meds, period, baby, time) | `ns.rowDocumentAdapter({ rows: ["medications", "days"] })` — the document is stored one row per entry and merged per row, per field; deletions stay deleted |
+| a `FileStore` with your own binding (one file per note)                | `ns.fileStore({ root })` — `list / read / write / remove`, plus `readBytes / writeBytes` for photos                                                         |
+| nothing yet                                                            | `ns.recordStore(collection)` — rows you read and write synchronously, synced in the background (`live()`)                                                   |
+
+All of them compose with `withLocalCache` exactly like the other backends.
+
+### Conflicts, row by row
+
+`RecordStore` keeps each row's _base_ (its value when last in step with the
+server). A row two devices changed is merged three ways, per field
+(`threeWayMerge`); only a field both sides changed differently is a real
+conflict, and it goes to the newer `updatedAt` (`newerByField`), ties to the
+remote side — every device converges on the same result. An edit beats a
+concurrent delete unless `deleteWins`. Pass `merge` for your own rule.
+
+### Devices, recovery and sharing
+
+- **Add a device**: `client.addDevicePayload()` → show it with `<QrCode>`
+  (`@niclaslindstedt/oss-framework/qr`); the new device's `pair(payload)` is
+  ready at once — the account key travels sealed under a secret only the QR
+  carries.
+- **Approve** a device paired from the server's own QR:
+  `client.pendingDevices()` (safety codes computed on this device), compare
+  with the new device's `client.safetyCode()`, then `approveDevice(id)`.
+- **Recover** with the recovery key: `client.recover(text)`.
+- **Share one namespace**: `ns.invite({ role: "viewer" })` → QR / link;
+  the other side `client.acceptInvite(payload)` — with their own account, or
+  as a new guest (`{ accountName, device }`). `ns.removeMember(id)` removes
+  and rotates the key.
+
+### Testing
+
+`@niclaslindstedt/storage-testkit` runs the real server in your tests — in
+process for Vitest, as a child process for Playwright — with seeding, fault
+injection (offline, 503, 429), clock control and snapshots. See the storage
+repository's `docs/testing.md`.
+
 ## Offline cache
 
 `withLocalCache(adapter, { storage, key })` mirrors a cloud backend's bytes into
@@ -511,6 +590,17 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
   `DEFAULT_TRANSFER_CONCURRENCY`, `DEFAULT_TRANSFER_ATTEMPTS`.
 - **`save-retry.ts`** — `backoffDelayMs` (+ `BackoffOptions`),
   `isRetryableSaveError`, `MAX_TRANSIENT_SAVE_RETRIES`, `OFFLINE_RESUME_MS`.
+- **`selfhosted/`** — `createSelfHostedClient` / `SelfHostedClient`,
+  `StorageNamespace` (`files`, `records`, `recordStore`, `adapter`,
+  `rowDocumentAdapter`, `fileStore`, `batch`, `changes`, `watch`, `invite`,
+  `members`, `removeMember`, `rotateKey`), `RecordStore`,
+  `createIdbRecordCache`, `threeWayMerge`, `newerByField`, the key vaults
+  (`defaultKeyVault`, `createIndexedDbKeyVault`, `createMemoryKeyVault`,
+  `createHostKeyVault`, `getKeyVaultHost`), payloads
+  (`parseStoragePayload`, `formatStoragePayload`), `formatRecoveryKey`,
+  `parseRecoveryKey`, `safetyCode`, and the typed errors
+  (`FileConflictError`, `RowConflictError`, `DecryptError`, `RollbackError`,
+  `QuotaExceededError`, `KeysMissingError`, …).
 - **shared** — `withLocalCache`, `localCacheKey`, `isOfflineError`,
   `describeStorageError`, `OfflineUnavailableError`; the OAuth PKCE helpers
   (`startAuth`, `completeAuth`, `refreshAccessToken`, `pickOauthProvider`,

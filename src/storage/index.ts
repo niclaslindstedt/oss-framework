@@ -171,3 +171,7 @@ export {
   withTransientRetries,
   type TransferRetryOptions,
 } from "./transfer-retry.ts";
+
+// The self-hosted, end-to-end encrypted backend (storage-server): client,
+// key vault, namespaces, files, row-level sync and adapters.
+export * from "./selfhosted/index.ts";
