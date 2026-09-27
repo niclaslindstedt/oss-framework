@@ -72,8 +72,11 @@ the DOI's resolver ahead of the publisher's URL, because the DOI outlives it.
 `auditReferences(registry, sources, options?)` is §24.3's four rules as a
 function: every tag resolves, every entry is cited, `usedBy` is exact, every
 entry is complete. It returns a list of problems — `rule`, `id`, and a
-message — and an empty list when the registry and the code agree. Pass
-`languages` and `topics` to hold the app's own fields too.
+message — and an empty list when the registry and the code agree. A `summary`
+or `topics` that is present is always held to the shape §24.2 gives it (an
+object keyed by language tag; a non-empty list of kebab-case names); pass
+`languages` and `topics` to require them on every entry, in the app's own
+vocabulary.
 
 It is pure; reading the source tree is the caller's, so the test is a few
 lines of `node:fs`:

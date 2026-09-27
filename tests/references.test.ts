@@ -345,7 +345,55 @@ describe("auditReferences", () => {
     });
   });
 
-  it("checks the app's own fields only when asked", () => {
+  it("holds summary and topics to their shape whenever they are present", () => {
+    const odd: Registry<string> = {
+      references: {
+        "galland-2012": {
+          ...registry.references["galland-2012"]!,
+          summary: { en: " ", english: "What children sleep." },
+          topics: ["Sleep", "night-waking"],
+        },
+        "paruthi-2016": {
+          ...registry.references["paruthi-2016"]!,
+          summary: "What children sleep." as never,
+          topics: [],
+        },
+        "fohm-2026-somnvanor": {
+          ...registry.references["fohm-2026-somnvanor"]!,
+          summary: {},
+          topics: "sleep" as never,
+        },
+      },
+    };
+    const code = {
+      "src/sleep.ts":
+        "// [ref:galland-2012] [ref:paruthi-2016] [ref:fohm-2026-somnvanor]",
+      "src/growth.ts": "// [ref:paruthi-2016]",
+    };
+    expect(auditReferences(odd, code).map((p) => [p.rule, p.message])).toEqual([
+      ["summary", 'galland-2012: the summary in "en" is empty'],
+      [
+        "summary",
+        'galland-2012: the summary key "english" is not a BCP 47 tag',
+      ],
+      ["topics", 'galland-2012: the topic "Sleep" is not kebab-case'],
+      ["summary", "paruthi-2016: the summary is not keyed by language"],
+      ["topics", "paruthi-2016: the topics list is empty"],
+      ["summary", "fohm-2026-somnvanor: the summary has no language"],
+      ["topics", "fohm-2026-somnvanor: the topics are not a list"],
+    ]);
+    // With the app's languages given, a blank line is named once, not twice.
+    expect(
+      auditReferences(odd, code, { languages: ["en"] })
+        .filter((p) => p.id === "galland-2012" && p.rule === "summary")
+        .map((p) => p.message),
+    ).toEqual([
+      'galland-2012: the summary in "en" is empty',
+      'galland-2012: the summary key "english" is not a BCP 47 tag',
+    ]);
+  });
+
+  it("checks the app's own vocabulary only when asked", () => {
     const thin: Registry<string> = {
       references: {
         "galland-2012": {
@@ -355,7 +403,7 @@ describe("auditReferences", () => {
         },
         "paruthi-2016": {
           ...registry.references["paruthi-2016"]!,
-          topics: [],
+          topics: undefined,
         },
       },
     };

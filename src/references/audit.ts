@@ -8,8 +8,10 @@
 //   4. each entry is complete — enough to find the source again, the kind of
 //      evidence it is, and the words the number was taken from.
 //
-// Plus, when asked, the app's own fields: a `summary` in each of its
-// languages and at least one of its `topics`.
+// Plus the two optional fields §24.2 gives a shape — a `summary` keyed by
+// language tag, a list of kebab-case `topics` — held to it whenever they are
+// present, and, when asked, the app's own vocabulary: a `summary` in each of
+// its languages and at least one of its `topics`.
 //
 // Pure and file-system free: the caller reads its source tree (in a node
 // test, with `node:fs`) and hands in path → text. An empty result is a
@@ -23,6 +25,9 @@ import {
   type Registry,
 } from "./registry.ts";
 
+/** A BCP 47 language tag, loosely — `en`, `sv`, `pt-BR`. */
+const LANGUAGE_TAG = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
+
 export type ReferenceRule =
   /** A tag in the code names no entry. */
   | "unresolved"
@@ -32,9 +37,9 @@ export type ReferenceRule =
   | "used-by"
   /** A required field is missing or ill-formed. */
   | "incomplete"
-  /** The app's own `summary` is missing a language. */
+  /** A `summary` out of shape, or missing one of the app's languages. */
   | "summary"
-  /** The app's own `topics` is empty or names an unknown topic. */
+  /** `topics` out of shape, empty, or naming a topic the app lacks. */
   | "topics";
 
 export type ReferenceProblem = {
@@ -123,8 +128,12 @@ export function auditReferences(
       problems.push({ rule: "incomplete", id, message: `${id}: ${field}` });
     }
 
-    for (const lang of options.languages ?? []) {
-      if (!entry.summary?.[lang]?.trim()) {
+    const languages = options.languages ?? [];
+    for (const message of summaryShape(entry.summary, languages)) {
+      problems.push({ rule: "summary", id, message: `${id}: ${message}` });
+    }
+    for (const lang of languages) {
+      if (!isRecord(entry.summary) || !Object.hasOwn(entry.summary, lang)) {
         problems.push({
           rule: "summary",
           id,
@@ -133,17 +142,40 @@ export function auditReferences(
       }
     }
 
-    if (options.topics) {
-      const topics = entry.topics ?? [];
-      if (topics.length === 0) {
+    const topics = entry.topics;
+    if (topics !== undefined && !Array.isArray(topics)) {
+      problems.push({
+        rule: "topics",
+        id,
+        message: `${id}: the topics are not a list`,
+      });
+    } else if (options.topics) {
+      if (!topics?.length) {
         problems.push({ rule: "topics", id, message: `${id}: no topics` });
       }
-      for (const topic of topics) {
+      for (const topic of topics ?? []) {
         if (!options.topics.includes(topic)) {
           problems.push({
             rule: "topics",
             id,
             message: `${id}: unknown topic "${topic}"`,
+          });
+        }
+      }
+    } else if (topics) {
+      if (topics.length === 0) {
+        problems.push({
+          rule: "topics",
+          id,
+          message: `${id}: the topics list is empty`,
+        });
+      }
+      for (const topic of topics) {
+        if (typeof topic !== "string" || !REFERENCE_ID.test(topic)) {
+          problems.push({
+            rule: "topics",
+            id,
+            message: `${id}: the topic "${String(topic)}" is not kebab-case`,
           });
         }
       }
@@ -177,10 +209,7 @@ function incomplete(
   if (entry.accessed && !/^\d{4}-\d{2}-\d{2}$/.test(entry.accessed)) {
     out.push(`accessed "${entry.accessed}" is not YYYY-MM-DD`);
   }
-  if (
-    entry.language !== undefined &&
-    !/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(entry.language)
-  ) {
+  if (entry.language !== undefined && !LANGUAGE_TAG.test(entry.language)) {
     out.push(`the language "${entry.language}" is not a BCP 47 tag`);
   }
   if (!(EVIDENCE as readonly string[]).includes(entry.evidence)) {
@@ -195,6 +224,34 @@ function incomplete(
   }
   if (!nonEmpty(entry.supports)) out.push("no supports");
   return out;
+}
+
+/** What is out of shape in a `summary`, when there is one: it is an object,
+ *  keyed by language tag, of non-empty lines. An empty object is only named
+ *  when no languages are required — each missing one is named instead. */
+function summaryShape(
+  summary: unknown,
+  languages: readonly string[],
+): string[] {
+  if (summary === undefined) return [];
+  if (!isRecord(summary)) return ["the summary is not keyed by language"];
+  const out: string[] = [];
+  const entries = Object.entries(summary);
+  if (entries.length === 0 && languages.length === 0) {
+    out.push("the summary has no language");
+  }
+  for (const [lang, line] of entries) {
+    if (!LANGUAGE_TAG.test(lang)) {
+      out.push(`the summary key "${lang}" is not a BCP 47 tag`);
+    } else if (!nonEmpty(line)) {
+      out.push(`the summary in "${lang}" is empty`);
+    }
+  }
+  return out;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function nonEmpty(value: unknown): boolean {
