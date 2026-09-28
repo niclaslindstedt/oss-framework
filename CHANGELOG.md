@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-09-28
+
+### Added
+
+- **Self-hosted storage backend** — A self-hosted, end-to-end encrypted backend (storage-server) with atomic conflict detection, row-level merging, live updates, QR-code device pairing, recovery keys and per-namespace sharing — as `FileStore`, `StorageAdapter`, a row-document adapter and a `RecordStore`.
+- **QR codes** — A dependency-free QR encoder, SVG renderer and `<QrCode>` component under the new `qr` subpath.
+
 ## [3.10.0] - 2026-09-27
 
 ### Changed
