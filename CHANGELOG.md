@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-09-28
+
+### Added
+
+- **saveFile — exports that work in the phone apps** — `saveFile({ blob | text, filename, mimeType })` downloads on the web and, inside a native shell that advertises the `save-file` capability, sends the bytes to the shell to open the iOS / Android share sheet; the message contract and a reference `expo-sharing` implementation are in `docs/native-shell.md`.
+
+### Changed
+
+- **A native shell counts as standalone** — `isStandaloneMobile()` / `useStandaloneMobile()` are now `true` inside a phone app's native shell (a `react-native-webview` host, or a wrapper that injects `window.__ossShell`), so the edge-swipe setting that hides the floating menu button is offered there as in the installed PWA; `isNativeShell()` and `nativeShellDescriptor()` expose the shell itself.
+
+### Fixed
+
+- **A long press no longer lifts into a tap** — `useLongPress` swallows the click that ends the press however long it was held — before, a hold past about 0.9 s let that click through and activated the element underneath.
+
 ## [3.11.0] - 2026-09-28
 
 ### Added
