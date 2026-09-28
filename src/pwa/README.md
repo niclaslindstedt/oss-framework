@@ -9,13 +9,15 @@ soft "reload to apply" prompt, apply it on the user's say-so) and
 near-identical copies in the source apps; the framework owns the drift-prone
 state machine and the prompt UI, the host owns the service-worker build.
 
-| Export                  | What it is                                                                                                                             |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `usePwaUpdate(config)`  | Singleton hook driving the SW update lifecycle: download `progress`, `needRefresh`, `checking`, `reload`, `dismiss`, `checkForUpdate`. |
-| `UpdateToast`           | Presentational "a new version is ready" prompt — drive it from `usePwaUpdate`'s state.                                                 |
-| `CheckForUpdatesItem`   | Presentational "check for updates" menu row for a footer — drives `checkForUpdate`, owns the spinner / result feedback / aria.         |
-| `isStandaloneMobile()`  | `true` when running as an installed PWA on Android/iOS (where hiding chrome / edge gestures is safe).                                  |
-| `useStandaloneMobile()` | The same flag as a hook (read once — it can't change without a reload).                                                                |
+| Export                    | What it is                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `usePwaUpdate(config)`    | Singleton hook driving the SW update lifecycle: download `progress`, `needRefresh`, `checking`, `reload`, `dismiss`, `checkForUpdate`.        |
+| `UpdateToast`             | Presentational "a new version is ready" prompt — drive it from `usePwaUpdate`'s state.                                                        |
+| `CheckForUpdatesItem`     | Presentational "check for updates" menu row for a footer — drives `checkForUpdate`, owns the spinner / result feedback / aria.                |
+| `isStandaloneMobile()`    | `true` when running with no browser chrome on Android/iOS — an installed PWA or a native shell (where hiding chrome / edge gestures is safe). |
+| `useStandaloneMobile()`   | The same flag as a hook (read once — it can't change without a reload).                                                                       |
+| `isNativeShell()`         | `true` inside a native shell's WebView (a `react-native-webview` host, or a wrapper that injected `window.__ossShell`).                       |
+| `nativeShellDescriptor()` | The `window.__ossShell` descriptor a shell injected (`{ version, capabilities }`), or `null`.                                                 |
 
 ## What it owns vs. what stays in your app
 
@@ -141,7 +143,10 @@ same CSS variables the rest of a framework menu uses; pass `className` to match
 a different footer.
 
 `isStandaloneMobile()` / `useStandaloneMobile()` gate affordances that are only
-safe inside an installed window:
+safe with no browser chrome around the page — an installed window, or the
+WebView of a native shell (an Expo / React Native wrapper that ships this build
+as a phone app). Neither has a browser back-swipe on the edge, so both can offer
+an inward edge swipe in place of the floating menu button:
 
 ```tsx
 const installed = useStandaloneMobile();
@@ -151,6 +156,25 @@ const installed = useStandaloneMobile();
   installed && <EdgeSwipeSetting />;
 }
 ```
+
+### Native shells
+
+`isNativeShell()` reads only what the shell itself puts on `window`, never a
+user agent:
+
+- **A `react-native-webview` host is recognized with no work from the app.**
+  The library installs `window.ReactNativeWebView` before the page's scripts
+  run in any WebView given an `onMessage` handler — which every shell that
+  listens to its page already has. `useStandaloneMobile()` is then `true` on
+  the phone, and a setting gated on it (the edge swipe that hides the floating
+  menu button) appears in the app exactly as in the installed PWA.
+- **Any other wrapper declares itself** by injecting a descriptor before the
+  page loads: `window.__ossShell = { version: 1, capabilities: [] }`. The
+  descriptor is also where a shell advertises the message contracts it
+  implements; see [`docs/native-shell.md`](../../docs/native-shell.md).
+
+A desktop shell (Tauri, Electron) is a native shell too, but not a mobile OS,
+so `isStandaloneMobile()` stays `false` there.
 
 ## Migration
 
@@ -217,3 +241,5 @@ Most adopters differ from the framework somewhere — reconcile your case:
   shows.
 - On an installed phone PWA confirm `isStandaloneMobile()` is `true` and is
   `false` in a normal browser tab.
+- In the phone app's native shell confirm `isNativeShell()` and
+  `isStandaloneMobile()` are both `true`.

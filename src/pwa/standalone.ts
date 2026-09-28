@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useState } from "react";
 
+import { isNativeShell } from "./nativeShell.ts";
+
 // Detects the one context where hiding chrome / offering inward edge gestures
-// is safe: the app launched as an installed PWA (standalone display mode) on a
-// touch phone / tablet (Android or iOS). The replacement gesture — an inward
-// swipe from the screen edge — collides with the browser's own back-swipe in a
-// normal tab, but a standalone window has no such chrome, so the edge is free.
+// is safe: the app runs with no browser around it — launched as an installed
+// PWA (standalone display mode), or shipped inside a native shell's WebView —
+// on a touch phone / tablet (Android or iOS). The replacement gesture — an
+// inward swipe from the screen edge — collides with the browser's own
+// back-swipe in a normal tab, but a standalone window or a shell's WebView has
+// no such chrome, so the edge is free.
 // Everywhere else (desktop, a non-installed mobile tab) the app should keep its
 // visible affordance and hide the swipe-only setting. Pure platform plumbing —
 // no app-specific coupling.
@@ -32,9 +36,10 @@ function isMobileOS(): boolean {
   return /macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
 }
 
-/** True when running as an installed PWA on Android or iOS. */
+/** True when running with no browser chrome on Android or iOS: as an
+ *  installed PWA, or inside a native shell (see `isNativeShell`). */
 export function isStandaloneMobile(): boolean {
-  return isStandalone() && isMobileOS();
+  return (isStandalone() || isNativeShell()) && isMobileOS();
 }
 
 /**

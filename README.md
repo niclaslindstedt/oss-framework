@@ -278,7 +278,7 @@ Today:
 | `usePwaUpdate`           | `.` and `./pwa`          | Service-worker update lifecycle singleton: download progress + reload prompt state.                                                                                                                                    |
 | `UpdateToast`            | `.` and `./pwa`          | Presentational "a new version is ready" prompt, driven by `usePwaUpdate`.                                                                                                                                              |
 | `CheckForUpdatesItem`    | `.` and `./pwa`          | Presentational "check for updates" footer row — drives `usePwaUpdate().checkForUpdate`.                                                                                                                                |
-| `useStandaloneMobile`    | `.` and `./pwa`          | `true` inside an installed PWA on a phone — gate chrome-hiding affordances.                                                                                                                                            |
+| `useStandaloneMobile`    | `.` and `./pwa`          | `true` in an installed PWA or a native shell on a phone — gate chrome-hiding affordances.                                                                                                                              |
 | viewport report          | `.` and `./pwa`          | `readSafeAreaInsets` / `readViewportReport` / `resolveCssLength` — what the device says about the screen, so a safe-area bug report carries evidence.                                                                  |
 | `useShellScrollPin`      | `.` and `./pwa`          | Puts a one-viewport-tall shell back after iOS's software keyboard has scrolled it away and left it there.                                                                                                              |
 | `useAchievementWatcher`  | `.` and `./achievements` | Derives unlocks from state transitions + drains the manual-unlock bus.                                                                                                                                                 |
@@ -489,8 +489,11 @@ The `pwa` module is the **service-worker glue** an installable local-first app
 needs: `usePwaUpdate` is a singleton that registers the SW (via the optional
 `workbox-window` peer dep), tracks the download, and flips a "new version ready"
 flag; `UpdateToast` is the presentational prompt that renders it; and
-`useStandaloneMobile` reports whether the app is running as an installed PWA (so
-chrome-hiding / edge-swipe affordances stay safely off in a normal tab). The app
+`useStandaloneMobile` reports whether the app is running with no browser chrome
+on a phone — an installed PWA, or a native shell's WebView (`isNativeShell`) — so
+chrome-hiding / edge-swipe affordances stay safely off in a normal tab. How a
+native shell is recognized, and the message contracts it can implement, are in
+[`docs/native-shell.md`](docs/native-shell.md). The app
 owns the SW build and where the prompt mounts; the framework owns the lifecycle
 and the prompt UI. See [`src/pwa/README.md`](src/pwa/README.md) for the contract
 and a migration guide.

@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CheckForUpdatesItem,
   UpdateToast,
+  isNativeShell,
   isStandaloneMobile,
+  nativeShellDescriptor,
   useStandaloneMobile,
   usePwaUpdate,
 } from "../src/pwa/index.ts";
@@ -72,6 +74,51 @@ describe("isStandaloneMobile", () => {
     stubEnv({ standalone: true, ua: ANDROID });
     const { result } = renderHook(() => useStandaloneMobile());
     expect(result.current).toBe(true);
+  });
+});
+
+// A native shell's WebView is as chromeless as an installed window: the page
+// fills the screen and no browser back-swipe owns the edge. It is recognized by
+// what the shell itself puts on `window`, never by a user agent.
+describe("native shell", () => {
+  const bridge = { postMessage: () => {} };
+
+  it("is not a shell in a plain tab", () => {
+    stubEnv({ standalone: false, ua: ANDROID });
+    expect(isNativeShell()).toBe(false);
+  });
+
+  it("recognizes a react-native-webview host by its bridge", () => {
+    stubEnv({ standalone: false, ua: ANDROID });
+    vi.stubGlobal("ReactNativeWebView", bridge);
+    expect(isNativeShell()).toBe(true);
+    // A tab-less WebView on a phone offers what an installed PWA does.
+    expect(isStandaloneMobile()).toBe(true);
+  });
+
+  it("recognizes a shell that declares itself", () => {
+    stubEnv({ standalone: false, ua: ANDROID });
+    vi.stubGlobal("__ossShell", { version: 1, capabilities: ["save-file", 7] });
+    expect(isNativeShell()).toBe(true);
+    expect(nativeShellDescriptor()).toEqual({
+      version: 1,
+      capabilities: ["save-file"],
+    });
+    expect(isStandaloneMobile()).toBe(true);
+  });
+
+  it("ignores a descriptor that is not shaped like one", () => {
+    stubEnv({ standalone: false, ua: ANDROID });
+    vi.stubGlobal("__ossShell", true);
+    expect(nativeShellDescriptor()).toBeNull();
+    expect(isNativeShell()).toBe(false);
+  });
+
+  it("keeps a desktop shell out of the phone-only context", () => {
+    stubEnv({ standalone: false, ua: DESKTOP });
+    vi.stubGlobal("ReactNativeWebView", bridge);
+    expect(isNativeShell()).toBe(true);
+    expect(isStandaloneMobile()).toBe(false);
   });
 });
 

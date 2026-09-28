@@ -31,6 +31,12 @@ export {
 } from "./CheckForUpdatesItem.tsx";
 export { isStandaloneMobile, useStandaloneMobile } from "./standalone.ts";
 export {
+  isNativeShell,
+  nativeShellDescriptor,
+  NATIVE_SHELL_PROPERTY,
+  type NativeShellDescriptor,
+} from "./nativeShell.ts";
+export {
   readSafeAreaInsets,
   readViewportReport,
   resolveCssLength,

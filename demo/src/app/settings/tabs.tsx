@@ -558,7 +558,8 @@ export function DeveloperTab({
 }) {
   const t = useT();
   // Real install context, read from the framework's PWA detection. `true` only
-  // inside an installed PWA window on a phone/tablet — a normal tab is `false`.
+  // with no browser chrome on a phone/tablet — an installed PWA window or a
+  // native shell's WebView; a normal tab is `false`.
   const standalone = useStandaloneMobile();
   return (
     <div>
