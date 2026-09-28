@@ -33,7 +33,10 @@ export { isStandaloneMobile, useStandaloneMobile } from "./standalone.ts";
 export {
   isNativeShell,
   nativeShellDescriptor,
+  nativeShellCan,
+  postToNativeShell,
   NATIVE_SHELL_PROPERTY,
+  type NativeShellCapability,
   type NativeShellDescriptor,
 } from "./nativeShell.ts";
 export {

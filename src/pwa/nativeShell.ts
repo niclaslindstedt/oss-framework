@@ -17,10 +17,15 @@
 //   uses a capability only when the shell advertised it, so a shell that has
 //   not caught up keeps the web behavior rather than posting into the void.
 //
-// Pure platform plumbing, no React — `standalone.ts` builds on it.
+// Pure platform plumbing, no React — `standalone.ts` and the `files` module's
+// `saveFile` build on it.
 
 /** Where a shell's descriptor lives on `window`. */
 export const NATIVE_SHELL_PROPERTY = "__ossShell";
+
+/** A message contract a shell can implement. Spelled out in
+ *  docs/native-shell.md. */
+export type NativeShellCapability = "save-file";
 
 /** What a shell injects as `window.__ossShell` before the page loads. */
 export interface NativeShellDescriptor {
@@ -65,4 +70,24 @@ function reactNativeBridge(): { postMessage: (data: string) => void } | null {
  *  host, or any wrapper that injected a `window.__ossShell` descriptor. */
 export function isNativeShell(): boolean {
   return reactNativeBridge() !== null || nativeShellDescriptor() !== null;
+}
+
+/** True when the shell advertised `capability` and there is a bridge to reach
+ *  it over. */
+export function nativeShellCan(capability: NativeShellCapability): boolean {
+  if (!reactNativeBridge()) return false;
+  return nativeShellDescriptor()?.capabilities?.includes(capability) ?? false;
+}
+
+/** Post one message to the shell as a JSON string. Returns false when there is
+ *  no bridge, or it threw — the caller falls back or reports the failure. */
+export function postToNativeShell(message: object): boolean {
+  const bridge = reactNativeBridge();
+  if (!bridge) return false;
+  try {
+    bridge.postMessage(JSON.stringify(message));
+    return true;
+  } catch {
+    return false;
+  }
 }

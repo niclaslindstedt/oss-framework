@@ -7,6 +7,13 @@ export a rendered document, save or open a stored binary payload, take in a
 picked file. This module is that plumbing, in four small pieces you can adopt
 independently — zero dependencies, Web APIs only:
 
+- **`save.ts`** — `saveFile({ blob | text, filename, mimeType })`, the export
+  call to reach for first: a download in a browser or installed PWA, and the
+  iOS / Android share sheet inside a phone app's native shell that advertises
+  the `save-file` capability (a `blob:` download goes nowhere in a WebView).
+  Resolves `"downloaded"` or `"shared"`; rejects when the shell reports a
+  failure. The page ⇄ shell message contract and a reference implementation of
+  the shell's half are in [`docs/native-shell.md`](../../docs/native-shell.md).
 - **`download.ts`** — save to disk via a transient anchor: `downloadText` for
   rendered text documents, `downloadBlob` for binary, plus common `MIME_*`
   constants (`MIME_TEXT`, `MIME_CSV`, `MIME_JSON`, `MIME_VCARD`, `MIME_ICS`,
@@ -17,7 +24,8 @@ independently — zero dependencies, Web APIs only:
   conversion they share. The data URL is decoded to a real Blob first, because
   some browsers refuse to navigate to a giant `data:` URL.
 - **`codec.ts`** — the pure base64 `data:` URL ⇄ bytes seam:
-  `dataUrlToBytes` / `bytesToDataUrl` (`DataUrlBytes`). This is what a cloud
+  `dataUrlToBytes` / `bytesToDataUrl` (`DataUrlBytes`), and `bytesToBase64`
+  for plain base64. This is what a cloud
   backend uses to file inline payloads out as real binary files, and back.
 - **`intake.ts`** — read picked / dropped `File` objects to inline payloads:
   `readFileAsDataUrl` for one file, `readFilesWithLimit(files, { maxBytes })`
@@ -28,6 +36,7 @@ independently — zero dependencies, Web APIs only:
 
 ```ts
 import {
+  saveFile,
   downloadText,
   downloadBlob,
   openBlobInTab,
@@ -61,7 +70,14 @@ and stays on your side of the seam.
 ## Usage
 
 ```ts
-// Export a rendered document.
+// Export a rendered document — downloaded on the web, shared from the phone app.
+await saveFile({
+  text: renderJson(data),
+  filename: "everything.json",
+  mimeType: MIME_JSON,
+});
+
+// The web-only download, when there is no native shell to consider.
 downloadText("everything.json", renderJson(data), MIME_JSON);
 
 // Open a stored PDF payload in a new tab; fall back to a download.

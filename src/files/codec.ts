@@ -26,13 +26,18 @@ export function dataUrlToBytes(
   }
 }
 
-/** Encode bytes + MIME type into a base64 `data:` URL. Chunked so a large
- *  payload doesn't blow the argument limit of `String.fromCharCode(...spread)`. */
-export function bytesToDataUrl(mime: string, bytes: Uint8Array): string {
+/** Encode bytes as plain base64. Chunked so a large payload doesn't blow the
+ *  argument limit of `String.fromCharCode(...spread)`. */
+export function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
-  return `data:${mime};base64,${btoa(binary)}`;
+  return btoa(binary);
+}
+
+/** Encode bytes + MIME type into a base64 `data:` URL. */
+export function bytesToDataUrl(mime: string, bytes: Uint8Array): string {
+  return `data:${mime};base64,${bytesToBase64(bytes)}`;
 }
