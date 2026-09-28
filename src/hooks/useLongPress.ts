@@ -13,7 +13,9 @@ import { LONG_PRESS_MS } from "./tap.ts";
 // When the press fires it also swallows the trailing `click` the same pointer
 // sequence emits, so the element underneath (a folder's expand toggle, a list
 // row) doesn't *also* activate — the long press replaces the tap rather than
-// stacking on top of it.
+// stacking on top of it. The swallow belongs to the gesture, not to a clock:
+// it stands however long the finger stays down after the press fired, and it
+// ends with that gesture (see `swallowClickOfThisGesture`).
 
 export type LongPressHandlers = {
   onPointerDown: (e: PointerEvent) => void;
@@ -60,23 +62,6 @@ export function useLongPress(
   // Clear any pending timer if the component unmounts mid-press.
   useEffect(() => clear, [clear]);
 
-  // After the press fires, the same touch still emits a `click` on pointer-up.
-  // Catch it once in the capture phase and stop it, so the long press doesn't
-  // also trigger the element's normal tap action. Self-removes after the click
-  // (or shortly after, if the platform emits none).
-  const suppressNextClick = useCallback(() => {
-    const swallow = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      window.removeEventListener("click", swallow, true);
-    };
-    window.addEventListener("click", swallow, true);
-    window.setTimeout(
-      () => window.removeEventListener("click", swallow, true),
-      400,
-    );
-  }, []);
-
   const onPointerDown = useCallback(
     (e: PointerEvent) => {
       // Only a primary press arms the hold; a secondary (right) click takes
@@ -87,11 +72,11 @@ export function useLongPress(
       timer.current = window.setTimeout(() => {
         timer.current = null;
         origin.current = null;
-        suppressNextClick();
+        swallowClickOfThisGesture(e.pointerId);
         cbRef.current();
       }, delayMs);
     },
-    [enabled, delayMs, suppressNextClick],
+    [enabled, delayMs],
   );
 
   const onPointerMove = useCallback(
@@ -112,4 +97,56 @@ export function useLongPress(
     onPointerLeave: clear,
     onPointerCancel: clear,
   };
+}
+
+/** How long after the finger lifts a click that never came is still waited
+ *  for. Measured from the release, not from the press: the platform emits the
+ *  click in the same turn as `pointerup` (WebKit a frame or two later), so this
+ *  only bounds how long a gesture that emitted no click at all — a
+ *  `pointercancel`, a long press the OS turned into its own callout — leaves
+ *  the listener behind. */
+const RELEASE_GRACE_MS = 400;
+
+/**
+ * Swallow the click that ends the gesture whose long press just fired, and
+ * nothing after it.
+ *
+ * The click that trails a press arrives on pointer-up, which is as late as the
+ * finger decides — a hold of five seconds emits it five seconds on. So the
+ * window is not a fixed time from the press but the rest of the gesture: the
+ * capture-phase listener stands until it has stopped one click, and otherwise
+ * goes when the gesture is plainly over — the next `pointerdown` (a new
+ * gesture, whose own click must get through), or a short grace after this
+ * pointer lifts without a click following. Window-level listeners rather than
+ * the element's own, because the press often unmounts the element it fired on
+ * (a menu opens over it) and the click still lands on whatever is underneath.
+ */
+function swallowClickOfThisGesture(pointerId: number | undefined): void {
+  let grace: number | null = null;
+  const done = () => {
+    window.removeEventListener("click", swallow, true);
+    window.removeEventListener("pointerdown", done, true);
+    window.removeEventListener("pointerup", released, true);
+    window.removeEventListener("pointercancel", released, true);
+    if (grace !== null) window.clearTimeout(grace);
+    grace = null;
+  };
+  const swallow = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    done();
+  };
+  const released = (e: Event) => {
+    const id = (e as { pointerId?: number }).pointerId;
+    // Another finger lifting is not this gesture ending.
+    if (pointerId !== undefined && id !== undefined && id !== pointerId) {
+      return;
+    }
+    if (grace !== null) window.clearTimeout(grace);
+    grace = window.setTimeout(done, RELEASE_GRACE_MS);
+  };
+  window.addEventListener("click", swallow, true);
+  window.addEventListener("pointerdown", done, true);
+  window.addEventListener("pointerup", released, true);
+  window.addEventListener("pointercancel", released, true);
 }
