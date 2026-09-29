@@ -356,6 +356,12 @@ concurrent delete unless `deleteWins`. Pass `merge` for your own rule.
 
 ### Devices, recovery and sharing
 
+- **Scan a code** instead of pasting it, in a phone app's native shell:
+  show a Scan button where `canScanQrCode()` (`/qr`) is true, and
+  `scanStorageCode()` returns the scanned text — checked to be a pairing code
+  (or, with `{ kind: "invite" }`, an invite) — for the same path a paste
+  takes; `null` when cancelled. Keep the paste field. See
+  [`docs/native-shell.md`](../../docs/native-shell.md).
 - **Add a device**: `client.addDevicePayload()` → show it with `<QrCode>`
   (`@niclaslindstedt/oss-framework/qr`); the new device's `pair(payload)` is
   ready at once — the account key travels sealed under a secret only the QR
@@ -597,7 +603,7 @@ or none), and `indexes` (`name → keyPath` into an object record) lets
   `createIdbRecordCache`, `threeWayMerge`, `newerByField`, the key vaults
   (`defaultKeyVault`, `createIndexedDbKeyVault`, `createMemoryKeyVault`,
   `createHostKeyVault`, `getKeyVaultHost`), payloads
-  (`parseStoragePayload`, `formatStoragePayload`), `formatRecoveryKey`,
+  (`parseStoragePayload`, `formatStoragePayload`, `scanStorageCode`), `formatRecoveryKey`,
   `parseRecoveryKey`, `safetyCode`, and the typed errors
   (`FileConflictError`, `RowConflictError`, `DecryptError`, `RollbackError`,
   `QuotaExceededError`, `KeysMissingError`, …).

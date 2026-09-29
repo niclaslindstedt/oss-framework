@@ -17,15 +17,15 @@
 //   uses a capability only when the shell advertised it, so a shell that has
 //   not caught up keeps the web behavior rather than posting into the void.
 //
-// Pure platform plumbing, no React — `standalone.ts` and the `files` module's
-// `saveFile` build on it.
+// Pure platform plumbing, no React — `standalone.ts`, the `files` module's
+// `saveFile` and the `qr` module's `scanQrCode` build on it.
 
 /** Where a shell's descriptor lives on `window`. */
 export const NATIVE_SHELL_PROPERTY = "__ossShell";
 
 /** A message contract a shell can implement. Spelled out in
  *  docs/native-shell.md. */
-export type NativeShellCapability = "save-file";
+export type NativeShellCapability = "save-file" | "scan-qr";
 
 /** What a shell injects as `window.__ossShell` before the page loads. */
 export interface NativeShellDescriptor {

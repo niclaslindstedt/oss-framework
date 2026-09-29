@@ -80,6 +80,7 @@ export {
   type PairingPayload as StoragePairingPayload,
   type Payload as StoragePayload,
 } from "./payload.ts";
+export { scanStorageCode } from "./scan.ts";
 export { formatRecoveryKey, parseRecoveryKey, safetyCode } from "./crypto.ts";
 export {
   ApiRequestError as StorageApiError,

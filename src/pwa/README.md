@@ -171,7 +171,7 @@ user agent:
 - **Any other wrapper declares itself** by injecting a descriptor before the
   page loads: `window.__ossShell = { version: 1, capabilities: [] }`. The
   descriptor is also where a shell advertises the message contracts it
-  implements; see [`docs/native-shell.md`](../../docs/native-shell.md).
+  implements (`save-file`, `scan-qr`); see [`docs/native-shell.md`](../../docs/native-shell.md).
 
 A desktop shell (Tauri, Electron) is a native shell too, but not a mobile OS,
 so `isStandaloneMobile()` stays `false` there.

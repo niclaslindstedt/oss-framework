@@ -174,4 +174,17 @@ export const CASES = [
     code: `import { encodeQr } from "@niclaslindstedt/oss-framework/qr";\nconsole.log(encodeQr("x"));`,
     budget: 7600,
   },
+  // Scanning is the native-shell bridge and nothing of the encoder: an app's
+  // Scan button must not pay for drawing codes, and checking a scanned
+  // pairing code costs the payload parser, not the client.
+  {
+    name: "qr/scanQrCode",
+    code: `import { scanQrCode } from "@niclaslindstedt/oss-framework/qr";\nconsole.log(scanQrCode());`,
+    budget: 2200,
+  },
+  {
+    name: "storage/scanStorageCode",
+    code: `import { scanStorageCode } from "@niclaslindstedt/oss-framework/storage";\nconsole.log(scanStorageCode());`,
+    budget: 4800,
+  },
 ];

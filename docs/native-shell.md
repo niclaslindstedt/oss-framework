@@ -54,7 +54,7 @@ window.__ossShell = window.__ossShell || { version: 1, capabilities: [] };
 ```
 
 `version` is the descriptor's version (`1`). `capabilities` is a list of
-contract names — today `save-file`, below. `nativeShellCan("save-file")` reads
+contract names — today `save-file` and `scan-qr`, below. `nativeShellCan("save-file")` reads
 it. The page uses a contract only when its name is listed **and**
 the `ReactNativeWebView` bridge is present, so a shell that has not implemented
 one keeps the web behavior rather than posting into the void.
@@ -291,3 +291,414 @@ Wiring it into the `<WebView>`:
 The payload is the user's document: don't log `base64`, keep no more than the
 latest export (in the cache directory, which the next export clears and the OS
 may purge), and hand it to nothing but the share sheet.
+
+## Contract `scan-qr`: a QR code read with the phone's camera
+
+A browser tab has no scanner the page can count on, so pairing a device with a
+self-hosted storage server there means pasting its code. Inside a phone app's
+shell the page can ask the shell to scan instead. `scanQrCode` (from
+`@niclaslindstedt/oss-framework/qr`) is the call, and `canScanQrCode()` says
+whether it works here — a shell that advertises `scan-qr` — so the app shows a
+**Scan** button only where it does. The paste field stays in every build.
+
+```ts
+import { canScanQrCode, ScanQrError } from "@niclaslindstedt/oss-framework/qr";
+import {
+  scanStorageCode,
+  StoragePayloadError,
+} from "@niclaslindstedt/oss-framework/storage";
+
+if (canScanQrCode()) {
+  try {
+    // "pair" by default; an invite screen passes { kind: "invite" }.
+    const code = await scanStorageCode({
+      labels: { hint: t("scanHint"), cancel: t("cancel") },
+    });
+    if (code !== null) acceptCode(code); // the same path as a paste
+  } catch (error) {
+    if (error instanceof ScanQrError && error.reason === "denied") {
+      // "Camera access is off for this app. Allow it in Settings, or paste
+      // the code."
+    } else if (error instanceof StoragePayloadError) {
+      // "That is not a pairing code." (error.message says which way)
+    }
+  }
+}
+```
+
+`scanQrCode()` resolves with the text exactly as read, or `null` when the user
+closed the scanner. It rejects with a `ScanQrError` whose `reason` is `denied`
+(the camera is not allowed — the page, not the shell, tells the user what to
+do, in its own language) or `unavailable` (no scanner here, no camera, or the
+shell failed to open it). A second call while the scanner is open returns the
+same promise, so a double tap opens one scanner. There is no timeout.
+
+**Validation belongs to the page, not the shell.** The shell reads any QR code
+and answers with its text; `scanQrCode` returns it untouched.
+`scanStorageCode` (from `/storage`) is the pairing step: it trims the text,
+parses it as a storage code — a bare `oss-storage://pair?…` URI, or an app link
+carrying one after `#oss=` — and rejects with a `StoragePayloadError` when it
+is not one, or not of the kind asked for (`pair` by default). What it returns is
+the string a paste gives, so the app hands it to the same code path, and
+`client.pair(code, device)` parses it once more on the way in. The code is a
+one-time secret: show it nowhere, log it nowhere, keep it nowhere.
+
+### Page → shell
+
+One JSON string through `window.ReactNativeWebView.postMessage`:
+
+```json
+{
+  "type": "oss-framework/scan-qr",
+  "version": 1,
+  "id": "sqm1k2x3-1",
+  "labels": {
+    "hint": "Point the camera at the pairing code",
+    "cancel": "Cancel"
+  }
+}
+```
+
+| Field     | Meaning                                                                                                                                                                             |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`    | Always `"oss-framework/scan-qr"`. Anything else is not this contract.                                                                                                               |
+| `version` | `1`. A shell answers a version it does not know with `ok: false, reason: "unavailable"`.                                                                                            |
+| `id`      | Opaque, at most 64 characters. Echo it back unchanged; the page settles the matching call by it.                                                                                    |
+| `labels`  | Optional. `hint` (the line over the camera) and `cancel` (the button that closes it), already in the page's language. Either may be missing; the shell falls back to its own words. |
+
+### Shell → page
+
+Exactly one answer per request, delivered by injecting a script:
+
+```js
+window.dispatchEvent(
+  new CustomEvent("oss-framework/scan-qr-result", {
+    detail: { id: "sqm1k2x3-1", ok: true, text: "oss-storage://pair?v=1&…" },
+  }),
+);
+```
+
+| `detail`                                          | When                                                                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ id, ok: true, text: "…" }`                     | A QR code was read: its text, exactly as decoded.                                                                                     |
+| `{ id, ok: true, text: null }`                    | The user closed the scanner (Cancel, Android's back button, the sheet dismissed).                                                     |
+| `{ id, ok: false, reason: "denied" }`             | The user declined the camera now, or earlier and the system will not ask again. The shell shows nothing more; the page explains.      |
+| `{ id, ok: false, reason: "unavailable", error }` | No camera, the camera failed to start, a scan was already open, or an unknown `version`. `error` is for a log line, not for the user. |
+
+### What the shell must do
+
+1. **Advertise it** in `injectedJavaScriptBeforeContentLoaded`, and only once
+   the rest of this list is in place (merge into an existing descriptor):
+   `window.__ossShell = { version: 1, capabilities: ["scan-qr"] }`.
+2. **Route the message** in `onMessage`: parse, and hand anything with
+   `type === "oss-framework/scan-qr"` to the scanner — only from the page's own
+   origin (`event.nativeEvent.url`), so nothing else loaded in the WebView can
+   open the camera.
+3. **Open the camera only on request.** Nothing camera-related is mounted or
+   asked for at launch: the permission prompt appears the first time the user
+   taps Scan, and a refusal is answered as `denied`, not retried.
+4. **Scan one code.** QR only (`barcodeTypes: ["qr"]`); the first code read
+   closes the scanner. Guard the handler — the camera reports the same code
+   many times a second.
+5. **Keep no frame.** Take no picture, record nothing, write nothing to disk;
+   only the decoded text leaves the scanner. Unmount the camera before
+   answering.
+6. **Close and answer the page** — exactly once, whichever way it ends.
+7. **Never log the text.** A pairing code is a one-time secret; it goes into
+   the answer script and nowhere else.
+
+### Reference: the native half (`expo-camera`)
+
+Storage Remote's approach, shaped as the fleet's other bridges are, against
+the Expo SDK 57 packages (`npx expo install expo-camera`, `~57.0.5`;
+`react-native-safe-area-context` is already in every shell). Two files, split as
+the other bridges are: the strings and narrowing, which import nothing from
+Expo so a root test can pin them against the framework's `SCAN_QR_MESSAGE` and
+`SCAN_QR_RESULT_EVENT`; and the camera.
+
+```ts
+// native/src/scanQrBridge.ts — strings and narrowing only; imports nothing
+// from Expo, so a root test can pin it against the framework.
+export const SCAN_QR_TYPE = "oss-framework/scan-qr";
+const RESULT_EVENT = "oss-framework/scan-qr-result";
+
+/** Injected before the page loads (beside any other provider scripts). */
+export const SCAN_QR_DESCRIPTOR = `(function () {
+  var shell = window.__ossShell || { version: 1, capabilities: [] };
+  if (shell.capabilities.indexOf("scan-qr") < 0) shell.capabilities.push("scan-qr");
+  window.__ossShell = shell;
+})(); true;`;
+
+export type ScanQrLabels = { hint?: string; cancel?: string };
+
+export type ScanQrRequest = {
+  type: string;
+  version: number;
+  id: string;
+  labels?: ScanQrLabels;
+};
+
+export type ScanQrAnswer =
+  | { ok: true; text: string | null }
+  | { ok: false; reason: "denied" | "unavailable"; error?: string };
+
+export function isScanQrRequest(value: unknown): value is ScanQrRequest {
+  const m = value as Partial<ScanQrRequest> | null;
+  return (
+    typeof m === "object" &&
+    m !== null &&
+    m.type === SCAN_QR_TYPE &&
+    typeof m.version === "number" &&
+    typeof m.id === "string" &&
+    m.id.length > 0 &&
+    m.id.length <= 64
+  );
+}
+
+/** A label the page sent, or the shell's own. */
+export function scanLabel(
+  request: ScanQrRequest,
+  key: keyof ScanQrLabels,
+  fallback: string,
+): string {
+  const value = request.labels?.[key];
+  return typeof value === "string" && value.trim() !== ""
+    ? value.slice(0, 200)
+    : fallback;
+}
+
+/** The script that settles the page's promise. The text is a one-time secret:
+ *  it goes into this script and nowhere else — never a log. */
+export function scanQrResultScript(id: string, answer: ScanQrAnswer): string {
+  const detail = JSON.stringify({ id, ...answer })
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029")
+    .replace(/<\/(script)/gi, "<\\/$1");
+  return `window.dispatchEvent(new CustomEvent(${JSON.stringify(
+    RESULT_EVENT,
+  )}, { detail: ${detail} })); true;`;
+}
+```
+
+```tsx
+// native/src/QrScanner.tsx — the camera, mounted only while the page waits
+// on a scan. It asks for the camera then (never at launch), reads the first QR
+// code it sees, and closes. No picture is taken and no frame is kept: the
+// preview goes to the screen and only the decoded text goes back.
+import { useEffect, useRef, useState } from "react";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import {
+  scanLabel,
+  type ScanQrAnswer,
+  type ScanQrRequest,
+} from "./scanQrBridge";
+
+export function QrScanner({
+  request,
+  onAnswer,
+}: {
+  request: ScanQrRequest;
+  onAnswer: (answer: ScanQrAnswer) => void;
+}) {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [done, setDone] = useState(false);
+  const answered = useRef(false);
+  const asked = useRef(false);
+
+  const finish = (answer: ScanQrAnswer) => {
+    if (answered.current) return;
+    answered.current = true;
+    setDone(true); // unmounts the camera before the page hears back
+    onAnswer(answer);
+  };
+
+  // Ask once, now that the user asked to scan. A refusal closes the scanner
+  // and the page says what to do (Settings, or paste) in its own language.
+  useEffect(() => {
+    if (!permission || permission.granted || asked.current) return;
+    asked.current = true;
+    if (!permission.canAskAgain) {
+      finish({ ok: false, reason: "denied" });
+      return;
+    }
+    requestPermission().then(
+      (response) => {
+        if (!response.granted) finish({ ok: false, reason: "denied" });
+      },
+      () => finish({ ok: false, reason: "unavailable" }),
+    );
+  });
+
+  return (
+    <Modal
+      visible
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={() => finish({ ok: true, text: null })}
+    >
+      <View style={styles.fill}>
+        {permission?.granted && !done ? (
+          <CameraView
+            style={styles.fill}
+            facing="back"
+            animateShutter={false}
+            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            onBarcodeScanned={({ data }) => finish({ ok: true, text: data })}
+            onMountError={({ message }) =>
+              finish({ ok: false, reason: "unavailable", error: message })
+            }
+          />
+        ) : null}
+        <SafeAreaView edges={["bottom"]} style={styles.bar}>
+          <Text style={styles.hint}>
+            {scanLabel(request, "hint", "Point the camera at the code")}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => finish({ ok: true, text: null })}
+            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+          >
+            <Text style={styles.buttonLabel}>
+              {scanLabel(request, "cancel", "Cancel")}
+            </Text>
+          </Pressable>
+        </SafeAreaView>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1, backgroundColor: "#000" },
+  bar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    paddingVertical: 16,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  hint: { color: "#fff", fontSize: 15, marginBottom: 12, textAlign: "center" },
+  button: {
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  pressed: { opacity: 0.8 },
+  buttonLabel: { color: "#141a26", fontSize: 16, fontWeight: "600" },
+});
+```
+
+Wiring it into the app (`origin` is the loopback origin the shell serves the
+page from):
+
+```tsx
+export default function App() {
+  const webView = useRef<WebView>(null);
+  const [scan, setScan] = useState<ScanQrRequest | null>(null);
+  const answerScan = useCallback((id: string, answer: ScanQrAnswer) => {
+    webView.current?.injectJavaScript(scanQrResultScript(id, answer));
+  }, []);
+
+  const onMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      // Only the bundled page may open the camera.
+      if (!event.nativeEvent.url.startsWith(origin)) return;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(event.nativeEvent.data);
+      } catch {
+        return;
+      }
+      if (isScanQrRequest(parsed)) {
+        if (parsed.version !== 1) {
+          answerScan(parsed.id, {
+            ok: false,
+            reason: "unavailable",
+            error: "Unsupported version.",
+          });
+        } else if (scan) {
+          answerScan(parsed.id, {
+            ok: false,
+            reason: "unavailable",
+            error: "A scan is already open.",
+          });
+        } else {
+          setScan(parsed);
+        }
+        return;
+      }
+      // … the shell's other messages
+    },
+    [answerScan, scan],
+  );
+
+  return (
+    <>
+      <WebView
+        ref={webView}
+        source={{ uri: origin }}
+        injectedJavaScriptBeforeContentLoaded={`${OTHER_SCRIPTS}\n${SCAN_QR_DESCRIPTOR}`}
+        onMessage={onMessage}
+      />
+      {scan ? (
+        <QrScanner
+          request={scan}
+          onAnswer={(answer) => {
+            setScan(null);
+            answerScan(scan.id, answer);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+```
+
+### The permission, in `app.config.js`
+
+The camera needs an iOS usage string, and the Android permission; it needs no
+microphone, and expo-camera's plugin adds one on both platforms unless told not
+to. The string is what the system prompt shows the moment the user taps Scan,
+and App Review reads it against what the app does. It says the camera is used
+**only** to scan the pairing code:
+
+```js
+plugins: [
+  [
+    "expo-camera",
+    {
+      cameraPermission:
+        "The camera is used only to scan the pairing code that connects this app to your storage server. No picture is kept.",
+      microphonePermission: false, // no NSMicrophoneUsageDescription
+      recordAudioAndroid: false, // no RECORD_AUDIO
+    },
+  ],
+],
+android: {
+  // The camera (the pairing QR code) and nothing else. Play's data-safety
+  // form is answered against this list.
+  permissions: ["android.permission.CAMERA"],
+  blockedPermissions: ["android.permission.RECORD_AUDIO"],
+},
+```
+
+- **Keep the sentence's meaning** in every app: the camera, only, the pairing
+  code, no picture kept. Name no product, server brand or repository in it. An
+  app that also scans an invite to a shared space says so ("…to scan a pairing
+  code or an invite…") and nothing broader.
+- **Translate it** into every language the app ships, through Expo's
+  `locales` (`locales: { sv: "./locales/sv.json" }`, each file
+  `{ "ios": { "NSCameraUsageDescription": "…" } }` — e.g. Swedish: "Kameran
+  används bara för att skanna parkopplingskoden som ansluter appen till din
+  lagringsserver. Ingen bild sparas."). Without it the prompt is English on
+  every phone.
+- Android shows no usage string; its system dialog names the camera, and the
+  page explains why before the user taps Scan.
+- The permission belongs in the build that ships the scanner and not before:
+  advertise `scan-qr` and add the permission in the same release.
