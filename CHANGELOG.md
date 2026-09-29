@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-09-29
+
+### Added
+
+- **Audio** — A new `audio` module: level-meter and spectrum arithmetic, PCM tools, dependency-free WAV and FLAC encoders (MP3 through the optional `audio/mp3` entry), a microphone capture with `useRecorder` over it, `usePlayer`, and the `LevelMeter`, `SpectrumBars` and `Waveform` components; plus the mic and transport icons.
+- **Files beside a document** — `ByteFileStore` names a store that carries binary files; the Dropbox store now implements it (`readBytes` / `writeBytes`), `scopedByteStore` confines one to a folder, `memoryByteStore` stands in for tests, and `planReconcile` / `reconcileFiles` keep the files a document names in step between two stores.
+- **Sealing bytes** — `sealBytes` / `openBytes` seal a file under a passphrase the way `encryptText` seals a document, and `useEncryption` binds them to the held passphrase as `encryption.sealBytes` / `encryption.openBytes`, so an app can encrypt the files beside its document without holding the passphrase itself.
+
 ## [3.13.0] - 2026-09-29
 
 ### Added
