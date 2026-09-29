@@ -697,3 +697,78 @@ export function FileIcon({ className }: IconProps) {
     </Glyph>
   );
 }
+
+// --- Sound (24×24 grid) ------------------------------------------------------
+//
+// The glyphs a recorder or a player is drawn with: a microphone, the four
+// transport controls, a skip either way, and a waveform for "audio" itself.
+
+export function MicIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" />
+    </Glyph>
+  );
+}
+
+export function PlayIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className} filled>
+      <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+    </Glyph>
+  );
+}
+
+export function PauseIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className} filled>
+      <rect x="5" y="4" width="5" height="16" rx="1" />
+      <rect x="14" y="4" width="5" height="16" rx="1" />
+    </Glyph>
+  );
+}
+
+export function StopIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className} filled>
+      <rect x="5" y="5" width="14" height="14" rx="2" />
+    </Glyph>
+  );
+}
+
+export function RecordIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className} filled>
+      <circle cx="12" cy="12" r="8" />
+    </Glyph>
+  );
+}
+
+export function SkipBackIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 12a8 8 0 1 0 2.5-5.8" />
+      <path d="M4 4v5h5" />
+      <path d="M10.5 15V9.5l-1.5.8M14 15.2c1.3 0 2-1.1 2-2.85s-.7-2.85-2-2.85-2 1.1-2 2.85.7 2.85 2 2.85Z" />
+    </Glyph>
+  );
+}
+
+export function SkipForwardIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M20 12a8 8 0 1 1-2.5-5.8" />
+      <path d="M20 4v5h-5" />
+      <path d="M10.5 15V9.5l-1.5.8M14 15.2c1.3 0 2-1.1 2-2.85s-.7-2.85-2-2.85-2 1.1-2 2.85.7 2.85 2 2.85Z" />
+    </Glyph>
+  );
+}
+
+export function WaveformIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M3 12h2M7 8v8M11 4v16M15 7v10M19 10v4M21 12h0" />
+    </Glyph>
+  );
+}

@@ -53,6 +53,7 @@ import { type Logger, noopLogger } from "../storage/logger.ts";
 import { decryptEnvelope, encryptText, isEncryptedEnvelope } from "./crypto.ts";
 import { withEncryption } from "./encrypting.ts";
 import { EncryptionLockedError, WrongPasswordError } from "./errors.ts";
+import { forgetSealKeys, openBytes, sealBytes } from "./bytes.ts";
 
 /** The shortest passphrase `enable` and `changePassphrase` accept. */
 export const PASSPHRASE_MIN_LENGTH = 8;
@@ -153,6 +154,15 @@ export type Encryption = {
   forget: () => void;
   /** Look at the backend again after `unreachable`. */
   recheck: () => void;
+  /**
+   * Seal and open the files that go beside the document, under the held
+   * passphrase (`sealBytes` / `openBytes`). Reject with an
+   * {@link EncryptionLockedError} while no passphrase is held; while
+   * encryption is off they pass the bytes through, so a sweep can call them
+   * either way.
+   */
+  sealBytes: (bytes: Uint8Array) => Promise<Uint8Array>;
+  openBytes: (bytes: Uint8Array) => Promise<Uint8Array>;
 };
 
 /** What a backend holds, as far as the question to ask is concerned. */
@@ -460,12 +470,14 @@ export function useEncryption(options: UseEncryptionOptions): Encryption {
 
   const lock = useCallback(() => {
     log.info("lock: passphrase dropped");
+    forgetSealKeys();
     setQuestion("checking");
     persistPass(null);
   }, [log, persistPass]);
 
   const forget = useCallback(() => {
     log.info("forget: passphrase and mode dropped from this device");
+    forgetSealKeys();
     setQuestion("checking");
     setFromRemote(false);
     persistPass(null);
@@ -473,6 +485,26 @@ export function useEncryption(options: UseEncryptionOptions): Encryption {
   }, [log, persistPass, persistMode]);
 
   const recheck = useCallback(() => setCheckEpoch((n) => n + 1), []);
+
+  const seal = useCallback(
+    async (bytes: Uint8Array) => {
+      if (!encrypted) return bytes;
+      const current = passRef.current;
+      if (!current) throw new EncryptionLockedError();
+      return sealBytes(bytes, current);
+    },
+    [encrypted],
+  );
+
+  const open = useCallback(
+    async (bytes: Uint8Array) => {
+      if (!encrypted) return bytes;
+      const current = passRef.current;
+      if (!current) throw new EncryptionLockedError();
+      return openBytes(bytes, current);
+    },
+    [encrypted],
+  );
 
   const state: EncryptionState =
     !inner || !encrypted ? "off" : ready ? "ready" : question;
@@ -495,5 +527,7 @@ export function useEncryption(options: UseEncryptionOptions): Encryption {
     lock,
     forget,
     recheck,
+    sealBytes: seal,
+    openBytes: open,
   };
 }

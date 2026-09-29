@@ -34,30 +34,31 @@ belong to the framework at all:
 
 ## Status
 
-| #   | Module / item              | Subpath              | Size | Priority     | Status                                                                                                                        |
-| --- | -------------------------- | -------------------- | ---- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Charts                     | `charts`             | L    | High         | **Landed** (this roadmap's first tranche)                                                                                     |
-| 2   | Toast stack                | `components`         | S    | High         | **Landed** (contacts consolidation)                                                                                           |
-| 3   | Tabs primitive             | `components`         | S    | High         | Pending                                                                                                                       |
-| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | **Landed** (URL/digit/byte helpers, then the full `Intl` wrapper set)                                                         |
-| 5   | Calendar                   | `calendar`           | M/L  | High         | **Landed** (recurring-date math + `.ics`, then the grid core + `MonthGrid`/`DatePicker`)                                      |
-| 6   | Media viewer               | `viewer`             | M    | Med-high     | **Landed** (contacts consolidation: `Lightbox`, `ImageCropper`, `usePanZoom`, transform core; `ZoomPane` can still grow here) |
-| 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                       |
-| 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                       |
-| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | **Landed** (calc consolidation: evaluator, segment reading, chain folding, paste, `ExpressionText`/`RevealText`)              |
-| 10  | App shell                  | `components`/`hooks` | M    | High         | **Landed** (meds/cycle consolidation: `BottomNav` + `stepDirection`, `useSwipeNav`, `MonthCalendar`, `useDayPress`)           |
-| 11  | Local-first document       | `document`           | L    | High         | Pending (meds/cycle consolidation — the largest remaining duplication)                                                        |
-| 12  | Probability + statistics   | `stats`              | M    | Medium       | Pending (cycle consolidation)                                                                                                 |
-| 13  | Fitted text                | `fit`                | S/M  | High         | **Landed** (calendar consolidation: pre-layout size band + the measured shrink/clip pass)                                     |
-| 14  | Pager                      | `components`         | M    | High         | **Landed** (calendar consolidation: `SwipeDeck`)                                                                              |
-| 15  | Colour mixing              | `color`              | S/M  | Medium       | **Landed** (paint consolidation: hex ⇄ HSV + `ColorMixer`)                                                                    |
-| 16  | Undo timeline              | `history`            | S    | High         | **Landed** (paint consolidation: pure stacks + `useHistory`)                                                                  |
-| 17  | Stored arrangements        | `order`              | S    | Medium       | **Landed** (paint consolidation)                                                                                              |
-| 18  | Scientific references      | `references`         | S    | High         | **Landed** (baby consolidation: §24 registry, audit, loader, `ReferenceCard`)                                                 |
-| —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                       |
-| —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                      |
-| —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                  |
-| —   | Recurrence rules (RRULE)   | —                    | —    | —            | Deferred                                                                                                                      |
+| #   | Module / item              | Subpath              | Size | Priority     | Status                                                                                                                                              |
+| --- | -------------------------- | -------------------- | ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Charts                     | `charts`             | L    | High         | **Landed** (this roadmap's first tranche)                                                                                                           |
+| 2   | Toast stack                | `components`         | S    | High         | **Landed** (contacts consolidation)                                                                                                                 |
+| 3   | Tabs primitive             | `components`         | S    | High         | Pending                                                                                                                                             |
+| 4   | `format` — `Intl` wrappers | `format`             | S    | High (infra) | **Landed** (URL/digit/byte helpers, then the full `Intl` wrapper set)                                                                               |
+| 5   | Calendar                   | `calendar`           | M/L  | High         | **Landed** (recurring-date math + `.ics`, then the grid core + `MonthGrid`/`DatePicker`)                                                            |
+| 6   | Media viewer               | `viewer`             | M    | Med-high     | **Landed** (contacts consolidation: `Lightbox`, `ImageCropper`, `usePanZoom`, transform core; `ZoomPane` can still grow here)                       |
+| 7   | Drawing                    | `draw`               | M/L  | Medium       | Pending                                                                                                                                             |
+| 8   | Virtualized list           | `hooks`              | M    | Medium       | Pending                                                                                                                                             |
+| 9   | Expression evaluator       | `expression`         | S/M  | Medium       | **Landed** (calc consolidation: evaluator, segment reading, chain folding, paste, `ExpressionText`/`RevealText`)                                    |
+| 10  | App shell                  | `components`/`hooks` | M    | High         | **Landed** (meds/cycle consolidation: `BottomNav` + `stepDirection`, `useSwipeNav`, `MonthCalendar`, `useDayPress`)                                 |
+| 11  | Local-first document       | `document`           | L    | High         | Pending (meds/cycle consolidation — the largest remaining duplication)                                                                              |
+| 12  | Probability + statistics   | `stats`              | M    | Medium       | Pending (cycle consolidation)                                                                                                                       |
+| 13  | Fitted text                | `fit`                | S/M  | High         | **Landed** (calendar consolidation: pre-layout size band + the measured shrink/clip pass)                                                           |
+| 14  | Pager                      | `components`         | M    | High         | **Landed** (calendar consolidation: `SwipeDeck`)                                                                                                    |
+| 15  | Colour mixing              | `color`              | S/M  | Medium       | **Landed** (paint consolidation: hex ⇄ HSV + `ColorMixer`)                                                                                          |
+| 16  | Undo timeline              | `history`            | S    | High         | **Landed** (paint consolidation: pure stacks + `useHistory`)                                                                                        |
+| 17  | Stored arrangements        | `order`              | S    | Medium       | **Landed** (paint consolidation)                                                                                                                    |
+| 18  | Scientific references      | `references`         | S    | High         | **Landed** (baby consolidation: §24 registry, audit, loader, `ReferenceCard`)                                                                       |
+| 19  | Audio                      | `audio`              | M    | High         | **Landed** (recorder consolidation: meter + spectrum arithmetic, WAV/FLAC/MP3 encoders, `Capture`/`useRecorder`, `usePlayer`, the three components) |
+| —   | Pointer tracking util      | internal             | S    | With #6      | Pending                                                                                                                                             |
+| —   | Drag-and-drop unification  | via refactor roadmap | M    | Low-med      | Deferred                                                                                                                                            |
+| —   | Form validation layer      | —                    | —    | —            | **Rejected**                                                                                                                                        |
+| —   | Recurrence rules (RRULE)   | —                    | —    | —            | Deferred                                                                                                                                            |
 
 ## Suggested phasing
 
@@ -414,6 +415,35 @@ vocabulary: baby's are trackers, a medication app's might be substances. The
 page around the cards — headings, grouping, the §24.5 disclaimer — stays in
 the app, because it is the app's layout and its words. The audit takes file
 text rather than reading a directory so the module stays browser-safe.
+
+## 19. Audio — `audio` (landed)
+
+The mechanics behind a recorder app, none of which know what is being
+recorded. Landed with the recorder app's consolidation, as one PR.
+
+**Pure core.** `levels.ts` (a frame → RMS / peak in dBFS, a clip as a run of
+full-scale samples; the meter's ballistics — instant rise, a slope down, a
+held peak, a latched lamp — as `stepMeter(prev, frame, dt)`), `spectrum.ts`
+(an analyser's bins folded into log-axis bars, eased between frames),
+`pcm.ts` (mono fold, linear resampling with a low-pass on the way down,
+quantising, peaks, a running thumbnail that halves rather than grows),
+`wav.ts`, `flac.ts` (fixed predictors, Rice residuals, the two CRCs; the
+tests decode it back with a decoder of their own), `mp3.ts` over the optional
+peer `@breezystack/lamejs` behind its own entry (`audio/mp3`, the
+`theme/fontsource` arrangement — the one deviation from zero runtime
+dependencies, and only for a format nobody writes by hand).
+
+**Seam.** `Capture` opens the device and hands frames to subscribers once
+per animation frame; the components draw from that subscription rather than
+from props, so a meter moves sixty times a second without a render.
+`useRecorder` and `usePlayer` are the React state over them. What a recording
+is called, where it is filed and which formats an export offers stay in the
+app.
+
+**Decisions of record.** No LPC in the FLAC encoder (a few percent for the
+larger half of the file). The clip rule is three consecutive samples at
+−0.13 dBFS, latched for a second and a half. The spectrum reads
+−90…−20 dB, the meter −60…0, the zones at −18 / −6 / −3.
 
 ## Rejected / deferred
 

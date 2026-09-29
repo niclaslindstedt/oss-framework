@@ -38,6 +38,10 @@
 //   revisions/  — the edit history of a record (snapshots: record, look up, merge)
 //   references/ — the §24 sources registry (rank, cite, audit the tags, list)
 //   qr/         — dependency-free QR encoder, SVG renderer and <QrCode>
+//   audio/      — level meter and spectrum arithmetic, PCM tools, WAV and
+//                 FLAC encoders, a microphone capture with a recorder hook,
+//                 a player hook, and the meter / spectrum / waveform
+//                 components (MP3 is its own opt-in entry, audio/mp3)
 
 export * from "./hooks/index.ts";
 export * from "./theme/index.ts";
@@ -70,3 +74,4 @@ export * from "./history/index.ts";
 export * from "./revisions/index.ts";
 export * from "./references/index.ts";
 export * from "./qr/index.ts";
+export * from "./audio/index.ts";
