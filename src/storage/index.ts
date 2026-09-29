@@ -26,7 +26,23 @@ export {
 } from "./adapter.ts";
 
 // The file-backend seam and the generic single-file binding.
-export { type FileEntry, type FileStore } from "./file-store.ts";
+export {
+  memoryByteStore,
+  scopedByteStore,
+  type ByteFileStore,
+  type FileEntry,
+  type FileStore,
+} from "./file-store.ts";
+
+// The files beside a document, kept in step between two byte stores.
+export {
+  planReconcile,
+  reconcileFiles,
+  type ReconcileFailure,
+  type ReconcileOptions,
+  type ReconcilePlan,
+  type ReconcileResult,
+} from "./reconcile.ts";
 export {
   createFileStoreAdapter,
   type FileStoreAdapterOptions,
@@ -135,6 +151,7 @@ export {
   type CreateDropboxAdapterOptions,
   type DropboxAuth,
   type DropboxAuthResult,
+  type DropboxFileStore,
   type DropboxFileStoreOptions,
 } from "./dropbox/index.ts";
 

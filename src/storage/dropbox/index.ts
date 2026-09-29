@@ -14,7 +14,7 @@
 
 import { AuthError, RateLimitError, type StorageAdapter } from "../adapter.ts";
 import { createFileStoreAdapter } from "../file-store-adapter.ts";
-import type { FileEntry, FileStore } from "../file-store.ts";
+import type { ByteFileStore, FileEntry, FileStore } from "../file-store.ts";
 import {
   bearerAuthHeader,
   createRequestLog,
@@ -103,11 +103,15 @@ type ListFolderResult = {
   has_more: boolean;
 };
 
-/** Build the byte-level `FileStore` for a Dropbox connection. */
+/** The Dropbox store carries text and bytes alike: the text pair for a
+ *  document, `readBytes` / `writeBytes` for the files beside it. */
+export type DropboxFileStore = FileStore & ByteFileStore;
+
+/** Build the `FileStore` for a Dropbox connection. */
 export function createDropboxFileStore(
   auth: string | DropboxAuth,
   options: DropboxFileStoreOptions = {},
-): FileStore {
+): DropboxFileStore {
   const fetchImpl = options.fetchImpl ?? fetch;
   const log = options.logger ?? noopLogger;
   const rootPath = options.rootPath ?? "";
@@ -207,6 +211,57 @@ export function createDropboxFileStore(
             "Content-Type": "application/octet-stream",
           },
           body: text,
+        }),
+        `upload ${path}`,
+      );
+      if (res.status === 429) {
+        throw new RateLimitError(
+          parseRetryAfterMs(res.headers, RATE_LIMIT_FALLBACK_MS),
+        );
+      }
+      if (!res.ok) {
+        const detail = await readErrorBody(res);
+        throw new Error(`Dropbox upload failed: ${res.status} ${detail}`);
+      }
+    },
+
+    async readBytes(path: string): Promise<Uint8Array | null> {
+      const res = await authedFetch(
+        DOWNLOAD_ENDPOINT,
+        (token) => ({
+          method: "POST",
+          headers: {
+            ...bearerAuthHeader(token),
+            "Dropbox-API-Arg": dropboxApiArg({ path: `${rootPath}/${path}` }),
+          },
+        }),
+        `download ${path}`,
+      );
+      if (res.status === 409) return null;
+      if (!res.ok) {
+        const detail = await readErrorBody(res);
+        throw new Error(`Dropbox download failed: ${res.status} ${detail}`);
+      }
+      return new Uint8Array(await res.arrayBuffer());
+    },
+
+    // Dropbox keeps the bytes verbatim and reads the type off the path, so
+    // the body is octet-stream whatever `mime` says.
+    async writeBytes(path: string, bytes: Uint8Array): Promise<void> {
+      const res = await authedFetch(
+        UPLOAD_ENDPOINT,
+        (token) => ({
+          method: "POST",
+          headers: {
+            ...bearerAuthHeader(token),
+            "Dropbox-API-Arg": dropboxApiArg({
+              path: `${rootPath}/${path}`,
+              mode: "overwrite",
+              mute: true,
+            }),
+            "Content-Type": "application/octet-stream",
+          },
+          body: bytes as BodyInit,
         }),
         `upload ${path}`,
       );

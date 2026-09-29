@@ -1,7 +1,7 @@
 {
   "name": "@niclaslindstedt/oss-framework",
   "version": "3.13.0",
-  "description": "Shared React components, hooks and utilities for building local-first PWAs — storage backends, encryption, themes, folders and namespaces extracted from the notes and checklist apps.",
+  "description": "Shared React components, hooks and utilities for building local-first PWAs \u2014 storage backends, encryption, themes, folders and namespaces extracted from the notes and checklist apps.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
   "type": "module",
@@ -198,6 +198,16 @@
       "types": "./dist/qr/index.d.ts",
       "import": "./dist/qr/index.js",
       "require": "./dist/qr/index.cjs"
+    },
+    "./audio": {
+      "types": "./dist/audio/index.d.ts",
+      "import": "./dist/audio/index.js",
+      "require": "./dist/audio/index.cjs"
+    },
+    "./audio/mp3": {
+      "types": "./dist/audio/mp3.d.ts",
+      "import": "./dist/audio/mp3.js",
+      "require": "./dist/audio/mp3.cjs"
     }
   },
   "scripts": {
@@ -220,6 +230,7 @@
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "peerDependencies": {
+    "@breezystack/lamejs": "^1.2.0",
     "@fontsource/inter": "^5.0.0",
     "@fontsource/opendyslexic": "^5.0.0",
     "@fontsource/source-serif-4": "^5.0.0",
@@ -239,9 +250,13 @@
     },
     "@fontsource/source-serif-4": {
       "optional": true
+    },
+    "@breezystack/lamejs": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",

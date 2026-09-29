@@ -184,6 +184,14 @@ export default defineConfig({
         replacement: here("../src/references/index.ts"),
       },
       {
+        find: "@niclaslindstedt/oss-framework/audio/mp3",
+        replacement: here("../src/audio/mp3.ts"),
+      },
+      {
+        find: "@niclaslindstedt/oss-framework/audio",
+        replacement: here("../src/audio/index.ts"),
+      },
+      {
         find: "@niclaslindstedt/oss-framework/history",
         replacement: here("../src/history/index.ts"),
       },

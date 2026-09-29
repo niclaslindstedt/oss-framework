@@ -65,6 +65,8 @@ export default defineConfig({
     "revisions/index": "src/revisions/index.ts",
     "references/index": "src/references/index.ts",
     "qr/index": "src/qr/index.ts",
+    "audio/index": "src/audio/index.ts",
+    "audio/mp3": "src/audio/mp3.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
@@ -77,7 +79,13 @@ export default defineConfig({
   // and ships the font bytes from its own node_modules (optional peer deps).
   // `workbox-window` is the same shape: the PWA update hook lazily imports it,
   // and the consuming app (which owns the service-worker build) supplies it.
-  external: ["react", "react-dom", /^@fontsource\//, "workbox-window"],
+  external: [
+    "react",
+    "react-dom",
+    /^@fontsource\//,
+    "workbox-window",
+    "@breezystack/lamejs",
+  ],
   // After the JS/d.ts build, assemble the shipped stylesheet: the static
   // `framework.css` plus the per-preset colour blocks generated from
   // `PRESET_PALETTES` (the compiled module is needed, hence onSuccess). See

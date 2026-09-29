@@ -24,6 +24,15 @@ export {
   type Envelope,
 } from "./crypto.ts";
 
+// Sealing the files beside a document (pure — no React, no storage).
+export {
+  forgetSealKeys,
+  isSealedBytes,
+  openBytes,
+  sealBytes,
+  type SealOptions,
+} from "./bytes.ts";
+
 // The byte-boundary adapter wrapper.
 export {
   withEncryption,

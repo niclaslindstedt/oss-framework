@@ -182,6 +182,24 @@ export const CASES = [
     code: `import { scanQrCode } from "@niclaslindstedt/oss-framework/qr";\nconsole.log(scanQrCode());`,
     budget: 2200,
   },
+  // The meter's arithmetic on its own: a pure reading, no component behind it.
+  {
+    name: "audio/readFrame",
+    code: `import { readFrame } from "@niclaslindstedt/oss-framework/audio";\nconsole.log(readFrame(new Float32Array(4)));`,
+    budget: 2500,
+  },
+  // The FLAC encoder: the bit writer, the search and the two CRC tables.
+  {
+    name: "audio/encodeFlac",
+    code: `import { encodeFlac } from "@niclaslindstedt/oss-framework/audio";\nconsole.log(encodeFlac({ sampleRate: 44100, channels: [new Float32Array(0)] }));`,
+    budget: 8000,
+  },
+  // Sealing bytes must not drag the hook or its dialogs in.
+  {
+    name: "encryption/sealBytes",
+    code: `import { sealBytes } from "@niclaslindstedt/oss-framework/encryption";\nconsole.log(sealBytes(new Uint8Array(1), "pw"));`,
+    budget: 1500,
+  },
   {
     name: "storage/scanStorageCode",
     code: `import { scanStorageCode } from "@niclaslindstedt/oss-framework/storage";\nconsole.log(scanStorageCode());`,
