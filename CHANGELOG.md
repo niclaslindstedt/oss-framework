@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-09-29
+
+### Added
+
+- **scanQrCode — pair a phone app by scanning its code** — `scanQrCode()` and `canScanQrCode()` (`/qr`) read one QR code with the camera of a native shell that advertises the `scan-qr` capability, and `scanStorageCode()` (`/storage`) checks the scan is a pairing or invite code before handing it to the same path a paste takes; the message contract, a reference `expo-camera` shell half and the camera permission string are in `docs/native-shell.md`.
+
 ## [3.12.0] - 2026-09-28
 
 ### Added
